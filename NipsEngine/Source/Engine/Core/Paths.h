@@ -18,7 +18,7 @@ public:
 	static std::wstring SceneDir();       // Asset/Scene/
 	static std::wstring DumpDir();        // Saves/Dump/
 	static std::wstring SettingsDir();    // Settings/
-	static std::wstring MaterialTextureDir(); //Model/Texture/
+	static std::wstring MaterialTextureDir(); // Model/Texture/
 
 	// 주요 파일 경로
 	static std::wstring ShaderFilePath(); // Shaders/ShaderW0.hlsl
@@ -42,5 +42,6 @@ public:
 	static std::string ToUtf8(const std::wstring& WideStr);
 	static FString ToString(const std::wstring& wstring);
 
+	// JSON 한글 경로를 불러와서 FString 문자열로 변경할 때 사용하는 헬퍼 함수
 	static FString Normalize(const FString& Path);
 };

@@ -112,7 +112,7 @@ public:
 
 	EWorldType GetWorldType() const { return WorldType; }
 	void SetWorldType(EWorldType InWorldType) { WorldType = InWorldType; }
-
+	
 	FLightHandle RegisterLight(ULightComponentBase* Comp);
     void UnregisterLight(ULightComponentBase* Comp);
     const TArray<FLightSlot>& GetWorldLightSlots() const { return WorldLightSlots; }

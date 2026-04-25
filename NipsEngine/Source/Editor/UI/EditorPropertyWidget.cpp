@@ -237,7 +237,6 @@ void FEditorPropertyWidget::RenderComponentTree(AActor* Actor)
     for (UActorComponent* Comp : Actor->GetComponents())
     {
         if (!Comp || Comp->IsA<USceneComponent>()) { continue; }
-        if (Comp->IsVisualizationComponent()) { continue; }
 
         ImGuiTreeNodeFlags Flags = ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
         if (!bActorSelected && SelectedComponent == Comp)
@@ -298,21 +297,15 @@ void FEditorPropertyWidget::RenderComponentTree(AActor* Actor)
 // 씬 컴포넌트의 계층 구조를 재귀적으로 그리며 드래그 앤 드롭 이동을 지원합니다.
 void FEditorPropertyWidget::RenderSceneComponentNode(AActor* Actor, USceneComponent* Comp, UActorComponent*& OutCompToDelete)
 {
-    if (!Comp || Comp->IsVisualizationComponent()) return;
+    if (!Comp) return;
 
     // 노드 이름 설정
     FString Name = Comp->GetFName().ToString();
     if (Name.empty()) Name = Comp->GetTypeInfo()->name;
 
-    auto HasValidChildren = [&]() {
-        for (USceneComponent* Child : Comp->GetChildren())
-            if (!Child->IsVisualizationComponent()) return true;
-        return false;
-    };
-
     // 노드 이름, 자식 존재 여부에 따라 Tree Flag 설정
     ImGuiTreeNodeFlags Flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_DefaultOpen;
-    if (!HasValidChildren()) Flags |= ImGuiTreeNodeFlags_Leaf;
+    if (Comp->GetChildren().empty()) Flags |= ImGuiTreeNodeFlags_Leaf;
     if (!bActorSelected && SelectedComponent == Comp) Flags |= ImGuiTreeNodeFlags_Selected;
 
     // 트리 노드 출력

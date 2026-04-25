@@ -12,9 +12,6 @@ public:
 
 	virtual void Serialize(FArchive& Ar) override;
 
-    virtual void OnRegister() override;
-    virtual void OnUnregister() override;
-
     EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_FOG; }
 
     void SetFogDensity(float InFogDensity) { FogDensity = InFogDensity; }
@@ -43,8 +40,6 @@ public:
     void PostEditProperty(const char* PropertyName) override;
 
 private:
-    UBillboardComponent* VisualizationComponent = nullptr;
-
     FColor FogInscatteringColor;
     float FogDensity = 0;
     float HeightFalloff = 0;

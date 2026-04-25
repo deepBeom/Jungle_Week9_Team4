@@ -108,7 +108,11 @@ std::wstring FPaths::ToRelative(const std::wstring& AbsolutePath)
 	
 	//	RootDir 기준으로 상대 경로를 계산 (예: Asset/Scene/map.json)
 	std::filesystem::path RelPath = std::filesystem::relative(AbsPath, Root);
-	
+	if (RelPath.empty())
+    {
+        return AbsPath.lexically_normal().generic_wstring(); 
+    }
+
 	return RelPath.generic_wstring();
 }
 
@@ -143,6 +147,7 @@ std::string FPaths::ToAbsoluteString(const std::wstring &RelativePath)
 	return ToUtf8(ToAbsolute(RelativePath));
 }
 
+// JSON 경로를 불러와서 FString 문자열로 변경할 때 사용하는 헬퍼 함수, 한글/한자 경로에 안전
 FString FPaths::Normalize(const FString& Path)
 {
     std::wstring WidePath = ToWide(Path);

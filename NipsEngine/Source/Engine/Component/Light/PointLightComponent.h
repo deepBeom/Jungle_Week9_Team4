@@ -19,9 +19,6 @@ public:
     void SetAttenuationRadius(float InRadius)       { AttenuationRadius    = InRadius; }
     void SetLightFalloffExponent(float InExponent)  { LightFalloffExponent = InExponent; }
 
-protected:
-    FString GetVisualizationTexturePath() const override { return "Asset/Texture/Icons/S_LightPoint.PNG"; }
-
 private:
     float AttenuationRadius    = 10.0f;
     float LightFalloffExponent = 1.0f;

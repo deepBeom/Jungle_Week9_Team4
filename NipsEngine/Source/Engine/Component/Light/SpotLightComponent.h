@@ -14,9 +14,6 @@ public:
     void Serialize(FArchive& Ar) override;
     void PostDuplicate(UObject* Original) override;
 
-protected:
-    FString GetVisualizationTexturePath() const override { return "Asset/Texture/Icons/S_LightSpot.PNG"; }
-
 public:
     float GetInnerConeAngle() const { return InnerConeAngle; }
     float GetOuterConeAngle() const { return OuterConeAngle; }

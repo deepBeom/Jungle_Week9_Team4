@@ -126,7 +126,6 @@ json::JSON FSceneSaveManager::SerializeWorldToPrimitives(UWorld* World, const FW
 void FSceneSaveManager::CollectComponentsFlat(USceneComponent* Comp, uint32 ParentID, json::JSON& OutPrimitives)
 {
     if (Comp->IsTransient()) { return; }
-    if (Comp->IsVisualizationComponent()) { return; }
 
     json::JSON PrimObj = json::Object();
 

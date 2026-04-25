@@ -346,7 +346,7 @@ void FResourceManager::LoadFromAssetDirectory(const FString& Path)
 			continue;
 		}
 		
-		const FString RelativePath = FPaths::ToString(fs::relative(FilePath, ProjectRootPath));
+		const FString RelativePath = FPaths::ToRelativeString(FilePath.generic_wstring());
 
 		if (Extension == L".obj")
 		{

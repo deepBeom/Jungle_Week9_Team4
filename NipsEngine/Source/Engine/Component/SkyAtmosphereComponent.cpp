@@ -1,4 +1,4 @@
-#include "SkyAtmosphereComponent.h"
+﻿#include "SkyAtmosphereComponent.h"
 
 #include "Object/ObjectFactory.h"
 #include "GameFramework/AActor.h"
@@ -102,41 +102,6 @@ void USkyAtmosphereComponent::PostEditProperty(const char* PropertyName)
 	StarsIntensity = MathUtil::Clamp(StarsIntensity, 0.0f, 4.0f);
 
 	RefreshSkyStateFromWorld();
-}
-
-void USkyAtmosphereComponent::OnRegister()
-{
-	UPrimitiveComponent::OnRegister();
-
-	if (VisualizationComponent)
-	{
-		return;
-	}
-
-	AActor* Owner = GetOwner();
-	if (!Owner)
-	{
-		return;
-	}
-
-	VisualizationComponent = Owner->AddComponent<UBillboardComponent>();
-	VisualizationComponent->SetIsVisualizationComponent(true);
-	VisualizationComponent->SetTexturePath("Asset/Texture/Icons/SkyLight.PNG");
-	VisualizationComponent->AttachToComponent(this);
-}
-
-void USkyAtmosphereComponent::OnUnregister()
-{
-	if (VisualizationComponent)
-	{
-		if (AActor* Owner = GetOwner())
-		{
-			Owner->RemoveComponent(VisualizationComponent);
-		}
-		VisualizationComponent = nullptr;
-	}
-
-	UPrimitiveComponent::OnUnregister();
 }
 
 void USkyAtmosphereComponent::RefreshSkyStateFromWorld()

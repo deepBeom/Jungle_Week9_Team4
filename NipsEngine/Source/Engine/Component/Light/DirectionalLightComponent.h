@@ -18,9 +18,6 @@ public:
 	float GetShadowDistance() const { return ShadowDistance; }
 	FVector4 GetCascadeSplits() const { return CascadeSplits;  }
 
-protected:
-    FString GetVisualizationTexturePath() const override { return "Asset/Texture/Icons/S_LightDirectional.PNG"; }
-
 private:
 	int32 CascadeCount = 4;
 	float ShadowDistance = 3000.0f;

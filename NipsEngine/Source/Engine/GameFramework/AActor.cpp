@@ -30,10 +30,7 @@ static USceneComponent* DuplicateSubTree(
     USceneComponent* OriginalComp, AActor* NewActor, TArray<UActorComponent*>& OwnedComponents,
     TMap<USceneComponent*, USceneComponent*>& OutCompMap)
 {
-    if (!OriginalComp)
-        return nullptr;
-
-    if (OriginalComp->IsEditorOnly() || OriginalComp->IsVisualizationComponent())
+    if (!OriginalComp || OriginalComp->IsEditorOnly())
         return nullptr;
 
     // 현재 노드(부모) 복제
@@ -87,14 +84,7 @@ void AActor::PostDuplicate(UObject* Original)
     // 2. SceneComponent가 아닌 일반 컴포넌트들을 복제하기 위해 배열을 순회합니다.
     for (UActorComponent* OriginalComp : OrigActor->OwnedComponents)
     {
-        if (!OriginalComp)
-            continue;
-
-        // 씬 컴포넌트는 처리했으므로 건너뜁니다.
-        if (OriginalComp->IsA<USceneComponent>())
-            continue;
-
-        if (OriginalComp->IsEditorOnly() || OriginalComp->IsVisualizationComponent())
+        if (!OriginalComp || OriginalComp->IsA<USceneComponent>() || OriginalComp->IsEditorOnly())
             continue;
 
         UActorComponent* DuplicatedComp = Cast<UActorComponent>(OriginalComp->Duplicate());
@@ -193,7 +183,6 @@ void AActor::RemoveComponent(UActorComponent* Component)
         bPrimitiveCacheDirty = true;
     }
 
-    // RootComponent가 제거되면 nullptr로
     if (RootComponent == Component)
         RootComponent = nullptr;
 

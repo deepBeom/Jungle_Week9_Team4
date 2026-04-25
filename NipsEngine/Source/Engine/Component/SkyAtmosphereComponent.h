@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "PrimitiveComponent.h"
 #include "BillboardComponent.h"
@@ -41,9 +41,6 @@ public:
 	void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
 	void PostEditProperty(const char* PropertyName) override;
 
-	void OnRegister() override;
-	void OnUnregister() override;
-
 	EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_SKY; }
 	bool SupportsOutline() const override { return false; }
 
@@ -81,7 +78,6 @@ private:
 		float FogMaxOpacity = 1.0f;
 	};
 
-	UBillboardComponent* VisualizationComponent = nullptr;
 	FSkyState CachedSkyState = {};
 	bool bHasEverCapturedDirectionalLight = false;
 
