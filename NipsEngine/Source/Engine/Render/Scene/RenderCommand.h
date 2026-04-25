@@ -207,15 +207,27 @@ using FRenderLight = FGPULight;
 
 static_assert(sizeof(FGPULight) == 64, "FGPULight layout must match the HLSL structured buffer layout.");
 
+#define MAX_CASCADE_COUNT 4 // 4개 고정
+
+struct FDirectionalShadowConstants
+{
+    FMatrix LightViewProj[MAX_CASCADE_COUNT]; // 4 cascades, 64*4 = 256B
+    FVector4 SplitDistances;                  // 각 cascade가 차지하는 비율
+    float  ShadowBias = 0.001f;
+    FVector Padding;
+};
+
 struct FShadowConstants
 {
-    FMatrix LightViewProj[6]; // CSM: cascade별, Spot: [0]만, Point: 6면
-    FVector4 SplitDistances;     // CSM 전용 (4 cascade 가정), 그 외는 0
+    FMatrix LightViewProj[6];  // CSM: cascade별, Spot: [0]만, Point: 6면
+    FVector4 SplitDistances;   // CSM 전용 (4 cascade 가정), 그 외는 0
     int ShadowMapIndex;        // ShadowMapArray2D 또는 ArrayCube에서의 시작 슬라이스
     int NumSlices;             // CSM=NumCascades, Spot=1, Point=6
     int AtlasType;             // 0 = 2DArray, 1 = CubeArray
     float ShadowBias;
 };
+
+static_assert(sizeof(FShadowConstants) % 16 == 0, "FShadowConstants must be 16-byte aligned");
 
 struct FRenderCommand
 {

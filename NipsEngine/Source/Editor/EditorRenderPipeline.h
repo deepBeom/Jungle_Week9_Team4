@@ -11,9 +11,7 @@ public:
 	FEditorRenderPipeline(UEditorEngine* InEditor, FRenderer& InRenderer);
 	~FEditorRenderPipeline() override;
 
-	void Execute(float DeltaTime, FRenderer& Renderer) override;	
-	void Render3DWorld(FRenderer& Renderer);
-	void Render2DOverlay(float DeltaTime, FRenderer& Renderer);
+	void Execute(float DeltaTime, FRenderer& Renderer) override;
 	const FRenderCollector::FCullingStats& GetViewportCullingStats(int32 ViewportIndex) const;
 	const FRenderCollector::FDecalStats& GetViewportDecalStats(int32 ViewportIndex) const;
 
