@@ -6,6 +6,8 @@ class UDirectionalLightComponent : public ULightComponent
 public:
     DECLARE_CLASS(UDirectionalLightComponent, ULightComponent)
 
+    static constexpr const char* BillboardTexturePath = "Asset/Texture/Icons/S_LightDirectional.PNG";
+
     UDirectionalLightComponent();
     ~UDirectionalLightComponent() override = default;
 
