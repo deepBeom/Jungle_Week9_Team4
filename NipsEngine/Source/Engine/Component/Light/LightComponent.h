@@ -35,7 +35,8 @@ public:
     void SetLightColor(const FColor& InColor) { LightColor = InColor; }
     void SetIntensity(float InIntensity) { Intensity = InIntensity; }
     void SetVisible(bool bInVisible) { bVisible = bInVisible; }
-	
+    void SetCastShadows(bool bInCastShadows) { bCastShadows = bInCastShadows; }
+
 	const FLightHandle& GetLightHandle() const { return LightHandle; }
     void SetLightHandle(const FLightHandle& InLightHandle) { LightHandle = InLightHandle; }
 

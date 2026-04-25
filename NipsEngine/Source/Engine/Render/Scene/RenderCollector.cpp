@@ -26,6 +26,7 @@
 #include "Object/ObjectIterator.h"
 #include "Runtime/Stats/ScopeCycleCounter.h"
 #include <algorithm>
+#include <cmath>
 #include <unordered_set>
 
 namespace
@@ -39,6 +40,139 @@ namespace
 
 		const FColor& LightColor = LightComponent->GetLightColor();
 		return FVector(LightColor.r, LightColor.g, LightColor.b);
+	}
+
+	FVector MakeStableUpVector(const FVector& Direction)
+	{
+		const FVector NormalizedDirection = Direction.GetSafeNormal();
+		FVector Up = FVector::UpVector;
+		if (std::fabs(FVector::DotProduct(Up, NormalizedDirection)) > 0.98f)
+		{
+			Up = FVector::RightVector;
+		}
+		return Up;
+	}
+
+	FMatrix MakeSpotShadowViewProjection(const USpotLightComponent* SpotLight, const FVector& LightDirection)
+	{
+		const FVector Direction = LightDirection.GetSafeNormal();
+		const FVector LightPosition = SpotLight->GetWorldLocation();
+		const float NearPlane = 0.1f;
+		const float FarPlane = std::max(SpotLight->GetAttenuationRadius(), NearPlane + 1.0f);
+		const float FovY = MathUtil::DegreesToRadians(
+			MathUtil::Clamp(SpotLight->GetOuterConeAngle() * 2.0f, 1.0f, 175.0f));
+
+		const FMatrix LightView = FMatrix::MakeViewLookAtLH(
+			LightPosition,
+			LightPosition + Direction,
+			MakeStableUpVector(Direction));
+		const FMatrix LightProjection = FMatrix::MakePerspectiveFovLH(FovY, 1.0f, NearPlane, FarPlane);
+		return LightView * LightProjection;
+	}
+
+	FVector InterpolateFrustumCorner(
+		const FVector& NearCorner,
+		const FVector& FarCorner,
+		float NearDepth,
+		float FarDepth,
+		float TargetDepth)
+	{
+		const float Range = FarDepth - NearDepth;
+		if (std::fabs(Range) <= MathUtil::KindaSmallNumber)
+		{
+			return FarCorner;
+		}
+
+		const float T = (TargetDepth - NearDepth) / Range;
+		return NearCorner + (FarCorner - NearCorner) * T;
+	}
+
+	void BuildDirectionalShadowViewProjections(
+		const UDirectionalLightComponent* DirectionalLight,
+		const FRenderBus& RenderBus,
+		const FVector& DirectionToLight,
+		int32 CascadeCount,
+		FShadowConstants& ShadowData)
+	{
+		const FVector4 CascadeSplits = DirectionalLight->GetCascadeSplits();
+		const float ShadowDistance = std::max(DirectionalLight->GetShadowDistance(), 1.0f);
+		ShadowData.SplitDistances = FVector4(
+			CascadeSplits.X * ShadowDistance,
+			CascadeSplits.Y * ShadowDistance,
+			CascadeSplits.Z * ShadowDistance,
+			CascadeSplits.W * ShadowDistance);
+
+		const FMatrix InverseViewProjection = (RenderBus.GetView() * RenderBus.GetProj()).GetInverse();
+		static constexpr float NdcX[4] = { -1.0f, 1.0f, 1.0f, -1.0f };
+		static constexpr float NdcY[4] = { -1.0f, -1.0f, 1.0f, 1.0f };
+
+		FVector NearCorners[4];
+		FVector FarCorners[4];
+		for (int32 CornerIndex = 0; CornerIndex < 4; ++CornerIndex)
+		{
+			NearCorners[CornerIndex] = InverseViewProjection.TransformPosition(
+				FVector(NdcX[CornerIndex], NdcY[CornerIndex], 0.0f));
+			FarCorners[CornerIndex] = InverseViewProjection.TransformPosition(
+				FVector(NdcX[CornerIndex], NdcY[CornerIndex], 1.0f));
+		}
+
+		const FVector& CameraPosition = RenderBus.GetCameraPosition();
+		const FVector& CameraForward = RenderBus.GetCameraForward();
+		const float NearDepth = FVector::DotProduct(NearCorners[0] - CameraPosition, CameraForward);
+		const float FarDepth = FVector::DotProduct(FarCorners[0] - CameraPosition, CameraForward);
+		const FVector LightRayDirection = (DirectionToLight * -1.0f).GetSafeNormal();
+
+		float PreviousSplitDistance = 0.0f;
+		for (int32 CascadeIndex = 0; CascadeIndex < CascadeCount; ++CascadeIndex)
+		{
+			const float CurrentSplitDistance = ShadowData.SplitDistances.XYZW[CascadeIndex];
+			const float CascadeNearDistance = PreviousSplitDistance;
+			const float CascadeFarDistance = std::max(CurrentSplitDistance, CascadeNearDistance + 1.0f);
+
+			FVector CascadeCorners[8];
+			for (int32 CornerIndex = 0; CornerIndex < 4; ++CornerIndex)
+			{
+				CascadeCorners[CornerIndex] = InterpolateFrustumCorner(
+					NearCorners[CornerIndex],
+					FarCorners[CornerIndex],
+					NearDepth,
+					FarDepth,
+					CascadeNearDistance);
+				CascadeCorners[CornerIndex + 4] = InterpolateFrustumCorner(
+					NearCorners[CornerIndex],
+					FarCorners[CornerIndex],
+					NearDepth,
+					FarDepth,
+					CascadeFarDistance);
+			}
+
+			FVector Center = FVector::ZeroVector;
+			for (const FVector& Corner : CascadeCorners)
+			{
+				Center += Corner;
+			}
+			Center *= 1.0f / 8.0f;
+
+			float Radius = 1.0f;
+			for (const FVector& Corner : CascadeCorners)
+			{
+				Radius = std::max(Radius, FVector::Dist(Center, Corner));
+			}
+
+			const FVector LightPosition = Center - LightRayDirection * Radius;
+			const FMatrix LightView = FMatrix::MakeViewLookAtLH(
+				LightPosition,
+				Center,
+				MakeStableUpVector(LightRayDirection));
+			const FMatrix LightProjection = FMatrix::MakeOrthographicLH(
+				Radius * 2.0f,
+				Radius * 2.0f,
+				0.0f,
+				Radius * 2.0f);
+			ShadowData.LightViewProj[CascadeIndex] = LightView * LightProjection;
+
+			PreviousSplitDistance = CurrentSplitDistance;
+		}
 	}
 
 	FColor MakeBVHInternalNodeColor(int32 PathIndexFromLeaf, int32 PathLength)
@@ -263,10 +397,12 @@ void FRenderCollector::ResetDecalStats()
 	LastDecalStats = {};
 }
 
-// Frustum Culling 이후 남은 조명들을 수집한다.
+// 조명을 Frustum Culling을 통해 수집한다.
+// Light Collect와 Shadow Collect를 동시에 수행해줍니다.
 void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const FFrustum* ViewFrustum)
 {
     const TArray<FLightSlot>& LightSlots = World->GetWorldLightSlots();
+	int32 Next2DShadowSlice = 0;
 
 	for (const FLightSlot& Slot : LightSlots)
 	{
@@ -298,6 +434,28 @@ void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const 
 			DirectionToLight.Normalize();
 			RenderLight.Direction = DirectionToLight;
 			RenderBus.AddLight(RenderLight);
+
+			if (LightComponent->IsCastShadows())
+			{
+				const UDirectionalLightComponent* DirectionalLight = Cast<UDirectionalLightComponent>(LightComponent);
+				if (DirectionalLight != nullptr)
+				{
+					const int32 CascadeCount = MathUtil::Clamp(DirectionalLight->GetCascadeCount(), 1, 4);
+					FShadowConstants ShadowData{};
+					ShadowData.ShadowMapIndex = Next2DShadowSlice;
+					ShadowData.NumSlices = CascadeCount;
+					ShadowData.AtlasType = 0;
+					ShadowData.ShadowBias = LightComponent->GetShadowBias();
+					BuildDirectionalShadowViewProjections(
+						DirectionalLight,
+						RenderBus,
+						RenderLight.Direction,
+						CascadeCount,
+						ShadowData);
+					RenderBus.AddCastShadowLight(ShadowData);
+					Next2DShadowSlice += CascadeCount;
+				}
+			}
 
 			// TODO: PIE에서도 화살표를 보여주고 있음.. PIE 월드를 감지할 필요가 있다.
             LineBatcher->AddDirectionalLight(
@@ -331,6 +489,8 @@ void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const 
 			RenderLight.Radius = PointLight->GetAttenuationRadius();
 			RenderLight.FalloffExponent = PointLight->GetLightFalloffExponent();
 			RenderBus.AddLight(RenderLight);
+
+		    // TODO : RenderBus.AddShadowCastLight
 			break;
 		}
 
@@ -385,6 +545,19 @@ void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const 
 			RenderLight.SpotInnerCos = std::cos(MathUtil::DegreesToRadians(InnerAngle));
 			RenderLight.SpotOuterCos = std::cos(MathUtil::DegreesToRadians(OuterAngle));
 			RenderBus.AddLight(RenderLight);
+
+			if (LightComponent->IsCastShadows())
+			{
+                FShadowConstants ShadowData{};
+				ShadowData.LightViewProj[0] = MakeSpotShadowViewProjection(SpotLight, LightDirection);
+				ShadowData.ShadowMapIndex = Next2DShadowSlice;
+				ShadowData.NumSlices = 1;
+				ShadowData.AtlasType = 0;
+				ShadowData.ShadowBias = LightComponent->GetShadowBias();
+				RenderBus.AddCastShadowLight(ShadowData);
+				++Next2DShadowSlice;
+			}
+
 			break;
 		}
 

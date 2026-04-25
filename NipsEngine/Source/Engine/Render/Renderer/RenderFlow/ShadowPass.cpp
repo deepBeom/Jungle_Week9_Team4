@@ -17,6 +17,11 @@ bool FShadowPass::Begin(const FRenderPassContext* Context)
 
 bool FShadowPass::DrawCommand(const FRenderPassContext* Context)
 {
+	// TODO : Directional
+
+
+	// TODO : Spot
+
 	return true;
 }
 

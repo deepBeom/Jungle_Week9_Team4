@@ -18,8 +18,10 @@ public:
 	void AddCommand(ERenderPass Pass, const FRenderCommand& InCommand);
 	void AddCommand(ERenderPass Pass, FRenderCommand&& InCommand);
 	void AddLight(const FRenderLight& InLight) { Lights.push_back(InLight); }
+    void AddCastShadowLight(const FShadowConstants& InCastShadowLight) { CastShadowLights.push_back(InCastShadowLight); }
 	const TArray<FRenderCommand>& GetCommands(ERenderPass Pass) const;
 	const TArray<FRenderLight>& GetLights() const { return Lights; }
+    const TArray<FShadowConstants>& GetCastShadowLights() const { return CastShadowLights; }
 
 	// Getter, Setter
 	void SetViewProjection(const FMatrix& InView, const FMatrix& InProj);
@@ -46,6 +48,7 @@ public:
 private:
 	TArray<FRenderCommand> PassQueues[(uint32)ERenderPass::MAX];
 	TArray<FRenderLight> Lights;
+    TArray<FShadowConstants> CastShadowLights;
 
 	FMatrix View;
 	FMatrix Proj;

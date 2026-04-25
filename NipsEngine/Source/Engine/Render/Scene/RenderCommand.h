@@ -15,6 +15,7 @@
 
 #include "Math/Matrix.h"
 #include "Math/Vector.h"
+#include "Math/Vector4.h"
 
 
 struct ID3D11ShaderResourceView;
@@ -205,6 +206,16 @@ struct alignas(16) FGPULight
 using FRenderLight = FGPULight;
 
 static_assert(sizeof(FGPULight) == 64, "FGPULight layout must match the HLSL structured buffer layout.");
+
+struct FShadowConstants
+{
+    FMatrix LightViewProj[6]; // CSM: cascade별, Spot: [0]만, Point: 6면
+    FVector4 SplitDistances;     // CSM 전용 (4 cascade 가정), 그 외는 0
+    int ShadowMapIndex;        // ShadowMapArray2D 또는 ArrayCube에서의 시작 슬라이스
+    int NumSlices;             // CSM=NumCascades, Spot=1, Point=6
+    int AtlasType;             // 0 = 2DArray, 1 = CubeArray
+    float ShadowBias;
+};
 
 struct FRenderCommand
 {
