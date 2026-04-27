@@ -219,7 +219,7 @@ void FEditorConsoleWidget::CmdStat(const TArray<FString>& Args)
 {
 	if (Args.size() < 2)
 	{
-		AddLog("[WARN] Usage: stat <fps|memory|nametable|lightcull|none>\n");
+		AddLog("[WARN] Usage: stat <fps|memory|nametable|lightcull|shadow|none>\n");
 		return;
 	}
 
@@ -235,25 +235,36 @@ void FEditorConsoleWidget::CmdStat(const TArray<FString>& Args)
 	{
 		bool& bFlag = Layout.GetViewportState(FocusedIdx).bShowStatFPS;
 		bFlag = !bFlag;
+		Layout.GetViewportState(FocusedIdx).UpdateStatOrder(EStatType::FPS, bFlag);
 		AddLog("Stat FPS %s (viewport %d)\n", bFlag ? "Enabled" : "Disabled", FocusedIdx);
 	}
 	else if (Target == "memory")
 	{
 		bool& bFlag = Layout.GetViewportState(FocusedIdx).bShowStatMemory;
 		bFlag = !bFlag;
+		Layout.GetViewportState(FocusedIdx).UpdateStatOrder(EStatType::Memory, bFlag);
 		AddLog("Stat Memory %s (viewport %d)\n", bFlag ? "Enabled" : "Disabled", FocusedIdx);
 	}
 	else if (Target == "nametable")
 	{
 		bool& bFlag = Layout.GetViewportState(FocusedIdx).bShowStatNameTable;
 		bFlag = !bFlag;
+		Layout.GetViewportState(FocusedIdx).UpdateStatOrder(EStatType::NameTable, bFlag);
 		AddLog("Stat NameTable %s (viewport %d)\n", bFlag ? "Enabled" : "Disabled", FocusedIdx);
 	}
 	else if (Target == "lightcull")
 	{
 		bool& bFlag = Layout.GetViewportState(FocusedIdx).bShowStatLightCull;
 		bFlag = !bFlag;
+		Layout.GetViewportState(FocusedIdx).UpdateStatOrder(EStatType::LightCull, bFlag);
 		AddLog("Stat LightCull %s (viewport %d)\n", bFlag ? "Enabled" : "Disabled", FocusedIdx);
+	}
+	else if (Target == "shadow")
+	{
+		bool& bFlag = Layout.GetViewportState(FocusedIdx).bShowStatShadow;
+		bFlag = !bFlag;
+		Layout.GetViewportState(FocusedIdx).UpdateStatOrder(EStatType::Shadow, bFlag);
+		AddLog("Stat Shadow %s (viewport %d)\n", bFlag ? "Enabled" : "Disabled", FocusedIdx);
 	}
 	else if (Target == "shadowatlas")
 	{
@@ -265,11 +276,14 @@ void FEditorConsoleWidget::CmdStat(const TArray<FString>& Args)
 	{
 		for (int32 i = 0; i < FEditorViewportLayout::MaxViewports; ++i)
 		{
-			Layout.GetViewportState(i).bShowStatFPS       = false;
-			Layout.GetViewportState(i).bShowStatMemory    = false;
-			Layout.GetViewportState(i).bShowStatNameTable = false;
-			Layout.GetViewportState(i).bShowStatLightCull = false;
-			Layout.GetViewportState(i).bShowStatShadowAtlas = false;
+			auto& VS = Layout.GetViewportState(i);
+			VS.bShowStatFPS       = false;
+			VS.bShowStatMemory    = false;
+			VS.bShowStatNameTable = false;
+			VS.bShowStatLightCull = false;
+			VS.bShowStatShadow     = false;
+			VS.bShowStatShadowAtlas = false;
+			VS.ActiveStatOrder.clear();
 		}
 		AddLog("All Stats Disabled\n");
 	}

@@ -441,11 +441,24 @@ void FEditorMainPanel::RenderViewportMenuBarForIndex(int32 Index)
 
     if (ImGui::BeginMenu("Stats"))
     {
-        ImGui::MenuItem("FPS", nullptr, &State.bShowStatFPS);
-        ImGui::MenuItem("Memory", nullptr, &State.bShowStatMemory);
-        ImGui::MenuItem("Nametable", nullptr, &State.bShowStatNameTable);
-        ImGui::MenuItem("Lightcull", nullptr, &State.bShowStatLightCull);
-        ImGui::MenuItem("ShadowAtlas", nullptr, &State.bShowStatShadowAtlas);
+        if (ImGui::MenuItem("FPS", nullptr, &State.bShowStatFPS))
+            State.UpdateStatOrder(EStatType::FPS, State.bShowStatFPS);
+
+        if (ImGui::MenuItem("Memory", nullptr, &State.bShowStatMemory))
+            State.UpdateStatOrder(EStatType::Memory, State.bShowStatMemory);
+
+        if (ImGui::MenuItem("Nametable", nullptr, &State.bShowStatNameTable))
+            State.UpdateStatOrder(EStatType::NameTable, State.bShowStatNameTable);
+
+        if (ImGui::MenuItem("Lightcull", nullptr, &State.bShowStatLightCull))
+            State.UpdateStatOrder(EStatType::LightCull, State.bShowStatLightCull);
+
+        if (ImGui::MenuItem("Shadow", nullptr, &State.bShowStatShadow))
+            State.UpdateStatOrder(EStatType::Shadow, State.bShowStatShadow);
+
+        ImGui::Separator();
+        ImGui::MenuItem("Shadow Atlas", nullptr, &State.bShowStatShadowAtlas);
+
         ImGui::EndMenu();
     }
 }

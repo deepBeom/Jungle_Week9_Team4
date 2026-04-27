@@ -13,6 +13,7 @@
 #include "Engine/Component/GizmoComponent.h"
 #include "Engine/Object/FName.h"
 #include "Engine/Render/Renderer/RenderFlow/LightCullingPass.h"
+#include "Engine/Render/Renderer/RenderFlow/ShadowPass.h"
 #include "Engine/Render/Renderer/RenderFlow/ShadowAtlasManager.h"
 
 #include "Slate/SSplitterV.h"
@@ -219,6 +220,7 @@ void FEditorViewportOverlayWidget::RenderDebugStats(float DeltaTime)
             !VS.bShowStatMemory &&
             !VS.bShowStatNameTable &&
             !VS.bShowStatLightCull &&
+			!VS.bShowStatShadow &&
             !VS.bShowStatShadowAtlas)
             continue;
         
@@ -231,13 +233,17 @@ void FEditorViewportOverlayWidget::RenderDebugStats(float DeltaTime)
         if (GeneralWidth > 0.f)
             CurrentDrawPos.x += GeneralWidth + 8.f;
 
-        float NTWidth = RenderNameTableWindow(i, VS, CurrentDrawPos);
-        if (NTWidth > 0.f)
-            CurrentDrawPos.x += NTWidth + 8.f;
+        float NameTableWidth = RenderNameTableWindow(i, VS, CurrentDrawPos);
+        if (NameTableWidth > 0.f)
+            CurrentDrawPos.x += NameTableWidth + 8.f;
 
         float LightCullWidth = RenderLightCullWindow(i, VS, CurrentDrawPos);
         if (LightCullWidth > 0.f)
             CurrentDrawPos.x += LightCullWidth + 8.f;
+
+        float ShadowWidth = RenderShadowWindow(i, VS, CurrentDrawPos);
+        if (ShadowWidth > 0.f)
+            CurrentDrawPos.x += ShadowWidth + 8.f;
 
         float ShadowAtlasWidth = RenderShadowAtlasWindow(i, VS, CurrentDrawPos);
         if (ShadowAtlasWidth > 0.f)
@@ -250,19 +256,15 @@ void FEditorViewportOverlayWidget::RenderDebugStats(float DeltaTime)
 // 다중 뷰포트 모드에서 뷰포트 간의 경계선(Splitter) 및 교차점(Cross)을 드래그 시 강조해 렌더링합니다.
 void FEditorViewportOverlayWidget::RenderSplitterBar()
 {
-	 // 뷰포트를 클릭했거나, 휠 드래그를 하고 있을 때 강조하지 않습니다.
 	if (FSlateApplication::Get().GetCapturedWidget() || InputSystem::Get().GetMiddleDragging())
 		 return;
-
-	// 기즈모를 잡고 있을 때 강조하지 않습니다.
 	bool bIsHodingGizmo = EditorEngine->GetGizmo()->IsHolding();
+	if (bIsHodingGizmo || InputSystem::Get().GetRightDragging())
+	{
+		return;
+	}
 
-	 if (bIsHodingGizmo || InputSystem::Get().GetRightDragging())
-	 {
-		 return;
-	 }
-
-	 if (!EditorEngine) return;
+	if (!EditorEngine) return;
 	
 	FEditorViewportLayout& ViewportLayout = EditorEngine->GetViewportLayout();
 
@@ -595,6 +597,7 @@ float FEditorViewportOverlayWidget::RenderNameTableWindow(int32 ViewportIndex, c
     char WinId[32];
     snprintf(WinId, sizeof(WinId), "##NameTableOverlay_%d", ViewportIndex);
 
+    float WindowWidth = 0.f;
     if (ImGui::Begin(WinId, nullptr, kNameTableFlags))
     {
         FNamePool& Pool = FNamePool::Get();
@@ -616,10 +619,11 @@ float FEditorViewportOverlayWidget::RenderNameTableWindow(int32 ViewportIndex, c
         }
         Clipper.End();
         ImGui::EndChild();
+        WindowWidth = ImGui::GetWindowSize().x;
     }
     ImGui::End();
 
-    return 280.f;
+    return WindowWidth;
 }
 
 // 라이트 컬링(Light Culling) 패스의 디버그 통계(타일 수, 타일당 라이트 개수 등)를 출력하는 창을 그립니다.
@@ -634,6 +638,7 @@ float FEditorViewportOverlayWidget::RenderLightCullWindow(int32 ViewportIndex, c
     char WinId[32];
     snprintf(WinId, sizeof(WinId), "##LightCullOverlay_%d", ViewportIndex);
 
+    float WindowWidth = 0.f;
     if (ImGui::Begin(WinId, nullptr, kStatFlags))
     {
         const FLightCullingDebugStats& S = FLightCullingPass::GetDebugStats();
@@ -646,10 +651,63 @@ float FEditorViewportOverlayWidget::RenderLightCullWindow(int32 ViewportIndex, c
         ImGui::TextColored(ColorPaleBlue, "- Non-zero Tiles: %u", S.NonZeroTileCount);
         ImGui::TextColored(ColorPaleBlue, "- Max / Tile: %u", S.MaxLightsInTile);
         ImGui::TextColored(ColorPaleBlue, "- Avg / Tile: %.2f", S.AvgLightsPerTile);
+        WindowWidth = ImGui::GetWindowSize().x;
     }
     ImGui::End();
 
-	return 280.0f;
+	return WindowWidth;
+}
+
+float FEditorViewportOverlayWidget::RenderShadowWindow(int32 ViewportIndex, const FEditorViewportState& VS, const ImVec2& Pos)
+{
+    if (!VS.bShowStatShadow)
+        return 0.f;
+
+    const FEditorRenderPipeline* RenderPipeline = EditorEngine->GetEditorRenderPipeline();
+    if (!RenderPipeline) return 0.f;
+
+    const FDirectionalShadowConstants& SC = RenderPipeline->GetViewportShadowConstants(ViewportIndex);
+
+    // 씬에 방향광이 있는지 체크 (SplitDistances가 모두 0이면 표시하지 않음)
+    bool bHasLight = false;
+    for (int i = 0; i < MAX_CASCADE_COUNT; ++i) {
+        if (SC.SplitDistances.XYZW[i] > 1.0e-5f) { bHasLight = true; break; }
+    }
+    if (!bHasLight) return 0.f;
+
+    ImGui::SetNextWindowPos(Pos, ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.3f);
+
+    char WinId[32];
+    snprintf(WinId, sizeof(WinId), "##ShadowOverlay_%d", ViewportIndex);
+
+    float WindowWidth = 0.0f;
+    if (ImGui::Begin(WinId, nullptr, kStatFlags))
+    {
+        ImGui::TextColored(ColorPink, "Shadow Stat");
+        ImGui::Separator();
+
+        const uint32 Res = FShadowPass::DirectionalShadowResolution;
+        const size_t MemoryBytes = (size_t)Res * Res * MAX_CASCADE_COUNT * 4;
+        ImGui::TextColored(ColorPaleBlue, "- CSM Memory: %.2f MB", MemoryBytes / (1024.f * 1024.f));
+        ImGui::Separator();
+
+        ImGui::TextColored(ColorOrange, "Cascades (Res: %u)", Res);
+        for (int32 i = 0; i < MAX_CASCADE_COUNT; ++i)
+        {
+            const float Split = SC.SplitDistances.XYZW[i];
+            const float Radius = SC.CascadeRadius.XYZW[i];
+            const float TexelSize = (Radius * 2.0f) / static_cast<float>(Res);
+
+            ImGui::TextColored(ColorPaleBlue, "[%d] Split: %.1f", i, Split);
+            ImGui::SameLine(100.f);
+            ImGui::TextColored(ColorPaleBlue, "TexSize: %.4f", TexelSize);
+        }
+        WindowWidth = ImGui::GetWindowSize().x;
+    }
+    ImGui::End();
+
+    return WindowWidth;
 }
 
 float FEditorViewportOverlayWidget::RenderShadowAtlasWindow(int32 ViewportIndex, const FEditorViewportState& VS, const ImVec2& Pos)
@@ -661,14 +719,8 @@ float FEditorViewportOverlayWidget::RenderShadowAtlasWindow(int32 ViewportIndex,
 
     FSceneViewport& SceneViewport = EditorEngine->GetViewportLayout().GetSceneViewport(ViewportIndex);
     FRenderTargetSet* RenderTargets = SceneViewport.GetRenderTargetSet();
-    if (RenderTargets == nullptr || 
-        (RenderTargets->DirectionalShadowSRV == nullptr && RenderTargets->SpotShadowSRV == nullptr))
-    {
-        return 0.0f;
-    }
 
     constexpr float PreviewSize = 256.0f;
-    constexpr float WindowWidth = 320.0f;
 
     ImGui::SetNextWindowPos(Pos, ImGuiCond_Always);
     ImGui::SetNextWindowBgAlpha(0.3f);
@@ -676,10 +728,14 @@ float FEditorViewportOverlayWidget::RenderShadowAtlasWindow(int32 ViewportIndex,
     char WinId[40];
     snprintf(WinId, sizeof(WinId), "##ShadowAtlasOverlay_%d", ViewportIndex);
 
+    float WindowWidth = 0.0f;
     if (ImGui::Begin(WinId, nullptr, kStatFlags))
     {
+        ImGui::TextColored(ColorPink, "Shadow Atlas Stat");
+        ImGui::Separator();
+
         // ──────────── Directional ────────────
-        if (RenderTargets->DirectionalShadowSRV != nullptr)
+        ImGui::BeginGroup();
         {
             ImGui::TextColored(ColorYellow, "Directional Shadow Atlas");
             ImGui::TextColored(ColorPaleBlue, "- Cascades: %u", FShadowAtlasManager::DirectionalCascadeCount);
@@ -687,78 +743,111 @@ float FEditorViewportOverlayWidget::RenderShadowAtlasWindow(int32 ViewportIndex,
                 FShadowAtlasManager::DirectionalAtlasResolution,
                 FShadowAtlasManager::DirectionalAtlasResolution);
 
-            ImGui::Image(reinterpret_cast<ImTextureID>(RenderTargets->DirectionalShadowSRV), ImVec2(PreviewSize, PreviewSize));
+            const bool bHasDirShadow = (RenderTargets != nullptr && RenderTargets->DirectionalShadowSRV != nullptr);
+            if (bHasDirShadow)
+            {
+                ImGui::Image(reinterpret_cast<ImTextureID>(RenderTargets->DirectionalShadowSRV), ImVec2(PreviewSize, PreviewSize));
+            }
+            else
+            {
+                ImGui::Dummy(ImVec2(PreviewSize, PreviewSize));
+            }
 
             ImDrawList* DrawList = ImGui::GetWindowDrawList();
             const ImVec2 Min = ImGui::GetItemRectMin();
             const ImVec2 Max = ImGui::GetItemRectMax();
 
-            DrawList->AddRect(Min, Max, IM_COL32(255, 255, 255, 180));
+            if (!bHasDirShadow)
+            {
+                DrawList->AddRectFilled(Min, Max, IM_COL32(0, 0, 0, 150));
+            }
+            DrawList->AddRect(Min, Max, IM_COL32(255, 255, 255, 100));
             DrawAtlasGrid(DrawList, Min, Max, FShadowAtlasManager::DirectionalAtlasGridDimension);
 
-            const TArray<FDirectionalAtlasSlotDesc>& CascadeSlots = FShadowAtlasManager::GetDirectionalCascadeSlots();
-            for (const FDirectionalAtlasSlotDesc& Slot : CascadeSlots)
+            if (bHasDirShadow)
             {
-                const float X0 = Min.x + (static_cast<float>(Slot.X) / FShadowAtlasManager::DirectionalAtlasResolution) * PreviewSize;
-                const float Y0 = Min.y + (static_cast<float>(Slot.Y) / FShadowAtlasManager::DirectionalAtlasResolution) * PreviewSize;
-                const float X1 = Min.x + (static_cast<float>(Slot.X + Slot.Width) / FShadowAtlasManager::DirectionalAtlasResolution) * PreviewSize;
-                const float Y1 = Min.y + (static_cast<float>(Slot.Y + Slot.Height) / FShadowAtlasManager::DirectionalAtlasResolution) * PreviewSize;
+                const TArray<FDirectionalAtlasSlotDesc>& CascadeSlots = FShadowAtlasManager::GetDirectionalCascadeSlots();
+                for (const FDirectionalAtlasSlotDesc& Slot : CascadeSlots)
+                {
+                    const float X0 = Min.x + (static_cast<float>(Slot.X) / FShadowAtlasManager::DirectionalAtlasResolution) * PreviewSize;
+                    const float Y0 = Min.y + (static_cast<float>(Slot.Y) / FShadowAtlasManager::DirectionalAtlasResolution) * PreviewSize;
+                    const float X1 = Min.x + (static_cast<float>(Slot.X + Slot.Width) / FShadowAtlasManager::DirectionalAtlasResolution) * PreviewSize;
+                    const float Y1 = Min.y + (static_cast<float>(Slot.Y + Slot.Height) / FShadowAtlasManager::DirectionalAtlasResolution) * PreviewSize;
 
-                DrawList->AddRect(ImVec2(X0, Y0), ImVec2(X1, Y1), IM_COL32(255, 220, 0, 220), 0.0f, 0, 2.0f);
+                    DrawList->AddRect(ImVec2(X0, Y0), ImVec2(X1, Y1), IM_COL32(255, 220, 0, 220), 0.0f, 0, 2.0f);
 
-                char Label[16];
-                snprintf(Label, sizeof(Label), "C%u", Slot.CascadeIndex);
-                DrawList->AddText(ImVec2(X0 + 4.0f, Y0 + 4.0f), IM_COL32(255, 220, 0, 255), Label);
-            }
-
-            if (RenderTargets->SpotShadowSRV != nullptr)
-            {
-                ImGui::Separator();
+                    char Label[16];
+                    snprintf(Label, sizeof(Label), "C%u", Slot.CascadeIndex);
+                    DrawList->AddText(ImVec2(X0 + 4.0f, Y0 + 4.0f), IM_COL32(255, 220, 0, 255), Label);
+                }
             }
         }
-        
+        ImGui::EndGroup();
+
+        ImGui::SameLine();
+        ImGui::Spacing();
+        ImGui::SameLine();
+
         // ──────────── Spot ────────────
-        ImGui::TextColored(ColorOrange, "Spot Shadow Atlas");
-        ImGui::Separator();
-        ImGui::TextColored(ColorPaleBlue, "- Active Shadows: %u", RenderTargets->SpotShadowCount);
-        ImGui::TextColored(ColorPaleBlue, "- Atlas: %ux%u",
-            FShadowAtlasManager::SpotAtlasResolution,
-            FShadowAtlasManager::SpotAtlasResolution);
-
-        ImGui::Image(reinterpret_cast<ImTextureID>(RenderTargets->SpotShadowSRV), ImVec2(PreviewSize, PreviewSize));
-
-        ImDrawList* DrawList = ImGui::GetWindowDrawList();
-        const ImVec2 Min = ImGui::GetItemRectMin();
-        const ImVec2 Max = ImGui::GetItemRectMax();
-
-        DrawList->AddRect(Min, Max, IM_COL32(255, 255, 255, 180));
-
-        // allocator의 최소 단위(256) 기준 셀 격자를 희미하게 깔아줌
-        const float BaseCell = PreviewSize / static_cast<float>(FShadowAtlasManager::SpotAtlasCellsPerRow);
-        for (uint32 Line = 1; Line < FShadowAtlasManager::SpotAtlasCellsPerRow; ++Line)
+        ImGui::BeginGroup();
         {
-            const float X = Min.x + BaseCell * static_cast<float>(Line);
-            const float Y = Min.y + BaseCell * static_cast<float>(Line);
+            ImGui::TextColored(ColorOrange, "Spot Shadow Atlas");
+            ImGui::TextColored(ColorPaleBlue, "- Active Shadows: %u", RenderTargets ? RenderTargets->SpotShadowCount : 0);
+            ImGui::TextColored(ColorPaleBlue, "- Atlas: %ux%u",
+                FShadowAtlasManager::SpotAtlasResolution,
+                FShadowAtlasManager::SpotAtlasResolution);
 
-            DrawList->AddLine(ImVec2(X, Min.y), ImVec2(X, Max.y), IM_COL32(255, 255, 255, 35));
-            DrawList->AddLine(ImVec2(Min.x, Y), ImVec2(Max.x, Y), IM_COL32(255, 255, 255, 35));
+            const bool bHasSpotShadow = (RenderTargets != nullptr && RenderTargets->SpotShadowSRV != nullptr);
+            if (bHasSpotShadow)
+            {
+                ImGui::Image(reinterpret_cast<ImTextureID>(RenderTargets->SpotShadowSRV), ImVec2(PreviewSize, PreviewSize));
+            }
+            else
+            {
+                ImGui::Dummy(ImVec2(PreviewSize, PreviewSize));
+            }
+
+            ImDrawList* DrawList = ImGui::GetWindowDrawList();
+            const ImVec2 Min = ImGui::GetItemRectMin();
+            const ImVec2 Max = ImGui::GetItemRectMax();
+
+            if (!bHasSpotShadow)
+            {
+                DrawList->AddRectFilled(Min, Max, IM_COL32(0, 0, 0, 150));
+            }
+            DrawList->AddRect(Min, Max, IM_COL32(255, 255, 255, 100));
+
+            // Grid
+            const float BaseCell = PreviewSize / static_cast<float>(FShadowAtlasManager::SpotAtlasCellsPerRow);
+            for (uint32 Line = 1; Line < FShadowAtlasManager::SpotAtlasCellsPerRow; ++Line)
+            {
+                const float X = Min.x + BaseCell * static_cast<float>(Line);
+                const float Y = Min.y + BaseCell * static_cast<float>(Line);
+                DrawList->AddLine(ImVec2(X, Min.y), ImVec2(X, Max.y), IM_COL32(255, 255, 255, 35));
+                DrawList->AddLine(ImVec2(Min.x, Y), ImVec2(Max.x, Y), IM_COL32(255, 255, 255, 35));
+            }
+
+            if (bHasSpotShadow)
+            {
+                const TArray<FSpotAtlasSlotDesc>& ActiveSlots = FShadowAtlasManager::GetActiveSpotSlots();
+                for (const FSpotAtlasSlotDesc& Slot : ActiveSlots)
+                {
+                    const float X0 = Min.x + (static_cast<float>(Slot.X) / FShadowAtlasManager::SpotAtlasResolution) * PreviewSize;
+                    const float Y0 = Min.y + (static_cast<float>(Slot.Y) / FShadowAtlasManager::SpotAtlasResolution) * PreviewSize;
+                    const float X1 = Min.x + (static_cast<float>(Slot.X + Slot.Width) / FShadowAtlasManager::SpotAtlasResolution) * PreviewSize;
+                    const float Y1 = Min.y + (static_cast<float>(Slot.Y + Slot.Height) / FShadowAtlasManager::SpotAtlasResolution) * PreviewSize;
+
+                    DrawList->AddRect(ImVec2(X0, Y0), ImVec2(X1, Y1), IM_COL32(0, 255, 120, 220), 0.0f, 0, 2.0f);
+
+                    char Label[32];
+                    snprintf(Label, sizeof(Label), "%u (%u)", Slot.TileIndex, Slot.Width);
+                    DrawList->AddText(ImVec2(X0 + 4.0f, Y0 + 4.0f), IM_COL32(0, 255, 120, 255), Label);
+                }
+            }
         }
+        ImGui::EndGroup();
 
-        // 실제 allocator가 이번 프레임에 잡은 slot들을 그대로 표시
-        const TArray<FSpotAtlasSlotDesc>& ActiveSlots = FShadowAtlasManager::GetActiveSpotSlots();
-        for (const FSpotAtlasSlotDesc& Slot : ActiveSlots)
-        {
-            const float X0 = Min.x + (static_cast<float>(Slot.X) / FShadowAtlasManager::SpotAtlasResolution) * PreviewSize;
-            const float Y0 = Min.y + (static_cast<float>(Slot.Y) / FShadowAtlasManager::SpotAtlasResolution) * PreviewSize;
-            const float X1 = Min.x + (static_cast<float>(Slot.X + Slot.Width) / FShadowAtlasManager::SpotAtlasResolution) * PreviewSize;
-            const float Y1 = Min.y + (static_cast<float>(Slot.Y + Slot.Height) / FShadowAtlasManager::SpotAtlasResolution) * PreviewSize;
-
-            DrawList->AddRect(ImVec2(X0, Y0), ImVec2(X1, Y1), IM_COL32(0, 255, 120, 220), 0.0f, 0, 2.0f);
-
-            char Label[32];
-            snprintf(Label, sizeof(Label), "%u (%u)", Slot.TileIndex, Slot.Width);
-            DrawList->AddText(ImVec2(X0 + 4.0f, Y0 + 4.0f), IM_COL32(0, 255, 120, 255), Label);
-        }
+        WindowWidth = ImGui::GetWindowSize().x;
     }
     ImGui::End();
 

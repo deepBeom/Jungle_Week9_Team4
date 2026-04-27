@@ -14,6 +14,7 @@ FEditorRenderPipeline::FEditorRenderPipeline(UEditorEngine* InEditor, FRenderer&
     Collector.Initialize(InRenderer.GetFD3DDevice().GetDevice());
     ViewportCullingStats.resize(FEditorViewportLayout::MaxViewports);
 	ViewportDecalStats.resize(FEditorViewportLayout::MaxViewports);
+	ViewportShadowConstants.resize(FEditorViewportLayout::MaxViewports);
 }
 
 FEditorRenderPipeline::~FEditorRenderPipeline() { Collector.Release(); }
@@ -28,6 +29,11 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
     for (FRenderCollector::FCullingStats& Stats : ViewportCullingStats)
     {
         Stats = {};
+    }
+
+    for (FDirectionalShadowConstants& Shadow : ViewportShadowConstants)
+    {
+        Shadow = {};
     }
 
     if (!Editor->GetFocusedWorld())
@@ -97,6 +103,10 @@ void FEditorRenderPipeline::RenderViewport(FRenderer& Renderer, int32 ViewportIn
     Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum);
     ViewportCullingStats[ViewportIndex] = Collector.GetLastCullingStats();
     ViewportDecalStats[ViewportIndex] = Collector.GetLastDecalStats();
+    if (Bus.HasDirectionalShadow())
+    {
+        ViewportShadowConstants[ViewportIndex] = *Bus.GetDirectionalShadow();
+    }
     Collector.CollectGrid(Settings.GridSpacing, Settings.GridHalfLineCount, Bus, SceneView.bOrthographic);
 
     // 이 뷰포트가 편집 모드일 때만 기즈모·선택 오버레이를 그립니다.
@@ -141,4 +151,16 @@ const FRenderCollector::FDecalStats& FEditorRenderPipeline::GetViewportDecalStat
 	}
 
 	return ViewportDecalStats[ViewportIndex];
+}
+
+const FDirectionalShadowConstants& FEditorRenderPipeline::GetViewportShadowConstants(int32 ViewportIndex) const
+{
+	static const FDirectionalShadowConstants EmptyConstants{};
+
+	if (ViewportIndex < 0 || ViewportIndex >= static_cast<int32>(ViewportShadowConstants.size()))
+	{
+		return EmptyConstants;
+	}
+
+	return ViewportShadowConstants[ViewportIndex];
 }

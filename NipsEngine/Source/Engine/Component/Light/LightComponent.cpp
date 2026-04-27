@@ -99,6 +99,7 @@ void ULightComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProp
     OutProps.push_back({ "Shadow Slope Bias", EPropertyType::Float, &ShadowSlopeBias, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Shadow Sharpen", EPropertyType::Float, &ShadowSharpen, 0.0f, 1.0f, 0.05f });
 
+	OutProps.push_back({ "Override camera with light's perspective", EPropertyType::Bool, &bOverrideCamera});
     // 참고: LightType은 사용자가 수정하지 못하도록 UI 노출에서 제외합니다.
 }
 

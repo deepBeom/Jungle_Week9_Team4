@@ -26,10 +26,11 @@ public:
 	void SetShortcutsWindowVisible(bool bVisible) { bShowShortcutsWindow = bVisible; }
 	void Render(float DeltaTime) override;
 
-	// ──────────── Debug Stat을 호출하는 단순 헬퍼 함수 ────────────
 private:
+	// ──────────── Debug Stat을 호출하는 단순 헬퍼 함수 ────────────
 	float RenderGeneralStatsWindow(int32 ViewportIndex, const FEditorViewportState& VS, const ImVec2& Pos, float DeltaTime);
     float RenderNameTableWindow(int32 ViewportIndex, const FEditorViewportState& VS, const ImVec2& Pos);
     float RenderLightCullWindow(int32 ViewportIndex, const FEditorViewportState& VS, const ImVec2& Pos);
     float RenderShadowAtlasWindow(int32 ViewportIndex, const FEditorViewportState& VS, const ImVec2& Pos);
+	float RenderShadowWindow(int32 ViewportIndex, const FEditorViewportState& VS, const ImVec2& Pos);
 };

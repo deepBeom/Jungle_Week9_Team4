@@ -32,6 +32,16 @@ enum class EViewportPlayState : uint8
     Paused,   // PIE 일시정지
 };
 
+enum class EStatType
+{
+	FPS,
+	Memory,
+	NameTable,
+	LightCull,
+	Shadow,
+	Count
+};
+
 struct FEditorViewportState
 {
 	EViewMode ViewMode = EViewMode::Lit;
@@ -42,7 +52,50 @@ struct FEditorViewportState
 	bool bShowStatMemory     = false;
 	bool bShowStatNameTable  = false;
 	bool bShowStatLightCull  = false;
-	bool bShowStatShadowAtlas = false; // Spot shadow atlas 디버그 뷰 토글
+	bool bShowStatShadow     = false;
+	bool bShowStatShadowAtlas = false;
+
+	// 활성화된 통계의 순서를 기록 (최대 4개 유지용)
+	std::vector<EStatType> ActiveStatOrder;
+
+	void UpdateStatOrder(EStatType Type, bool bEnabled)
+	{
+		auto it = std::find(ActiveStatOrder.begin(), ActiveStatOrder.end(), Type);
+		if (bEnabled)
+		{
+			if (it == ActiveStatOrder.end())
+			{
+				ActiveStatOrder.push_back(Type);
+			}
+
+			// 4개 초과 시 가장 예전에 켠 것(가장 처음 것)을 끔
+			if (ActiveStatOrder.size() > 4)
+			{
+				EStatType ToDisable = ActiveStatOrder.front();
+				ActiveStatOrder.erase(ActiveStatOrder.begin());
+				SetStatEnabled(ToDisable, false);
+			}
+		}
+		else
+		{
+			if (it != ActiveStatOrder.end())
+			{
+				ActiveStatOrder.erase(it);
+			}
+		}
+	}
+
+	void SetStatEnabled(EStatType Type, bool bEnabled)
+	{
+		switch (Type)
+		{
+		case EStatType::FPS:       bShowStatFPS = bEnabled; break;
+		case EStatType::Memory:    bShowStatMemory = bEnabled; break;
+		case EStatType::NameTable: bShowStatNameTable = bEnabled; break;
+		case EStatType::LightCull: bShowStatLightCull = bEnabled; break;
+		case EStatType::Shadow:    bShowStatShadow = bEnabled; break;
+		}
+	}
 
 	// NameTable 오버레이 스크롤 오프셋 (휠로 조작)
 	int32 NameTableScrollLine = 0;

@@ -1097,6 +1097,7 @@ namespace
 			const FMatrix LightView = FMatrix::MakeViewLookAtLH(LightPosition, Center, MakeStableUpVector(LightDirection));
 			const FMatrix LightProjection = FMatrix::MakeOrthographicLH(Radius * 2.0f, Radius * 2.0f, ZNear, ZFar);
 			ShadowConstants.LightViewProj[i] = LightView * LightProjection;
+			ShadowConstants.CascadeRadius.XYZW[i] = Radius;
 		}
 	}
 
