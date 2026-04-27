@@ -5,8 +5,7 @@
 struct FShadowBlurConstants
 {
     uint32 BlurDirection; // 0 = Horizontal, 1 = Vertical
-    uint32 SliceCount;
-    uint32 Pad0, Pad1;
+    uint32 Pad0, Pad1, Pad2;
 };
 
 class FBlurPass : public FBaseRenderPass
@@ -22,19 +21,29 @@ public:
 private:
     bool EnsureComputeShader(ID3D11Device* Device);
     bool EnsureConstantBuffer(ID3D11Device* Device);
-    bool EnsureShadowBlurResources(ID3D11Device* Device);
+    bool EnsureSpotShadowBlurResources(ID3D11Device* Device);
+    bool EnsureDirectionalShadowBlurResources(ID3D11Device* Device);
 
-	void UpdateConstantBuffer(ID3D11DeviceContext* DeviceContext, uint32 BlurDirection);
+	void DrawBlurCommand(const FRenderPassContext* Context, uint32 Resolution,
+                         ID3D11ShaderResourceView* ShadowBlurTempSRV,
+                         ID3D11UnorderedAccessView* ShadowBlurTempUAV,
+                         ID3D11ShaderResourceView* ShadowBlurFinalSRV,
+                         ID3D11UnorderedAccessView* ShadowBlurFinalUAV);
+
+    void UpdateConstantBuffer(ID3D11DeviceContext* DeviceContext, uint32 BlurDirection);
 
 private:
-    static constexpr uint32 MaxSpotShadowCount = 8;
-    static constexpr uint32 SpotShadowResolution = 1024;
+    uint32 DirectionalShadowResolution = 2048;
+
+    uint32 MaxSpotShadowCount = 8;
+    uint32 SpotShadowResolution = 4096;
 
 	TComPtr<ID3D11ComputeShader> ComputeShader;
     TComPtr<ID3D11Buffer> ConstantBuffer;
 
 	TComPtr<ID3D11ShaderResourceView> ShadowVSMInputSRV;
 
+	// ------------- Spot ---------------------
 	// Horizontal Blur 중간 결과
 	TComPtr<ID3D11Texture2D> ShadowBlurTempTexture;
     TComPtr<ID3D11ShaderResourceView> ShadowBlurTempSRV;
@@ -44,4 +53,16 @@ private:
     TComPtr<ID3D11Texture2D> ShadowBlurFinalTexture;
     TComPtr<ID3D11ShaderResourceView> ShadowBlurFinalSRV;
     TComPtr<ID3D11UnorderedAccessView> ShadowBlurFinalUAV;
+
+	// ------------- Directional --------------
+
+	// Horizontal Blur 중간 결과
+    TComPtr<ID3D11Texture2D> DirectionalShadowBlurTempTexture;
+    TComPtr<ID3D11ShaderResourceView> DirectionalShadowBlurTempSRV;
+    TComPtr<ID3D11UnorderedAccessView> DirectionalShadowBlurTempUAV;
+
+    // Vertical Blur 최종 결과
+    TComPtr<ID3D11Texture2D> DirectionalShadowBlurFinalTexture;
+    TComPtr<ID3D11ShaderResourceView> DirectionalShadowBlurFinalSRV;
+    TComPtr<ID3D11UnorderedAccessView> DirectionalShadowBlurFinalUAV;
 };
