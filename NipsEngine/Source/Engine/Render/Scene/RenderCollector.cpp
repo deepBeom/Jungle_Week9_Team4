@@ -993,7 +993,7 @@ namespace
 	}
 
 	/* PSSM(Parallel - Split Shadow Map) 공식에 따라 View Frustum을 평행 분할합니다.
-	 * Lambda[0, 1] → Linear : 0.0f, Logarithmic : 1.0f */
+	 * Lambda[0, 1] → Lambda가 0일 경우 선형 분할의 비율이 10%, 1.0일 경우 0%가 되어 완전 지수 분할이 됩니다. */
 	void CalculatePSSMSplits(int32 CascadeCount, float Lambda, float NearPlane, float ShadowDistance, float* OutSplits)
 	{
 		OutSplits[0] = NearPlane;
@@ -1002,7 +1002,7 @@ namespace
 			float Fraction = static_cast<float>(i) / CascadeCount; // 전체 Cascade 구간 중 경계선
 			float LogarithmSplit = std::pow(ShadowDistance / NearPlane, Fraction);
 			float UniformSplit = NearPlane + (ShadowDistance - NearPlane) * Fraction;
-			OutSplits[i] = Lambda * LogarithmSplit + (1.0f - Lambda) * UniformSplit;
+			OutSplits[i] = (0.9f + Lambda) * LogarithmSplit + (0.1f - Lambda) * UniformSplit;
 		}
 		OutSplits[CascadeCount] = ShadowDistance;
 	}
@@ -1022,7 +1022,7 @@ namespace
 		const float ShadowDistance = Light->GetShadowDistance();
 
 		float Splits[MAX_CASCADE_COUNT + 1]; // CascadeCount + 1
-		CalculatePSSMSplits(CascadeCount, Lambda, NearPlane, ShadowDistance, Splits);
+		CalculatePSSMSplits(CascadeCount, Lambda * 0.1f, NearPlane, ShadowDistance, Splits);
 
 		const FMatrix InverseViewProjection = (RenderBus.GetView() * RenderBus.GetProj()).GetInverse();
 		static constexpr float NdcX[4] = { -1.0f, 1.0f, 1.0f, -1.0f };

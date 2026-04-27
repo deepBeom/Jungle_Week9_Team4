@@ -135,7 +135,7 @@ void FEditorViewportOverlayWidget::RenderViewportSettings(float DeltaTime)
 	ImGui::Checkbox("Enable LOD", &Settings.ShowFlags.bEnableLOD);
     ImGui::Checkbox("Decals", &Settings.ShowFlags.bDecals);
     ImGui::Checkbox("Fog", &Settings.ShowFlags.bFog);
-    ImGui::Checkbox("Cascade Shadow Debug", &Settings.ShowFlags.bCascadeDebug);
+    ImGui::Checkbox("Cascade Shadow", &Settings.ShowFlags.bCascadeDebug);
 
     ImGui::Separator();
 

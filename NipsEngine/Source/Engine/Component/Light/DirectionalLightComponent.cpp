@@ -14,7 +14,7 @@ void UDirectionalLightComponent::GetEditableProperties(TArray<FPropertyDescripto
     ULightComponent::GetEditableProperties(OutProps);
 	// Cascade Count는 4로 고정하고 외부에 노출하거나 저장하지 않는다.
 	OutProps.push_back({ "Shadow Distance", EPropertyType::Float, &ShadowDistance, 1000.0f, 30000.0f, 100.0f });
-	OutProps.push_back({ "Cascade Split Weight", EPropertyType::Float, &CascadeSplitWeight, 0.0f, 1.0f, 0.05f });
+	OutProps.push_back({ "Cascade Split Weight", EPropertyType::Float, &CascadeSplitWeight, 0.0f, 1.0f, 0.01f });
 }
 
 void UDirectionalLightComponent::Serialize(FArchive& Ar)

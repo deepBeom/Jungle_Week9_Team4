@@ -1,13 +1,13 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_03_DirectionalShadow",
-  "NextUUID" : 162,
+  "NextUUID" : 172,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
-    "Location" : [-2.125175, -4.437491, 6.411688],
+    "Location" : [3.754021, 7.823135, 3.670762],
     "NearClip" : 0.100000,
-    "Rotation" : [-38.397614, 24.832800, 62.080090]
+    "Rotation" : [43.492332, -30.396271, -118.072418]
   },
   "Primitives" : {
     "135" : {
@@ -27,7 +27,7 @@
       "Visible" : true
     },
     "138" : {
-      "CascadeSplitWeight" : 1.000000,
+      "CascadeSplitWeight" : 0.900000,
       "CastShadows" : true,
       "EditorOnly" : false,
       "EnableTick" : true,
