@@ -14,18 +14,18 @@ public:
     bool End(const FRenderPassContext* Context) override;
 
 private:
+	bool EnsureDirectionalShadowResources(ID3D11Device* Device, uint32 CascadeCount);
     bool EnsureSpotShadowResources(ID3D11Device* Device);
 
 private:
     FShadowAtlasManager ShadowAtlasManager;
 	std::shared_ptr<FShaderBindingInstance> ShaderBinding;
-    
-    /*
-    static constexpr uint32 MaxSpotShadowCount = 8;
-    static constexpr uint32 SpotShadowResolution = 1024;
 
-    TComPtr<ID3D11Texture2D> SpotShadowTexture;
-    TArray<TComPtr<ID3D11DepthStencilView>> SpotShadowDSVs;
-    TComPtr<ID3D11ShaderResourceView> SpotShadowSRV;
-    */
+	// ── Cascade Shadow Map (Directional Light) ──────────────────
+    static constexpr uint32 DirectionalShadowResolution = 2048;
+
+    TComPtr<ID3D11Texture2D> DirectionalShadowTexture;
+    TArray<TComPtr<ID3D11DepthStencilView>> DirectionalShadowDSVs;
+    TComPtr<ID3D11ShaderResourceView> DirectionalShadowSRV;
+    std::shared_ptr<FShaderBindingInstance> DirectionalShaderBinding;
 };

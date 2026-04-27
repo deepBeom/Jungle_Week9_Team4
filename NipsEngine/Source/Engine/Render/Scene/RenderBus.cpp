@@ -9,7 +9,7 @@ void FRenderBus::Clear()
 	}
 
 	Lights.clear();
-	CastShadowLights.clear();
+	DirectionalShadow.reset();
 	CastShadowSpotLights.clear();
 }
 

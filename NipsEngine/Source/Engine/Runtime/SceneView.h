@@ -19,6 +19,8 @@ struct FSceneView
 	FVector CameraForward;
 	FVector CameraRight;
 	FVector CameraUp;
+	float NearPlane;
+	float FarPlane;
 
 	float CameraOrthoHeight;
 

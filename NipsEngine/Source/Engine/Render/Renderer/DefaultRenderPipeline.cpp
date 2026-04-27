@@ -32,6 +32,7 @@ void FDefaultRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 		EViewMode ViewMode = EViewMode::Lit;
 
 		Bus.SetViewProjection(Camera->GetViewMatrix(), Camera->GetProjectionMatrix());
+		Bus.SetCameraPlane(Camera->GetNearPlane(), Camera->GetFarPlane());
 		Bus.SetRenderSettings(ViewMode, ShowFlags);
 		Bus.SetFXAAEnabled(true);
 		Renderer.GetEditorLineBatcher().Clear();

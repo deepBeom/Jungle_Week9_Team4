@@ -34,6 +34,7 @@ void FObjViewerRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 		EViewMode ViewMode = Settings.ViewMode;
 
 		Bus.SetViewProjection(Camera->GetViewMatrix(), Camera->GetProjectionMatrix());
+		Bus.SetCameraPlane(Camera->GetNearPlane(), Camera->GetFarPlane());
 		Bus.SetRenderSettings(ViewMode, ShowFlags);
 		Bus.SetFXAAEnabled(true);
 		Collector.SetLineBatcher(&Renderer.GetEditorLineBatcher());

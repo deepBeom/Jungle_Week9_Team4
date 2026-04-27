@@ -17,7 +17,6 @@
 #include "Math/Vector.h"
 #include "Math/Vector4.h"
 
-
 struct ID3D11ShaderResourceView;
 
 enum class ERenderCommandType
@@ -109,10 +108,12 @@ struct FSubUVConstants
 	float Width  = 1.0f;
 	float Height = 1.0f;
 };
+
 struct FBillboardConstants
 {
 	UTexture* Texture = nullptr;
 };
+
 // Static mesh material constants — UberLit/UberUnlit material contract
 // 완전 Obj전용입니다. NormalMap 은 Uber 셰이더 계약에 포함되고 BumpMap 은 현재 보존만 합니다.
 struct FStaticMeshConstants
@@ -212,15 +213,17 @@ using FRenderLight = FGPULight;
 
 static_assert(sizeof(FGPULight) == 80, "FGPULight layout must match the HLSL structured buffer layout.");
 
-struct FShadowConstants
+#define MAX_CASCADE_COUNT 4 // 4개 고정
+
+struct FDirectionalShadowConstants
 {
-    FMatrix LightViewProj[6]; // CSM: cascade별, Spot: [0]만, Point: 6면
-    FVector4 SplitDistances;     // CSM 전용 (4 cascade 가정), 그 외는 0
-    int32 ShadowMapIndex;        // ShadowMapArray2D 또는 ArrayCube에서의 시작 슬라이스
-    int32 NumSlices;             // CSM=NumCascades, Spot=1, Point=6
-    int32 AtlasType;             // 0 = 2DArray, 1 = CubeArray
-    float ShadowBias;
+    FMatrix LightViewProj[MAX_CASCADE_COUNT]; // 4 cascades, 64 * 4 = 256B
+    FVector4 SplitDistances;                  // 각 cascade가 차지하는 비율, 16B
+    float ShadowBias = 0.001f;                // 4B
+    FVector Padding;                          // 12B
 };
+
+static_assert(sizeof(FDirectionalShadowConstants) % 16 == 0, "FDirectionalShadowConstants must be 16-byte aligned");
 
 // Shadow Depth Pass용 Struct
 struct FSpotShadowConstants

@@ -132,6 +132,9 @@ void FEditorViewportClient::BuildSceneView(FSceneView& OutView) const
 	OutView.CameraRight    = Camera.GetRightVector();
 	OutView.CameraUp       = Camera.GetUpVector();
 
+	OutView.NearPlane = Camera.GetNearPlane();
+	OutView.FarPlane = Camera.GetFarPlane();
+
 	OutView.bOrthographic = Camera.IsOrthographic();
 
     OutView.CameraOrthoHeight = Camera.GetOrthoHeight();

@@ -16,13 +16,10 @@ public:
     void PostDuplicate(UObject* Original) override;
 
 	// ──────────── Cascade Shadow Map ────────────
-	int32 GetCascadeCount() const { return CascadeCount; }
 	float GetShadowDistance() const { return ShadowDistance; }
-	FVector4 GetCascadeSplits() const { return CascadeSplits;  }
+	float GetCascadeSplitWeight() const { return CascadeSplitWeight;  }
 
 private:
-	static constexpr int32 CascadeCount = 4;
-	float ShadowDistance = 3000.0f;
-	// 빛마다 Cascade Split을 다르게 조정할 수 있으므로 static constexpr로 선언하지 않는다.
-	FVector4 CascadeSplits = { 0.067f, 0.133f, 0.267f, 1.0f };
+	float ShadowDistance = 3000.0f; // 빛마다 Cascade Split을 다르게 조정할 수 있으므로 static constexpr로 선언하지 않는다.
+	float CascadeSplitWeight = 0.7f; // 0.0f면 선형 분할하며, 1.0f면 로그 분할(가까울수록 좁게, 멀수록 크게)한다.
 };
