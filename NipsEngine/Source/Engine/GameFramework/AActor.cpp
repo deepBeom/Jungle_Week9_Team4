@@ -69,7 +69,7 @@ void AActor::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
 void AActor::PostDuplicate(UObject* Original)
 {
     AActor* OrigActor = static_cast<AActor*>(Original);
-
+    OwningWorld = OrigActor->OwningWorld;
     OwnedComponents.clear();
 
     // MovementComponent 등 일반 컴포넌트들의 참조를 복원하기 위한 맵을 선언합니다.
@@ -108,6 +108,15 @@ void AActor::PostDuplicate(UObject* Original)
             {
                 DuplicatedMoveComp->SetUpdatedComponent(GetRootComponent());
             }
+        }
+    }
+
+    // 복제된 액터가 월드에 있다면 모든 컴포넌트를 등록합니다.
+    if (OwningWorld)
+    {
+        for (UActorComponent* Comp : OwnedComponents)
+        {
+            if (Comp) Comp->OnRegister();
         }
     }
 

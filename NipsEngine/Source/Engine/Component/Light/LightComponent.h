@@ -26,6 +26,8 @@ public:
     void OnRegister() override;
     void OnUnregister() override;
 
+    virtual const char* GetBillboardTexturePath() const { return nullptr; }
+
 public:
     const FColor& GetLightColor() const { return LightColor; }
     float GetIntensity() const { return Intensity; }

@@ -42,7 +42,7 @@ void ULightComponentBase::EndPlay()
 
 void ULightComponentBase::OnRegister()
 {
-    if (!Owner)
+    if (!Owner || bRegistered)
     {
         return;
     }
@@ -53,11 +53,12 @@ void ULightComponentBase::OnRegister()
         return;
     }
     World->RegisterLight(this);
+    bRegistered = true;
 }
 
 void ULightComponentBase::OnUnregister()
 {
-    if (!Owner)
+    if (!Owner || !bRegistered)
     {
         return;
     }
@@ -68,6 +69,7 @@ void ULightComponentBase::OnUnregister()
         return;
     }
     World->UnregisterLight(this);
+    bRegistered = false;
 }
 
 void ULightComponentBase::PostDuplicate(UObject* Original)
