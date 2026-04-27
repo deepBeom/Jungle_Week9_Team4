@@ -368,7 +368,7 @@ bool FShadowPass::EnsureSpotShadowResources(ID3D11Device* Device)
     VSMTextureDesc.SampleDesc.Count = 1;
     VSMTextureDesc.SampleDesc.Quality = 0;
     VSMTextureDesc.Usage = D3D11_USAGE_DEFAULT;
-    VSMTextureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+    VSMTextureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
     VSMTextureDesc.CPUAccessFlags = 0;
     VSMTextureDesc.MiscFlags = 0;
 

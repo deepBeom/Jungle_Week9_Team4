@@ -45,7 +45,7 @@ float SampleShadowPoissonDisk(float2 ShadowUV, float CurrentDepth, Texture2DArra
     float2 TexelSize = 1.0f / float2(Resolution, Resolution);  
     
     float Shadow = 0.0f;
-    float Spread = 3.5f;
+    float Spread = 3.0f;
     
     // Random Rotation: 각 픽셀마다 다른 패턴이 되도록 샘플링 데이터 회전
     // 화이트 노이즈 생성
@@ -68,6 +68,7 @@ float SampleShadowPoissonDisk(float2 ShadowUV, float CurrentDepth, Texture2DArra
 }
 
 // VSM
+// TODO: ESM
 float SampleShadowVSM(float2 ShadowUV, float CurrentDepth, Texture2DArray<float2> ShadowMapsVSM, uint ShadowSlice, int Resolution)
 {
     float2 TexelSize = 1.0f / float2(Resolution, Resolution);  
@@ -85,7 +86,7 @@ float SampleShadowVSM(float2 ShadowUV, float CurrentDepth, Texture2DArray<float2
     variance = max(variance, epsilon);
     
     float probability = variance / (variance + (CurrentDepth - d) * (CurrentDepth - d));
-    float lerpFactor = 0.3f;
+    float lerpFactor = 0.98f;
     probability = smoothstep(lerpFactor, 1.0f, probability);
     
     float shadow = probability;
@@ -147,6 +148,3 @@ float SampleShadowPCSS(float2 ShadowUV, float CurrentDepth, Texture2DArray<float
     }
     return Shadow / 16.0f;
 }
-
-// TODO
-// ESM

@@ -231,6 +231,9 @@
     <FxCompile Include="Shaders\Multipass\ToonOutlinePass.hlsl">
       <Filter>Shaders\Multipass</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Multipass\ShadowBlurCS.hlsl">
+      <Filter>Shaders\Multipass</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Editor\EditorEngine.cpp">

@@ -266,8 +266,8 @@ float ComputeSpotShadowFactor(float3 WorldPos, uint bCastShadows, int ShadowMapI
 
     return (CurrentDepth - Bias <= StoredDepth) ? 1.0f : 0.0f;
     
-    return SampleShadowVSM(ShadowUV, CurrentDepth - Bias, SpotShadowVSMMap, ShadowSlice, Resolution);
-    //return SampleShadowPoissonDisk(ShadowUV, CurrentDepth - Bias, SpotShadowMap, ShadowSlice, Resolution);
+    //return SampleShadowVSM(ShadowUV, CurrentDepth - Bias, SpotShadowVSMMap, ShadowSlice, Resolution);
+    return SampleShadowPoissonDisk(ShadowUV, CurrentDepth - Bias, SpotShadowMap, ShadowSlice, Resolution);
 }
 
 void AccumulateVisiblePointLights(float3 WorldPos, float3 N, float3 V, float2 ScreenPos, inout FLightingResult Result)
