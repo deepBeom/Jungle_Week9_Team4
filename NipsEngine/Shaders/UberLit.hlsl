@@ -93,6 +93,7 @@ cbuffer DirectionalShadowInfo : register(b7)
 {
     row_major float4x4 LightViewProj[MAX_CASCADE_COUNT];
     float4 SplitDistances;
+    float4 CascadeRadius;
     float ShadowBias;
     uint bCascadeDebug;
     float2 _DirectionalShadowInfoPad0;

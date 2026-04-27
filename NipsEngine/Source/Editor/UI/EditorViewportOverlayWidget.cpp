@@ -13,6 +13,7 @@
 #include "Engine/Component/GizmoComponent.h"
 #include "Engine/Object/FName.h"
 #include "Engine/Render/Renderer/RenderFlow/LightCullingPass.h"
+#include "Engine/Render/Renderer/RenderFlow/ShadowPass.h"
 
 #include "Slate/SSplitterV.h"
 #include "Slate/SSplitterH.h"
@@ -214,7 +215,7 @@ void FEditorViewportOverlayWidget::RenderDebugStats(float DeltaTime)
         const FEditorViewportState& VS = Layout.GetViewportState(i);
         FViewportRect ViewportRect = Layout.GetSceneViewport(i).GetRect();
 
-        if (!VS.bShowStatFPS && !VS.bShowStatMemory && !VS.bShowStatNameTable && !VS.bShowStatLightCull) 
+        if (!VS.bShowStatFPS && !VS.bShowStatMemory && !VS.bShowStatNameTable && !VS.bShowStatLightCull && !VS.bShowStatShadow) 
             continue;
         
         if (ViewportRect.Width <= 0 || ViewportRect.Height <= 0) 
@@ -226,11 +227,17 @@ void FEditorViewportOverlayWidget::RenderDebugStats(float DeltaTime)
         if (GeneralWidth > 0.f)
             CurrentDrawPos.x += GeneralWidth + 8.f;
 
-        float NTWidth = RenderNameTableWindow(i, VS, CurrentDrawPos);
-        if (NTWidth > 0.f)
-            CurrentDrawPos.x += NTWidth + 8.f;
+        float NameTableWidth = RenderNameTableWindow(i, VS, CurrentDrawPos);
+        if (NameTableWidth > 0.f)
+            CurrentDrawPos.x += NameTableWidth + 8.f;
 
         float LightCullWidth = RenderLightCullWindow(i, VS, CurrentDrawPos);
+        if (LightCullWidth > 0.f)
+            CurrentDrawPos.x += LightCullWidth + 8.f;
+
+        float ShadowWidth = RenderShadowWindow(i, VS, CurrentDrawPos);
+        if (ShadowWidth > 0.f)
+            CurrentDrawPos.x += ShadowWidth + 8.f;
 
 		// [중요] 통계를 띄우고 싶을 경우엔 여기에 위의 양식과 똑같이 추가합니다.
     }
@@ -239,19 +246,15 @@ void FEditorViewportOverlayWidget::RenderDebugStats(float DeltaTime)
 // 다중 뷰포트 모드에서 뷰포트 간의 경계선(Splitter) 및 교차점(Cross)을 드래그 시 강조해 렌더링합니다.
 void FEditorViewportOverlayWidget::RenderSplitterBar()
 {
-	 // 뷰포트를 클릭했거나, 휠 드래그를 하고 있을 때 강조하지 않습니다.
 	if (FSlateApplication::Get().GetCapturedWidget() || InputSystem::Get().GetMiddleDragging())
 		 return;
-
-	// 기즈모를 잡고 있을 때 강조하지 않습니다.
 	bool bIsHodingGizmo = EditorEngine->GetGizmo()->IsHolding();
+	if (bIsHodingGizmo || InputSystem::Get().GetRightDragging())
+	{
+		return;
+	}
 
-	 if (bIsHodingGizmo || InputSystem::Get().GetRightDragging())
-	 {
-		 return;
-	 }
-
-	 if (!EditorEngine) return;
+	if (!EditorEngine) return;
 	
 	FEditorViewportLayout& ViewportLayout = EditorEngine->GetViewportLayout();
 
@@ -620,4 +623,51 @@ float FEditorViewportOverlayWidget::RenderLightCullWindow(int32 ViewportIndex, c
     ImGui::End();
 
 	return 280.0f;
+}
+
+float FEditorViewportOverlayWidget::RenderShadowWindow(int32 ViewportIndex, const FEditorViewportState& VS, const ImVec2& Pos)
+{
+    if (!VS.bShowStatShadow)
+        return 0.f;
+
+    const FEditorRenderPipeline* RenderPipeline = EditorEngine->GetEditorRenderPipeline();
+    if (!RenderPipeline) return 0.f;
+
+    const FDirectionalShadowConstants& SC = RenderPipeline->GetViewportShadowConstants(ViewportIndex);
+
+    ImGui::SetNextWindowPos(Pos, ImGuiCond_Always);
+    ImGui::SetNextWindowBgAlpha(0.3f);
+
+    char WinId[32];
+    snprintf(WinId, sizeof(WinId), "##ShadowOverlay_%d", ViewportIndex);
+
+    if (ImGui::Begin(WinId, nullptr, kStatFlags))
+    {
+        ImGui::TextColored(ColorPink, "Shadow Stat");
+        ImGui::Separator();
+
+        // Cascade Shadow Map Memory
+        // Formula: Resolution * Resolution * NumCascades * 4 bytes
+        const uint32 Res = FShadowPass::DirectionalShadowResolution;
+        const size_t MemoryBytes = (size_t)Res * Res * MAX_CASCADE_COUNT * 4;
+        ImGui::TextColored(ColorPaleBlue, "- CSM Memory: %.2f MB", MemoryBytes / (1024.f * 1024.f));
+        ImGui::Separator();
+
+        // Cascade Splits & Texel Sizes
+        ImGui::TextColored(ColorOrange, "Cascades (Res: %u)", Res);
+        for (int32 i = 0; i < MAX_CASCADE_COUNT; ++i)
+        {
+            const float Split = SC.SplitDistances.XYZW[i];
+            const float Radius = SC.CascadeRadius.XYZW[i];
+            // Texel Size: World units per texel = (Radius * 2) / Resolution
+            const float TexelSize = (Radius * 2.0f) / static_cast<float>(Res);
+
+            ImGui::TextColored(ColorPaleBlue, "[%d] Split: %.1f", i, Split);
+            ImGui::SameLine(100.f);
+            ImGui::TextColored(ColorPaleBlue, "TexSize: %.2f", TexelSize);
+        }
+    }
+    ImGui::End();
+
+    return 280.0f;
 }
