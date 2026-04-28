@@ -133,6 +133,7 @@ Texture2D<float> PointShadowMap : register(t17);
 
 static const int kCascadeShadowResoultion = 2048; // ShadowPass::CascadeShadowResolution과 일치
 static const int kDirectionalAtlasResolution = 4096;
+static const int kPointAtlasResolution = 4096; // ShadowAtlasManager::PointAtlasResolution과 일치
 
 float4 GetDirectionalCascadeAtlasRect(int CascadeIndex)
 {
@@ -188,6 +189,8 @@ float ComputePointShadowFactor(float3 WorldPos, uint bCastShadows, int ShadowMap
         return 1.0f;
 
     const FPointShadowConstants Shadow = PointShadowData[Slice];
+    if (Shadow.bHasShadowMap == 0u)
+        return 1.0f;
 
     const float3 ToFromLight = WorldPos - Shadow.LightPosition;
     const float Dist = length(ToFromLight);
@@ -231,9 +234,19 @@ float ComputePointShadowFactor(float3 WorldPos, uint bCastShadows, int ShadowMap
         0.5f - ShadowNDC.y * 0.5f);
 
     const float4 AtlasRect = Shadow.FaceAtlasRects[FaceIndex];
-    const float2 AtlasUV = AtlasRect.xy + LocalUV * AtlasRect.zw;
 
-    const float StoredDepth = PointShadowMap.SampleLevel(SampleState, AtlasUV, 0);
+    // SampleLevel은 인접 face 타일과 bilinear blend가 일어남 → cube 경계에 누설.
+    // 명시적으로 타일 픽셀 범위에 clamp한 뒤 Load(point fetch)로 읽어와 누설 차단.
+    const int AtlasSize = kPointAtlasResolution;
+    const int2 TileBase  = (int2)(AtlasRect.xy * (float)AtlasSize);
+    const int2 TileSpan  = (int2)(AtlasRect.zw * (float)AtlasSize);
+    const int2 TileMax   = TileBase + TileSpan - int2(1, 1);
+
+    const float2 AtlasUV   = AtlasRect.xy + LocalUV * AtlasRect.zw;
+    const int2   RawTexel  = (int2)floor(AtlasUV * (float)AtlasSize);
+    const int2   ShadowTexel = clamp(RawTexel, TileBase, TileMax);
+
+    const float StoredDepth = PointShadowMap.Load(int3(ShadowTexel, 0));
 
     return (CurrentDepth - Bias) > StoredDepth ? 0.0f : 1.0f;
 }

@@ -430,7 +430,7 @@ void FShadowAtlasManager::BeginPointFrame()
     }
 
     std::fill(PointAtlasCellOccupancy.begin(), PointAtlasCellOccupancy.end(), 0u);
-    PointAtlasCellOccupancy.clear();
+    ActivePointSlots.clear();
 }
 
 bool FShadowAtlasManager::RequestPointAtlasSlot(FPointAtlasSlotDesc& OutSlot)
@@ -456,7 +456,7 @@ bool FShadowAtlasManager::RequestPointAtlasSlot(FPointAtlasSlotDesc& OutSlot)
             return true;
         }
     }
-    return true;
+    return false;
 }
 
 bool FShadowAtlasManager::IsPointRegionFree(uint32 CellX, uint32 CellY)

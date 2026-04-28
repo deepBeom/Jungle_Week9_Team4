@@ -1146,12 +1146,12 @@ namespace
 		};
 		static constexpr FVector FaceUps[6] =
 		{
-			FVector(0.0f, 1.0f, 0.0f),   // +X
-			FVector(0.0f, 1.0f, 0.0f),   // -X
-			FVector(0.0f, 0.0f, -1.0f),  // +Y
+			FVector(0.0f, 0.0f, 1.0f),   // +X
+			FVector(0.0f, 0.0f, 1.0f),   // -X
+			FVector(0.0f, 0.0f, 1.0f),   // +Y
 			FVector(0.0f, 0.0f, 1.0f),   // -Y
-			FVector(0.0f, 1.0f, 0.0f),   // +Z
-			FVector(0.0f, 1.0f, 0.0f)    // -Z
+			FVector(-1.0f, 0.0f, 0.0f),  // +Z
+			FVector(1.0f, 0.0f, 0.0f)    // -Z
 		};
 
 		// Cube face seam을 줄이기 위해 90도보다 아주 살짝 넓게 잡습니다.
