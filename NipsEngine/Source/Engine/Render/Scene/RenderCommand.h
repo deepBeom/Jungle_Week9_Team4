@@ -151,11 +151,11 @@ struct FFogConstants
 	FVector4 FogColor;
     float    FogDensity;
     float    HeightFalloff;
-    float        FogHeight;
-    float        FogStartDistance;
-    float        FogCutoffDistance;
-    float        FogMaxOpacity;
-    float        Padding[2];
+    float    FogHeight;
+    float    FogStartDistance;
+    float    FogCutoffDistance;
+    float    FogMaxOpacity;
+    float    Padding[2];
 };
 
 struct FFogPassConstants
@@ -215,14 +215,26 @@ static_assert(sizeof(FGPULight) == 80, "FGPULight layout must match the HLSL str
 
 #define MAX_CASCADE_COUNT 4 // 4개 고정
 
+namespace DirectionalShadowModeValue
+{
+    constexpr uint32 CSM = 0u;
+    constexpr uint32 PSM = 1u;
+}
+
 struct FDirectionalShadowConstants
 {
     FMatrix LightViewProj[MAX_CASCADE_COUNT]; // 4 cascades, 64 * 4 = 256B
     FVector4 SplitDistances;                  // 각 cascade가 차지하는 비율, 16B
     FVector4 CascadeRadius;                   // 각 cascade의 Bounding Sphere Radius, 16B
-    float ShadowBias = 0.001f;                // 4B
+    
+	float ShadowBias = 0.001f;                // 4B
+    float ShadowSlopeBias = 0.5f;             // 4B
+    float ShadowSharpen = 0.0f;               // 4B
     uint32 bCascadeDebug = 0;                 // 4B
+
     uint32 bHasShadowMap = 0;                 // 4B
+    uint32 ShadowFilterType = 0;              // 4B
+    uint32 ShadowMode = DirectionalShadowModeValue::CSM; // 4B
     float Padding = 0.0f;                     // 4B
 };
 
@@ -235,7 +247,8 @@ struct FSpotShadowConstants
     FVector4 AtlasRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
     float ShadowResolution = 0.0f;
     float ShadowBias = 0.0f;
-    float Padding[2] = { 0.0f, 0.0f };
+    float ShadowSharpen = 0.0f;
+    float Padding = 0.0f;
 };
 
 static_assert(sizeof(FSpotShadowConstants) == 96, "FSpotShadowConstants layout must match the shadow pass GPU layout.");
@@ -265,7 +278,6 @@ struct FRenderCommand
 	UMaterialInterface* Material = nullptr;
 	uint32 SectionIndexStart = 0;
 	uint32 SectionIndexCount = 0;
-	FDecalConstants DecalConstants = {};
 
 	union
 	{
@@ -273,6 +285,7 @@ struct FRenderCommand
 		FFontConstants Font;
 		FSubUVConstants SubUV;
 		FBillboardConstants Billboard;
+		FDecalConstants Decal;
         FSkyConstants Sky;
         FFogConstants Fog;
         FFXAAConstants FXAA;

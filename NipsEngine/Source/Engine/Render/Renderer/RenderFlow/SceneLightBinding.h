@@ -34,7 +34,8 @@ namespace SceneLightBinding
 	struct FSpotShadowInfoConstants
 	{
 		uint32 SpotShadowCount = 0;
-		float Padding[3] = { 0.0f, 0.0f, 0.0f };
+        uint32 ShadowFilterType = 0;
+		float Padding[2] = { 0.0f, 0.0f };
 	};
 
 	struct FDirectionalShadowInfoConstants
@@ -42,9 +43,15 @@ namespace SceneLightBinding
 		FMatrix LightViewProj[MAX_CASCADE_COUNT];
 		FVector4 SplitDistances;
 		FVector4 CascadeRadius;
+
 		float ShadowBias = 0.001f;
+        float ShadowSlopeBias = 0.5f;
+        float ShadowSharpen = 0.0f;
 		uint32 bCascadeDebug = 0;
+
 		uint32 bHasShadowMap = 0;
+        uint32 ShadowFilterType = 0;
+		uint32 ShadowMode = 0;
 		float Padding = 0.0f;
 	};
 
@@ -269,6 +276,7 @@ namespace SceneLightBinding
 
 		FSpotShadowInfoConstants InfoConstants = {};
 		InfoConstants.SpotShadowCount = SpotShadowCount;
+        InfoConstants.ShadowFilterType = (uint32)Context->RenderBus->GetShadowFilterType();
 
 		D3D11_MAPPED_SUBRESOURCE MappedInfo = {};
 		if (SUCCEEDED(Context->DeviceContext->Map(SpotShadowInfoConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedInfo)))
@@ -342,10 +350,14 @@ namespace SceneLightBinding
 			InfoConstants.SplitDistances = DirShadow->SplitDistances;
 			InfoConstants.CascadeRadius = DirShadow->CascadeRadius;
 			InfoConstants.ShadowBias = DirShadow->ShadowBias;
+            InfoConstants.ShadowSlopeBias = DirShadow->ShadowSlopeBias;
+            InfoConstants.ShadowSharpen = DirShadow->ShadowSharpen;
 		    InfoConstants.bCascadeDebug = DirShadow->bCascadeDebug;
+		    InfoConstants.ShadowMode = DirShadow->ShadowMode;
 		}
 
 		InfoConstants.bHasShadowMap = (ShadowMapSRV != nullptr) ? 1u : 0u;
+        InfoConstants.ShadowFilterType = (uint32)Context->RenderBus->GetShadowFilterType();
 
 		D3D11_MAPPED_SUBRESOURCE Mapped = {};
 		if (SUCCEEDED(Context->DeviceContext->Map(DirectionalShadowInfoCB.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped)))

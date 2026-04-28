@@ -517,15 +517,32 @@ void FLineBatcher::AddCircle(const FVector& Center, const FVector& AxisA, const 
 
 void FLineBatcher::AddPointLight(const FVector& Position, float AttenuationRadius, const FVector& Right, const FVector& Up)
 {
-	const FVector4 LineColor = FColor(198, 255, 198).ToVector4();
+	const FVector4 LineColor = FColor(255, 220, 100).ToVector4();
+	constexpr int32 GridCircleCount = 8;
+	constexpr float GridAngleStep = MathUtil::PI * 0.125f;
 
-	FVector AxisX = Right.GetSafeNormal();
-	FVector AxisY = Up.GetSafeNormal();
-	FVector AxisZ = AxisX.CrossProduct(AxisY).GetSafeNormal();
+	FVector AxisX = FVector(1.0f, 0.0f, 0.0f);
+	FVector AxisY = FVector(0.0f, 1.0f, 0.0f);
+	FVector AxisZ = FVector(0.0f, 0.0f, 1.0f);
 
 	AddCircle(Position, AxisX, AxisZ, AttenuationRadius, LineColor);
 	AddCircle(Position, AxisY, AxisZ, AttenuationRadius, LineColor);
 	AddCircle(Position, AxisX, AxisY, AttenuationRadius, LineColor);
+
+	for (int32 i = 1; i <= GridCircleCount; ++i)
+	{
+		const float Angle = GridAngleStep * static_cast<float>(i);
+		const FVector MeridianAxis = AxisX * -std::sin(Angle) + AxisY * std::cos(Angle);
+		AddCircle(Position, MeridianAxis, AxisZ, AttenuationRadius, LineColor);
+	}
+
+	for (int32 i = 1; i <= GridCircleCount; ++i)
+	{
+		const float Angle = -MathUtil::HalfPI + GridAngleStep * static_cast<float>(i);
+		const FVector LatitudeCenter = Position + AxisZ * (AttenuationRadius * std::sin(Angle));
+		const float LatitudeRadius = AttenuationRadius * std::cos(Angle);
+		AddCircle(LatitudeCenter, AxisX, AxisY, LatitudeRadius, LineColor);
+	}
 }
 
 void FLineBatcher::AddDirectionalLight(const FVector& Position, const FVector& Direction, const FVector& DirectionRight, const FVector4& LineColor)

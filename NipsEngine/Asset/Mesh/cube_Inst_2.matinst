@@ -1,6 +1,0 @@
-{
-        "LightingModel" : "Phong",
-        "Name" : "Asset/Mesh/cube_Inst_2.matinst",
-        "OverridedParams" : [],
-        "Parent" : "Material"
-      }

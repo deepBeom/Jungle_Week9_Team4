@@ -97,7 +97,7 @@ bool FDecalRenderPass::DrawCommand(const FRenderPassContext* Context)
                 &Cmd.PerObjectConstants,
                 nullptr,
                 Context,
-                &Cmd.DecalConstants);
+                &Cmd.Constants.Decal);
         }
 
         SceneLightBinding::BindResources(

@@ -40,6 +40,7 @@ namespace EditorKey
 	constexpr const char* bCascadeDebug = "bCascadeDebug";
 	constexpr const char* FXAAEnabled = "FXAAEnabled";
 	constexpr const char* FXAAThreshold = "FXAAThreshold"; // Backward compatibility
+	constexpr const char* ShadowFilterType = "ShadowFilterType";
 
 	// Grid
 	constexpr const char* Grid = "Grid";
@@ -98,6 +99,7 @@ void FEditorSettings::SaveToFile(const FString& Path) const
 	ViewObj[EditorKey::bBVHBoundingVolume] = ShowFlags.bBVHBoundingVolume;
 	ViewObj[EditorKey::bCascadeDebug] = ShowFlags.bCascadeDebug;
 	ViewObj[EditorKey::FXAAEnabled] = bEnableFXAA;
+	ViewObj[EditorKey::ShadowFilterType] = static_cast<int32>(ShadowFilterType);
 	Root[EditorKey::View] = ViewObj;
 
 	// Grid
@@ -235,6 +237,15 @@ void FEditorSettings::LoadFromFile(const FString& Path)
 		{
 			const float LegacyThreshold = std::clamp(static_cast<float>(ViewObj[EditorKey::FXAAThreshold].ToFloat()), 0.0f, 1.0f);
 			bEnableFXAA = (LegacyThreshold > 0.0f);
+		}
+		if (ViewObj.hasKey(EditorKey::ShadowFilterType))
+		{
+			const int32 FilterType = ViewObj[EditorKey::ShadowFilterType].ToInt();
+			if (FilterType >= static_cast<int32>(EShadowFilterType::PCF) &&
+				FilterType <= static_cast<int32>(EShadowFilterType::VSM))
+			{
+				ShadowFilterType = static_cast<EShadowFilterType>(FilterType);
+			}
 		}
 	}
 

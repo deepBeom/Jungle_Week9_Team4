@@ -1,13 +1,13 @@
 cbuffer FBlurConstants : register(b10)
 {
     uint BlurDirection; // 0 = Horizontal, 1 = Vertical
-    uint SliceCount;
     uint Pad0;
     uint Pad1;
+    uint Pad2;
 };
 
-Texture2DArray<float2> InputMap : register(t14);
-RWTexture2DArray<float2> OutputMap : register(u0);
+Texture2D<float2> InputMap : register(t14);
+RWTexture2D<float2> OutputMap : register(u0);
 
 static const int KERNEL_RADIUS = 5;
 static const float GaussWeights[11] =
@@ -28,12 +28,8 @@ void mainCS(
     uint3 GroupThreadID : SV_GroupThreadID,
     uint3 DispatchID : SV_DispatchThreadID)
 {
-    uint SliceIndex = GroupID.z;
-    if (SliceIndex >= SliceCount)
-        return;
-
-    int Width, Height, Elements;
-    InputMap.GetDimensions(Width, Height, Elements);
+    int Width, Height;
+    InputMap.GetDimensions(Width, Height);
 
     int2 TexelBase = int2(GroupID.xy) * TILE_SIZE;
 
@@ -51,7 +47,7 @@ void mainCS(
             int TexCol = clamp(TexelBase.x + CacheCol - KERNEL_RADIUS, 0, Width - 1);
             int TexRow = clamp(TexelBase.y + (int) GroupThreadID.y, 0, Height - 1);
 
-            Cache[GroupThreadID.y][CacheCol] = InputMap.Load(int4(TexCol, TexRow, SliceIndex, 0));
+            Cache[GroupThreadID.y][CacheCol] = InputMap.Load(int3(TexCol, TexRow, 0));
         }
     }
     else
@@ -68,7 +64,7 @@ void mainCS(
             int TexRow = clamp(TexelBase.y + CacheRow - KERNEL_RADIUS, 0, Height - 1);
             int TexCol = clamp(TexelBase.x + (int) GroupThreadID.x, 0, Width - 1);
 
-            Cache[GroupThreadID.x][CacheRow] = InputMap.Load(int4(TexCol, TexRow, SliceIndex, 0));
+            Cache[GroupThreadID.x][CacheRow] = InputMap.Load(int3(TexCol, TexRow, 0));
         }
     }
 
@@ -97,5 +93,5 @@ void mainCS(
         }
     }
 
-    OutputMap[uint3(DispatchID.xy, SliceIndex)] = BlurResult;
+    OutputMap[DispatchID.xy] = BlurResult;
 }

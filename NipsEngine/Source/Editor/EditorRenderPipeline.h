@@ -4,6 +4,8 @@
 #include "Render/Scene/RenderBus.h"
 
 class UEditorEngine;
+class FEditorViewportClient;
+struct FSceneView;
 
 class FEditorRenderPipeline : public IRenderPipeline
 {
@@ -14,7 +16,7 @@ public:
 	void Execute(float DeltaTime, FRenderer& Renderer) override;
 	const FRenderCollector::FCullingStats& GetViewportCullingStats(int32 ViewportIndex) const;
 	const FRenderCollector::FDecalStats& GetViewportDecalStats(int32 ViewportIndex) const;
-	const FDirectionalShadowConstants& GetViewportShadowConstants(int32 ViewportIndex) const;
+	const FRenderCollector::FShadowStats& GetViewportShadowStats(int32 ViewportIndex) const;
 
 private:
 	/*
@@ -23,11 +25,12 @@ private:
 	 * Execute 루프에서 4번 호출됩니다.
 	 */
 	void RenderViewport(FRenderer& Renderer, int32 ViewportIndex);
+	bool PrepareViewport(FRenderer& Renderer, int32 ViewportIndex, FSceneView& OutSceneView, FEditorViewportClient*& OutViewportClient);
 
 	UEditorEngine* Editor = nullptr;
 	FRenderCollector Collector;
 	FRenderBus Bus;
 	TArray<FRenderCollector::FCullingStats> ViewportCullingStats;
 	TArray<FRenderCollector::FDecalStats> ViewportDecalStats;
-	TArray<FDirectionalShadowConstants> ViewportShadowConstants;
+	TArray<FRenderCollector::FShadowStats> ViewportShadowStats;
 };

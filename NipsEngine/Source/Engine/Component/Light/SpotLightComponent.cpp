@@ -40,9 +40,10 @@ void USpotLightComponent::PostEditProperty(const char* PropertyName)
 void USpotLightComponent::Serialize(FArchive& Ar)
 {
     UPointLightComponent::Serialize(Ar);
-
+	
     Ar << "InnerConeAngle" << InnerConeAngle;
     Ar << "OuterConeAngle" << OuterConeAngle;
+	Ar << "bShadowTexelSnapped" << bShadowTexelSnapped;
 }
 
 void USpotLightComponent::PostDuplicate(UObject* Original)

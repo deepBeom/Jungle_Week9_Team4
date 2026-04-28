@@ -57,12 +57,17 @@ public:
 	bool HasDirectionalShadow() const { return DirectionalShadow.has_value(); }
 	const FDirectionalShadowConstants* GetDirectionalShadow() const { return DirectionalShadow.has_value() ? &DirectionalShadow.value() : nullptr; }
 
+	EShadowFilterType GetShadowFilterType() const { return ShadowFilterType; }
+    void SetShadowFilterType(const EShadowFilterType NewShadowFilterType) { ShadowFilterType = NewShadowFilterType; }
+
 private:
 	TArray<FRenderCommand> PassQueues[(uint32)ERenderPass::MAX];
 	TArray<FRenderLight> Lights;
 	std::optional<FDirectionalShadowConstants> DirectionalShadow;
     TArray<FSpotShadowConstants> CastShadowSpotLights;
     TArray<FPointShadowConstants> CastShadowPointLights;
+
+	EShadowFilterType ShadowFilterType = EShadowFilterType::PCF;
 
 	FMatrix View;
 	FMatrix Proj;

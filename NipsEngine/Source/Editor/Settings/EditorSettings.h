@@ -4,6 +4,7 @@
 #include "Core/Paths.h"
 #include "Core/Singleton.h"
 #include "Math/Vector.h"
+#include "Render/Common/RenderTypes.h"
 #include "Render/Common/ViewTypes.h"
 
 class FEditorSettings : public TSingleton<FEditorSettings>
@@ -29,6 +30,7 @@ public:
 	EViewMode ViewMode = EViewMode::Lit;
 	FShowFlags ShowFlags;
 	bool bEnableFXAA = true;
+	EShadowFilterType ShadowFilterType = EShadowFilterType::PCF;
 
 	// Grid
 	float GridSpacing = 1.0f;

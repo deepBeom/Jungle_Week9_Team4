@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "Editor/EditorEngine.h"
+#include "Editor/Settings/EditorSettings.h"
 #include "Editor/Viewport/ViewportLayout.h"
 #include "Engine/Object/FName.h"
 
@@ -11,11 +12,12 @@ FEditorConsoleWidget::FEditorConsoleWidget()
 {
 	// 임의의 명령어 문자열이 들어왔을 때 뒤의 함수를 실행하도록 분기한다.
 	RegisterCommand("stat", [this](const TArray<FString>& Args) { CmdStat(Args); });
+    RegisterCommand("shadow_filter", [this](const TArray<FString>& Args) { CmdShadowFilter(Args); });
 }
 
 FEditorConsoleWidget::~FEditorConsoleWidget() 
 {
-	Clear();
+    Clear();
 	ClearHistory();
 }
 
@@ -287,6 +289,37 @@ void FEditorConsoleWidget::CmdStat(const TArray<FString>& Args)
 		}
 		AddLog("All Stats Disabled\n");
 	}
+}
+
+void FEditorConsoleWidget::CmdShadowFilter(const TArray<FString>& Args)
+{
+    if (Args.size() < 2)
+    {
+        AddLog("[WARN] Usage: shadow_filter <pcf|vsm>\n");
+        return;
+    }
+
+    if (!EditorEngine)
+        return;
+   
+    FString Target = Args[1];
+    std::transform(Target.begin(), Target.end(), Target.begin(), ::tolower);
+    FEditorSettings& Settings = EditorEngine->GetSettings();
+
+    if (Target == "pcf")
+    {
+        Settings.ShadowFilterType = EShadowFilterType::PCF;
+        AddLog("Shadow filter set to PCF\n");
+    }
+	else if (Target == "vsm")
+    {
+        Settings.ShadowFilterType = EShadowFilterType::VSM;
+        AddLog("Shadow filter set to VSM\n");
+    }
+    else
+    {
+        AddLog("[WARN] Usage: shadow_filter <pcf|vsm>\n");
+    }
 }
 
 ImVector<char*> FEditorConsoleWidget::Messages;

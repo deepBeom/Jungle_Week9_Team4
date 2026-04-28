@@ -1,4 +1,4 @@
-﻿#include "EditorRenderPipeline.h"
+#include "EditorRenderPipeline.h"
 
 #include "Editor/EditorEngine.h"
 #include "Editor/Viewport/ViewportCamera.h"
@@ -11,10 +11,10 @@
 
 FEditorRenderPipeline::FEditorRenderPipeline(UEditorEngine* InEditor, FRenderer& InRenderer) : Editor(InEditor)
 {
-    Collector.Initialize(InRenderer.GetFD3DDevice().GetDevice());
-    ViewportCullingStats.resize(FEditorViewportLayout::MaxViewports);
+	Collector.Initialize(InRenderer.GetFD3DDevice().GetDevice());
+	ViewportCullingStats.resize(FEditorViewportLayout::MaxViewports);
 	ViewportDecalStats.resize(FEditorViewportLayout::MaxViewports);
-	ViewportShadowConstants.resize(FEditorViewportLayout::MaxViewports);
+	ViewportShadowStats.resize(FEditorViewportLayout::MaxViewports);
 }
 
 FEditorRenderPipeline::~FEditorRenderPipeline() { Collector.Release(); }
@@ -22,123 +22,118 @@ FEditorRenderPipeline::~FEditorRenderPipeline() { Collector.Release(); }
 void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 {
 #if STATS
-    FStatManager::Get().TakeSnapshot();
-    FGPUProfiler::Get().TakeSnapshot();
+	FStatManager::Get().TakeSnapshot();
+	FGPUProfiler::Get().TakeSnapshot();
 #endif
 
-    for (FRenderCollector::FCullingStats& Stats : ViewportCullingStats)
-    {
-        Stats = {};
-    }
+	for (FRenderCollector::FCullingStats& Stats : ViewportCullingStats) { Stats = {}; }
+	for (FRenderCollector::FShadowStats& ShadowStats : ViewportShadowStats) { ShadowStats = {}; }
+	if (!Editor->GetFocusedWorld()) return;
 
-    for (FDirectionalShadowConstants& Shadow : ViewportShadowConstants)
-    {
-        Shadow = {};
-    }
+	// 1회: 전체 백버퍼 클리어 (색상 + 깊이/스텐실)
+	Renderer.BeginFrame();
 
-    if (!Editor->GetFocusedWorld())
-        return;
+	// 4개 뷰포트를 순서대로 렌더링
+	for (int32 i = 0; i < FEditorViewportLayout::MaxViewports; ++i)
+	{
+		RenderViewport(Renderer, i);
+	}
 
-    // 1회: 전체 백버퍼 클리어 (색상 + 깊이/스텐실)
-    Renderer.BeginFrame();
+	Renderer.UseBackBufferRenderTargets();
 
-    // 4개 뷰포트를 순서대로 렌더링
-    for (int32 i = 0; i < FEditorViewportLayout::MaxViewports; ++i)
-    {
-        RenderViewport(Renderer, i);
-    }
+	// ImGui UI 오버레이
+	Editor->RenderUI(DeltaTime);
 
-    Renderer.UseBackBufferRenderTargets();
-
-    // ImGui UI 오버레이
-    Editor->RenderUI(DeltaTime);
-
-    Renderer.EndFrame();
+	Renderer.EndFrame();
 }
 
 void FEditorRenderPipeline::RenderViewport(FRenderer& Renderer, int32 ViewportIndex)
 {
-    FEditorViewportClient* VC = Editor->GetViewportLayout().GetViewportClient(ViewportIndex);
+	FSceneView SceneView;
+	FEditorViewportClient* VC = nullptr;
+	if (!PrepareViewport(Renderer, ViewportIndex, SceneView, VC)) { return; }
 
-    // 1. 이 뷰포트의 SceneView 빌드
-    //    - ViewRect : 화면 내 서브 영역 (BuildSceneView가 State->Rect에서 채움)
-    //    - ViewMode : 뷰포트별 독립 모드 (기본값 EViewMode::Lit)
-    FSceneView SceneView;
-    VC->BuildSceneView(SceneView);
+	UWorld* World = VC->GetFocusedWorld();
+	const FEditorSettings& Settings = Editor->GetSettings();
+	const FShowFlags& ShowFlags = Settings.ShowFlags;
+	const EViewMode ViewMode = SceneView.ViewMode;
+	const FFrustum& ViewFrustum = SceneView.CameraFrustum;
 
-    // 2. 렌더링 대상을 서브 영역으로 제한
-    const FViewportRect& Rect = SceneView.ViewRect;
-    if (Rect.Width <= 0 || Rect.Height <= 0)
-        return;
+	Renderer.GetEditorLineBatcher().Clear();
+	Collector.SetLineBatcher(&Renderer.GetEditorLineBatcher());
+	Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum);
+	ViewportCullingStats[ViewportIndex] = Collector.GetLastCullingStats();
+	ViewportDecalStats[ViewportIndex] = Collector.GetLastDecalStats();
+	ViewportShadowStats[ViewportIndex] = Collector.GetLastShadowStats();
 
-    FSceneViewport& SceneViewport = Editor->GetViewportLayout().GetSceneViewport(ViewportIndex);
-    
-	// Width, Height 변경 여부에 따라 Resource 버퍼 재생성
-	// 만약 최소화 등의 상황으로 (H, W) == (0, 0) 일 경우 Render 안함
+	Collector.CollectGrid(Settings.GridSpacing, Settings.GridHalfLineCount, Bus, SceneView.bOrthographic);
+
+	// 뷰포트가 편집 모드일 때만 기즈모·선택 오버레이를 그립니다.
+	if (VC->GetPlayState() == EViewportPlayState::Editing)
+	{
+		if (UGizmoComponent* Gizmo = Editor->GetGizmo())
+		{
+			if (SceneView.bOrthographic)
+				Gizmo->ApplyScreenSpaceScalingOrtho(SceneView.CameraOrthoHeight);
+			else
+				Gizmo->ApplyScreenSpaceScaling(SceneView.CameraPosition);
+		}
+
+		Collector.CollectGizmo(Editor->GetGizmo(), ShowFlags, Bus, VC->GetViewportState()->bHovered);
+		Collector.CollectSelection(Editor->GetSelectionManager().GetSelectedActors(), ShowFlags, ViewMode, Bus);
+	}
+
+	// CPU 배처 데이터 준비 → GPU 드로우 (SetSubViewport 영역에만 출력됨)
+	Renderer.PrepareBatchers(Bus);
+	Renderer.Render(Bus);
+}
+
+// 지정한 에디터 뷰포트의 렌더 타겟과 RenderBus 기본 상태를 준비합니다.
+bool FEditorRenderPipeline::PrepareViewport(FRenderer& Renderer, int32 ViewportIndex, FSceneView& OutSceneView, FEditorViewportClient*& OutViewportClient)
+{
+	OutViewportClient = Editor->GetViewportLayout().GetViewportClient(ViewportIndex);
+	if (OutViewportClient == nullptr)
+	{
+		return false;
+	}
+
+	OutViewportClient->BuildSceneView(OutSceneView);
+
+	const FViewportRect& Rect = OutSceneView.ViewRect;
+	if (Rect.Width <= 0 || Rect.Height <= 0)
+	{
+		return false;
+	}
+
+	FSceneViewport& SceneViewport = Editor->GetViewportLayout().GetSceneViewport(ViewportIndex);
 	FViewportRenderResource& ViewportResource = Editor->GetRenderer().AcquireViewportResource(&SceneViewport, Rect.Width, Rect.Height, ViewportIndex);
-    SceneViewport.SetRenderTargetSet(&ViewportResource.GetView());
+	SceneViewport.SetRenderTargetSet(&ViewportResource.GetView());
 
-    // Viewport 별 버퍼 클리어 및 Renderer 버퍼 세팅
-    Renderer.BeginViewportFrame(SceneViewport.GetViewportRenderTargets());
+	Renderer.BeginViewportFrame(SceneViewport.GetViewportRenderTargets());
 
-    // 3. 이 뷰포트용 렌더 데이터 수집
-    Bus.Clear();
-
-    // 각 뷰포트는 자신이 참조하는 월드를 렌더링합니다.
-    UWorld*                World = VC->GetFocusedWorld();
-    const FEditorSettings& Settings = Editor->GetSettings();
-    const FShowFlags&      ShowFlags = Settings.ShowFlags;
-    const EViewMode        ViewMode = SceneView.ViewMode;
-
-    Bus.SetViewProjection(SceneView.ViewMatrix, SceneView.ProjectionMatrix);
-	Bus.SetCameraPlane(SceneView.NearPlane, SceneView.FarPlane);
-    Bus.SetRenderSettings(ViewMode, ShowFlags);
+	const FEditorSettings& Settings = Editor->GetSettings();
+	Bus.Clear();
+	Bus.SetViewProjection(OutSceneView.ViewMatrix, OutSceneView.ProjectionMatrix);
+	Bus.SetCameraPlane(OutSceneView.NearPlane, OutSceneView.FarPlane);
+	Bus.SetRenderSettings(OutSceneView.ViewMode, Settings.ShowFlags);
 	Bus.SetViewportSize(FVector2(static_cast<float>(Rect.Width), static_cast<float>(Rect.Height)));
-    Bus.SetViewportOrigin(FVector2(0.0f, 0.0f));
-    Bus.SetFXAAEnabled(Settings.bEnableFXAA && !SceneView.bOrthographic);
+	Bus.SetViewportOrigin(FVector2(0.0f, 0.0f));
+	Bus.SetFXAAEnabled(Settings.bEnableFXAA && !OutSceneView.bOrthographic);
+    Bus.SetShadowFilterType(Settings.ShadowFilterType);
 
-    const FFrustum& ViewFrustum = SceneView.CameraFrustum;
-    Renderer.GetEditorLineBatcher().Clear();
-    Collector.SetLineBatcher(&Renderer.GetEditorLineBatcher());
-    Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum);
-    ViewportCullingStats[ViewportIndex] = Collector.GetLastCullingStats();
-    ViewportDecalStats[ViewportIndex] = Collector.GetLastDecalStats();
-    if (Bus.HasDirectionalShadow())
-    {
-        ViewportShadowConstants[ViewportIndex] = *Bus.GetDirectionalShadow();
-    }
-    Collector.CollectGrid(Settings.GridSpacing, Settings.GridHalfLineCount, Bus, SceneView.bOrthographic);
-
-    // 이 뷰포트가 편집 모드일 때만 기즈모·선택 오버레이를 그립니다.
-    if (VC->GetPlayState() == EViewportPlayState::Editing)
-    {
-        if (UGizmoComponent* Gizmo = Editor->GetGizmo())
-        {
-            if (SceneView.bOrthographic)
-                Gizmo->ApplyScreenSpaceScalingOrtho(SceneView.CameraOrthoHeight);
-            else
-                Gizmo->ApplyScreenSpaceScaling(SceneView.CameraPosition);
-        }
-
-        Collector.CollectGizmo(Editor->GetGizmo(), ShowFlags, Bus, VC->GetViewportState()->bHovered);
-        Collector.CollectSelection(Editor->GetSelectionManager().GetSelectedActors(), ShowFlags, ViewMode, Bus);
-    }
-
-    // 4. CPU 배처 데이터 준비 → GPU 드로우 (SetSubViewport 영역에만 출력됨)
-    Renderer.PrepareBatchers(Bus);
-    Renderer.Render(Bus);
+	return true;
 }
 
 const FRenderCollector::FCullingStats& FEditorRenderPipeline::GetViewportCullingStats(int32 ViewportIndex) const
 {
-    static const FRenderCollector::FCullingStats EmptyStats{};
+	static const FRenderCollector::FCullingStats EmptyStats{};
 
-    if (ViewportIndex < 0 || ViewportIndex >= static_cast<int32>(ViewportCullingStats.size()))
-    {
-        return EmptyStats;
-    }
+	if (ViewportIndex < 0 || ViewportIndex >= static_cast<int32>(ViewportCullingStats.size()))
+	{
+		return EmptyStats;
+	}
 
-    return ViewportCullingStats[ViewportIndex];
+	return ViewportCullingStats[ViewportIndex];
 }
 
 const FRenderCollector::FDecalStats& FEditorRenderPipeline::GetViewportDecalStats(int32 ViewportIndex) const
@@ -153,14 +148,14 @@ const FRenderCollector::FDecalStats& FEditorRenderPipeline::GetViewportDecalStat
 	return ViewportDecalStats[ViewportIndex];
 }
 
-const FDirectionalShadowConstants& FEditorRenderPipeline::GetViewportShadowConstants(int32 ViewportIndex) const
+const FRenderCollector::FShadowStats& FEditorRenderPipeline::GetViewportShadowStats(int32 ViewportIndex) const
 {
-	static const FDirectionalShadowConstants EmptyConstants{};
+	static const FRenderCollector::FShadowStats EmptyStats{};
 
-	if (ViewportIndex < 0 || ViewportIndex >= static_cast<int32>(ViewportShadowConstants.size()))
+	if (ViewportIndex < 0 || ViewportIndex >= static_cast<int32>(ViewportShadowStats.size()))
 	{
-		return EmptyConstants;
+		return EmptyStats;
 	}
 
-	return ViewportShadowConstants[ViewportIndex];
+	return ViewportShadowStats[ViewportIndex];
 }
