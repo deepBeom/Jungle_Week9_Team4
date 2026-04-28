@@ -153,6 +153,8 @@ void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const 
 				{
 					FDirectionalShadowConstants ShadowConstants;
 					ShadowConstants.ShadowBias = LightComponent->GetShadowBias();
+                    ShadowConstants.ShadowSlopeBias = LightComponent->GetShadowSlopeBias();
+                    ShadowConstants.ShadowSharpen = LightComponent->GetShadowSharpen();
 					ShadowConstants.bCascadeDebug = RenderBus.GetShowFlags().bCascadeDebug ? 1 : 0;
 					BuildDirectionalShadowViewProjection(DirectionalLight, RenderBus, RenderLight.Direction, ShadowConstants);
 
@@ -1252,13 +1254,17 @@ namespace
 			if (Light->IsShadowTexelSnapped())
 			{
 				const float TexelSize = (Radius * 2.0f) / static_cast<float>(FShadowAtlasManager::DirectionalCascadeResolution);
-				const FVector RefLightPosition = Center - LightDirection * Radius;
-				const FMatrix RefLightView = FMatrix::MakeViewLookAtLH(RefLightPosition, Center, MakeStableUpVector(LightDirection));
+				const FVector LightForward = LightDirection.GetSafeNormal();
+				const FVector LightRight = FVector::CrossProduct(MakeStableUpVector(LightForward), LightForward).GetSafeNormal();
+				const FVector LightUp = FVector::CrossProduct(LightForward, LightRight).GetSafeNormal();
 
-				FVector SnappedCenter = RefLightView.TransformPosition(Center);
-				SnappedCenter.X = std::round(SnappedCenter.X / TexelSize) * TexelSize;
-				SnappedCenter.Y = std::round(SnappedCenter.Y / TexelSize) * TexelSize;
-				Center = RefLightView.GetInverse().TransformPosition(SnappedCenter);
+				const float CenterRight = FVector::DotProduct(Center, LightRight);
+				const float CenterUp = FVector::DotProduct(Center, LightUp);
+				const float SnappedRight = std::round(CenterRight / TexelSize) * TexelSize;
+				const float SnappedUp = std::round(CenterUp / TexelSize) * TexelSize;
+
+				Center += LightRight * (SnappedRight - CenterRight);
+				Center += LightUp * (SnappedUp - CenterUp);
 			}
 
 			const FVector LightPosition = Center - LightDirection * Radius;
