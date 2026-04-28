@@ -179,7 +179,7 @@ int GetCascadeIndex(float3 WorldPos)
 // 뷰 공간 깊이로 Cascade Index를 결정한다.
 float SampleDirectionalShadowAtIndex(float3 WorldPos, float3 N, float3 L, int ShadowIndex)
 {
-    const float BiasScale = (ShadowMode == SHADOW_MODE_PSM) ? PSM_SHADOW_BIAS_SCALE : max(SplitDistances.w, 1.0e-4f);
+    const float BiasScale = (ShadowMode == SHADOW_MODE_PSM) ? PSM_SHADOW_BIAS_SCALE : max(CascadeRadius[ShadowIndex] * 2.0f, 1.0e-4f);
     const float NormalizedBias = ShadowBias / BiasScale;
     const float NormalizedSlopeBias = ShadowSlopeBias / BiasScale;
     
@@ -214,17 +214,19 @@ float SampleDirectionalShadowAtIndex(float3 WorldPos, float3 N, float3 L, int Sh
     
     int2 AtlasSize = int2(kDirectionalAtlasResolution, kDirectionalAtlasResolution);
     
+    const float CurrentDepth = ShadowNDC.z;
+    
     if (ShadowFilterType == SHADOW_FILTER_TYPE_PCF)
     {
-        return SampleShadowPoissonDisk(AtlasUV, ShadowNDC.z - Bias, DirectionalShadowMap, AtlasSize, ShadowSharpen);
+        return SampleShadowPoissonDisk(AtlasUV, CurrentDepth - Bias, DirectionalShadowMap, AtlasSize, ShadowSharpen);
     }
     else if (ShadowFilterType == SHADOW_FILTER_TYPE_ESM)
     {
-        return SampleShadowESM(AtlasUV, ShadowNDC.z - Bias, DirectionalShadowVSMMap, AtlasSize);
+        return SampleShadowESM(AtlasUV, CurrentDepth - Bias, DirectionalShadowVSMMap, AtlasSize);
     }
     else
     {
-        return SampleShadowVSM(AtlasUV, ShadowNDC.z - Bias, DirectionalShadowVSMMap, AtlasSize);
+        return SampleShadowVSM(AtlasUV, CurrentDepth - Bias, DirectionalShadowVSMMap, AtlasSize);
     }
 }
 

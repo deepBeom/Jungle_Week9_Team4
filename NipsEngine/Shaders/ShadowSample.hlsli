@@ -97,9 +97,8 @@ float SampleShadowESM(float2 ShadowUV, float CurrentDepth, Texture2D<float2> Sha
     static const float ShadowESMExponent = 40.0f;
 
     float Stored = ShadowMapESM.Load(int3(ShadowUV * AtlasSize, 0)).x;
-    float Receiver = exp(-ShadowESMExponent * saturate(CurrentDepth));
-    float Shadow = Receiver / max(Stored, 1.0e-5f);
-
+    float Shadow = Stored * exp(-ShadowESMExponent * CurrentDepth);
+    
     return saturate(Shadow);
 }
 

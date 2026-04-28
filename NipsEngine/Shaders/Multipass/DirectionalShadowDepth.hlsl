@@ -47,7 +47,7 @@ float2 mainPS(FDirectionalShadowVSOutput Input) : SV_Target0
     float d = Input.ClipPosW.z / Input.ClipPosW.w;
     if (ShadowFilterType == SHADOW_FILTER_TYPE_ESM)
     {
-        const float e = exp(-SHADOW_ESM_EXPONENT * saturate(d));
+        const float e = exp(SHADOW_ESM_EXPONENT * d);
         return float2(e, e);
     }
     return float2(d, d * d);

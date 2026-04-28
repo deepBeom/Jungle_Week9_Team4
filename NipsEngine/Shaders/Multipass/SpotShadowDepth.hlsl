@@ -50,7 +50,7 @@ float2 mainPS(FSpotShadowVSOutput Input) : SV_Target0
     float d = saturate(Input.ClipPosW.w / max(ShadowFarPlane, 1.0e-4f));
     if (ShadowFilterType == SHADOW_FILTER_TYPE_ESM)
     {
-        const float e = exp(-SHADOW_ESM_EXPONENT * d);
+        const float e = exp(SHADOW_ESM_EXPONENT * d);
         return float2(e, e);
     }
 
