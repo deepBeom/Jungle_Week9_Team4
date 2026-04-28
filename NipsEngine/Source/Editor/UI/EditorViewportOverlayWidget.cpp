@@ -66,39 +66,15 @@ namespace
 	const ImVec4 ColorOrange = ImVec4(1.0f, 0.5f, 0.0f, 1.0f);
 	const ImVec4 ColorYellow = ImVec4(1.0f, 1.0f, 0.0f, 1.0f);
 	const ImVec4 ColorPink   = ImVec4(1.0f, 0.5f, 0.5f, 1.0f);
-	const ImVec4 ColorRed      = ImVec4(1.0f, 0.2f, 0.2f, 1.0f); // 미사용
-	const ImVec4 ColorPurple   = ImVec4(0.7f, 0.4f, 1.0f, 1.0f);
-	const ImVec4 ColorMint     = ImVec4(0.3f, 1.0f, 0.7f, 1.0f);
-}
+	const ImVec4 ColorRed    = ImVec4(1.0f, 0.2f, 0.2f, 1.0f);
+	const ImVec4 ColorPurple = ImVec4(0.7f, 0.4f, 1.0f, 1.0f);
+	const ImVec4 ColorMint   = ImVec4(0.3f, 1.0f, 0.7f, 1.0f);
 
-// 뷰포트 타입(Enum)을 UI에 표시할 문자열로 변환합니다.
-static const char* GetViewportTypeName(EEditorViewportType Type)
-{
-	switch (Type)
-	{
-	case EVT_Perspective: return "Perspective";
-	case EVT_OrthoTop:    return "Top";
-	case EVT_OrthoBottom: return "Bottom";
-	case EVT_OrthoFront:  return "Front";
-	case EVT_OrthoBack:   return "Back";
-	case EVT_OrthoLeft:   return "Left";
-	case EVT_OrthoRight:  return "Right";
-	default:              return "Viewport";
-	}
-}
-
-// 뷰 모드(Enum)를 UI에 표시할 문자열로 변환합니다.
-static const char* GetViewModeName(EViewMode Mode)
-{
-	switch (Mode)
-	{
-	case EViewMode::Lit:         return "Lit";
-	case EViewMode::Unlit:       return "Unlit";
-	case EViewMode::Wireframe:   return "Wireframe";
-	case EViewMode::SceneDepth:  return "Scene Depth";
-	case EViewMode::WorldNormal: return "World Normal";
-	default:                     return "Lit";
-	}
+	const char* GetViewportTypeName(EEditorViewportType Type);
+	const char* GetViewModeName(EViewMode Mode);
+	void DrawAtlasGrid(ImDrawList* DrawList, const ImVec2& Min, const ImVec2& Max, uint32 GridDimension);
+	const char* GetPointFaceLabel(uint32 FaceIndex);
+	bool DrawRoundSelectButton(const char* Id, const char* Label, bool bSelected, const ImVec4& AccentColor);
 }
 
 // ──────────── FEditorViewPortOverlayWidget의 메인 렌더링 함수입니다. ────────────
@@ -481,73 +457,6 @@ void FEditorViewportOverlayWidget::RenderShortcutsWindow()
 	ImGui::EndPopup();
 	ImGui::PopStyleColor();
 }
-
-// ──────────── 헬퍼 함수  ────────────
-void DrawAtlasGrid(ImDrawList* DrawList, const ImVec2& Min, const ImVec2& Max, uint32 GridDimension)
-{
-	if (DrawList == nullptr || GridDimension <= 1)
-	{
-		return;
-	}
-
-	const float CellSizeX = (Max.x - Min.x) / static_cast<float>(GridDimension);
-	const float CellSizeY = (Max.y - Min.y) / static_cast<float>(GridDimension);
-
-	for (uint32 Line = 1; Line < GridDimension; ++Line)
-	{
-		const float X = Min.x + CellSizeX * static_cast<float>(Line);
-		const float Y = Min.y + CellSizeY * static_cast<float>(Line);
-		DrawList->AddLine(ImVec2(X, Min.y), ImVec2(X, Max.y), IM_COL32(255, 255, 255, 35));
-		DrawList->AddLine(ImVec2(Min.x, Y), ImVec2(Max.x, Y), IM_COL32(255, 255, 255, 35));
-	}
-}
-
-const char* GetPointFaceLabel(uint32 FaceIndex)
-{
-	switch (FaceIndex)
-	{
-	case 0: return "+X";
-	case 1: return "-X";
-	case 2: return "+Y";
-	case 3: return "-Y";
-	case 4: return "+Z";
-	case 5: return "-Z";
-	default: return "?";
-	}
-}
-
-// 원형 선택 버튼을 그려 atlas preview mode를 변경합니다.
-bool DrawRoundSelectButton(const char* Id, const char* Label, bool bSelected, const ImVec4& AccentColor)
-{
-	constexpr float Radius = 6.0f;
-	constexpr float Diameter = Radius * 2.0f;
-	constexpr float LabelGap = 6.0f;
-
-	const ImVec2 Start = ImGui::GetCursorScreenPos();
-	const ImVec2 TextSize = ImGui::CalcTextSize(Label);
-	const ImVec2 ButtonSize(Diameter + LabelGap + TextSize.x, std::max(Diameter, TextSize.y));
-
-	ImGui::InvisibleButton(Id, ButtonSize);
-	const bool bClicked = ImGui::IsItemClicked();
-
-	ImDrawList* DrawList = ImGui::GetWindowDrawList();
-	const ImVec2 Center(Start.x + Radius, Start.y + ButtonSize.y * 0.6f);
-	const ImU32 BorderColor = ImGui::ColorConvertFloat4ToU32(AccentColor);
-	const ImU32 FillColor = bSelected ? BorderColor : IM_COL32(0, 0, 0, 80);
-
-	DrawList->AddCircleFilled(Center, Radius, FillColor, 20);
-	DrawList->AddCircle(Center, Radius, BorderColor, 20, 1.5f);
-	if (bSelected)
-	{
-		DrawList->AddCircleFilled(Center, Radius * 0.45f, IM_COL32(255, 255, 255, 240), 16);
-	}
-
-	DrawList->AddText(ImVec2(Start.x + Diameter + LabelGap, Start.y + (ButtonSize.y - TextSize.y) * 0.5f),
-		IM_COL32(220, 230, 245, 255), Label);
-
-	return bClicked;
-}
-
 
 // 특정 뷰포트의 일반적인 렌더링 통계(FPS, Culling, Decal, Memory) 정보를 출력하는 창을 그립니다.
 float FEditorViewportOverlayWidget::RenderGeneralStatsWindow(int32 ViewportIndex, const FEditorViewportState& VS, const ImVec2& Pos, float DeltaTime)
@@ -1019,4 +928,104 @@ float FEditorViewportOverlayWidget::RenderShadowAtlasWindow(int32 ViewportIndex,
 	ImGui::End();
 
 	return WindowWidth;
+}
+
+namespace
+{
+	// 뷰포트 타입(Enum)을 UI에 표시할 문자열로 변환합니다.
+	const char* GetViewportTypeName(EEditorViewportType Type)
+	{
+		switch (Type)
+		{
+		case EVT_Perspective: return "Perspective";
+		case EVT_OrthoTop:    return "Top";
+		case EVT_OrthoBottom: return "Bottom";
+		case EVT_OrthoFront:  return "Front";
+		case EVT_OrthoBack:   return "Back";
+		case EVT_OrthoLeft:   return "Left";
+		case EVT_OrthoRight:  return "Right";
+		default:              return "Viewport";
+		}
+	}
+
+	// 뷰 모드(Enum)를 UI에 표시할 문자열로 변환합니다.
+	const char* GetViewModeName(EViewMode Mode)
+	{
+		switch (Mode)
+		{
+		case EViewMode::Lit:         return "Lit";
+		case EViewMode::Unlit:       return "Unlit";
+		case EViewMode::Wireframe:   return "Wireframe";
+		case EViewMode::SceneDepth:  return "Scene Depth";
+		case EViewMode::WorldNormal: return "World Normal";
+		default:                     return "Lit";
+		}
+	}
+
+	// Atlas preview 위에 균등한 격자선을 그립니다.
+	void DrawAtlasGrid(ImDrawList* DrawList, const ImVec2& Min, const ImVec2& Max, uint32 GridDimension)
+	{
+		if (DrawList == nullptr || GridDimension <= 1)
+		{
+			return;
+		}
+
+		const float CellSizeX = (Max.x - Min.x) / static_cast<float>(GridDimension);
+		const float CellSizeY = (Max.y - Min.y) / static_cast<float>(GridDimension);
+
+		for (uint32 Line = 1; Line < GridDimension; ++Line)
+		{
+			const float X = Min.x + CellSizeX * static_cast<float>(Line);
+			const float Y = Min.y + CellSizeY * static_cast<float>(Line);
+			DrawList->AddLine(ImVec2(X, Min.y), ImVec2(X, Max.y), IM_COL32(255, 255, 255, 35));
+			DrawList->AddLine(ImVec2(Min.x, Y), ImVec2(Max.x, Y), IM_COL32(255, 255, 255, 35));
+		}
+	}
+
+	// Point shadow cubemap face index를 atlas label 문자열로 변환합니다.
+	const char* GetPointFaceLabel(uint32 FaceIndex)
+	{
+		switch (FaceIndex)
+		{
+		case 0: return "+X";
+		case 1: return "-X";
+		case 2: return "+Y";
+		case 3: return "-Y";
+		case 4: return "+Z";
+		case 5: return "-Z";
+		default: return "?";
+		}
+	}
+
+	// 원형 선택 버튼을 그려 atlas preview mode를 변경합니다.
+	bool DrawRoundSelectButton(const char* Id, const char* Label, bool bSelected, const ImVec4& AccentColor)
+	{
+		constexpr float Radius = 6.0f;
+		constexpr float Diameter = Radius * 2.0f;
+		constexpr float LabelGap = 6.0f;
+
+		const ImVec2 Start = ImGui::GetCursorScreenPos();
+		const ImVec2 TextSize = ImGui::CalcTextSize(Label);
+		const ImVec2 ButtonSize(Diameter + LabelGap + TextSize.x, std::max(Diameter, TextSize.y));
+
+		ImGui::InvisibleButton(Id, ButtonSize);
+		const bool bClicked = ImGui::IsItemClicked();
+
+		ImDrawList* DrawList = ImGui::GetWindowDrawList();
+		const ImVec2 Center(Start.x + Radius, Start.y + ButtonSize.y * 0.6f);
+		const ImU32 BorderColor = ImGui::ColorConvertFloat4ToU32(AccentColor);
+		const ImU32 FillColor = bSelected ? BorderColor : IM_COL32(0, 0, 0, 80);
+
+		DrawList->AddCircleFilled(Center, Radius, FillColor, 20);
+		DrawList->AddCircle(Center, Radius, BorderColor, 20, 1.5f);
+		if (bSelected)
+		{
+			DrawList->AddCircleFilled(Center, Radius * 0.45f, IM_COL32(255, 255, 255, 240), 16);
+		}
+
+		DrawList->AddText(ImVec2(Start.x + Diameter + LabelGap, Start.y + (ButtonSize.y - TextSize.y) * 0.5f),
+			IM_COL32(220, 230, 245, 255), Label);
+
+		return bClicked;
+	}
 }
