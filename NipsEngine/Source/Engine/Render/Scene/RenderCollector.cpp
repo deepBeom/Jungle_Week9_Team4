@@ -153,6 +153,8 @@ void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const 
 				{
 					FDirectionalShadowConstants ShadowConstants;
 					ShadowConstants.ShadowBias = LightComponent->GetShadowBias();
+                    ShadowConstants.ShadowSlopeBias = LightComponent->GetShadowSlopeBias();
+                    ShadowConstants.ShadowSharpen = LightComponent->GetShadowSharpen();
 					ShadowConstants.bCascadeDebug = RenderBus.GetShowFlags().bCascadeDebug ? 1 : 0;
 					BuildDirectionalShadowViewProjection(DirectionalLight, RenderBus, RenderLight.Direction, ShadowConstants);
 
@@ -168,13 +170,6 @@ void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const 
 
 			RenderBus.AddLight(RenderLight);
 
-			// TODO: PIE에서도 화살표를 보여주고 있음.. PIE 월드를 감지할 필요가 있다.
-			LineBatcher->AddDirectionalLight(
-				LightComponent->GetWorldLocation(),
-				RenderLight.Direction * -1.0f,
-				LightComponent->GetRightVector(),
-				LightComponent->GetLightColor().ToVector4()
-			);
 			break;
 		}
 
@@ -580,6 +575,11 @@ bool FRenderCollector::CollectFromSelectedActor(AActor* Actor, const FShowFlags&
 		switch (LightComponent->GetLightType())
 		{
 		case ELightType::LightType_Directional:
+		{
+			const UDirectionalLightComponent* Light = Cast<UDirectionalLightComponent>(LightComponent);
+			LineBatcher->AddDirectionalLight(Light->GetWorldLocation(), Light->GetForwardVector(), Light->GetRightVector(), Light->GetLightColor().ToVector4());
+			break;
+		}
 		case ELightType::LightType_AmbientLight:
 		{
 			break;
@@ -587,25 +587,22 @@ bool FRenderCollector::CollectFromSelectedActor(AActor* Actor, const FShowFlags&
 
 		case ELightType::LightType_Point:
 		{
-			const UPointLightComponent* PointLightComponent = Cast<UPointLightComponent>(LightComponent);
-			LineBatcher->AddPointLight(
-				PointLightComponent->GetWorldLocation(),
-				PointLightComponent->GetAttenuationRadius(),
-				PointLightComponent->GetRightVector(),
-				PointLightComponent->GetUpVector());
+			const UPointLightComponent* Light = Cast<UPointLightComponent>(LightComponent);
+			LineBatcher->AddPointLight(Light->GetWorldLocation(), Light->GetAttenuationRadius(), Light->GetRightVector(), Light->GetUpVector());
 			break;
 		}
 
 		case ELightType::LightType_Spot:
 		{
-			const USpotLightComponent* SpotLightComponent = Cast<USpotLightComponent>(LightComponent);
+			const USpotLightComponent* Light = Cast<USpotLightComponent>(LightComponent);
 			LineBatcher->AddSpotLight(
-				SpotLightComponent->GetWorldLocation(),
-				SpotLightComponent->GetUpVector() * -1.0f,
-				SpotLightComponent->GetRightVector() * -1.0f,
-				SpotLightComponent->GetAttenuationRadius(),
-				SpotLightComponent->GetInnerConeAngle(),
-				SpotLightComponent->GetOuterConeAngle());
+				Light->GetWorldLocation(),
+				Light->GetUpVector() * -1.0f,
+				Light->GetRightVector() * -1.0f,
+				Light->GetAttenuationRadius(),
+				Light->GetInnerConeAngle(),
+				Light->GetOuterConeAngle()
+			);
 			break;
 		}
 		}
@@ -1252,13 +1249,17 @@ namespace
 			if (Light->IsShadowTexelSnapped())
 			{
 				const float TexelSize = (Radius * 2.0f) / static_cast<float>(FShadowAtlasManager::DirectionalCascadeResolution);
-				const FVector RefLightPosition = Center - LightDirection * Radius;
-				const FMatrix RefLightView = FMatrix::MakeViewLookAtLH(RefLightPosition, Center, MakeStableUpVector(LightDirection));
+				const FVector LightForward = LightDirection.GetSafeNormal();
+				const FVector LightRight = FVector::CrossProduct(MakeStableUpVector(LightForward), LightForward).GetSafeNormal();
+				const FVector LightUp = FVector::CrossProduct(LightForward, LightRight).GetSafeNormal();
 
-				FVector SnappedCenter = RefLightView.TransformPosition(Center);
-				SnappedCenter.X = std::round(SnappedCenter.X / TexelSize) * TexelSize;
-				SnappedCenter.Y = std::round(SnappedCenter.Y / TexelSize) * TexelSize;
-				Center = RefLightView.GetInverse().TransformPosition(SnappedCenter);
+				const float CenterRight = FVector::DotProduct(Center, LightRight);
+				const float CenterUp = FVector::DotProduct(Center, LightUp);
+				const float SnappedRight = std::round(CenterRight / TexelSize) * TexelSize;
+				const float SnappedUp = std::round(CenterUp / TexelSize) * TexelSize;
+
+				Center += LightRight * (SnappedRight - CenterRight);
+				Center += LightUp * (SnappedUp - CenterUp);
 			}
 
 			const FVector LightPosition = Center - LightDirection * Radius;
