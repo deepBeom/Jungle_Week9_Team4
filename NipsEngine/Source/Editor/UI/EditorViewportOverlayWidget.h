@@ -5,12 +5,21 @@
 struct ImVec2;
 struct FEditorViewportState;
 
+
+enum class EShadowAtlasPreviewMode : uint8
+{
+	Directional,
+	Spot,
+	Point
+};
+
 class FEditorViewportOverlayWidget : public FEditorWidget
 {
 private:
 	bool bExpanded = false;
 	bool bShowViewportSettings = true;
 	bool bShowShortcutsWindow = false;
+	EShadowAtlasPreviewMode ShadowAtlasPreviewMode = EShadowAtlasPreviewMode::Directional;
 
 private:
 	void RenderViewportSettings(float DeltaTime);
