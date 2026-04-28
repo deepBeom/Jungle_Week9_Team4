@@ -59,6 +59,7 @@ private:
 	FMeshBufferManager MeshBufferManager;
 	FWorldSpatialIndex::FPrimitiveFrustumQueryScratch FrustumQueryScratch;
 	FWorldSpatialIndex::FPrimitiveOBBQueryScratch OBBQueryScratch;
+	FWorldSpatialIndex::FPrimitiveSphereQueryScratch SphereQueryScratch;
 	TArray<UPrimitiveComponent*> VisiblePrimitiveScratch;
 	FLineBatcher* LineBatcher = nullptr;
 	FCullingStats LastCullingStats;
@@ -86,9 +87,10 @@ private:
 	void ResetShadowStats();
 
 	void CollectLight(UWorld* World, FRenderBus& RenderBus, const FFrustum* ViewFrustum = nullptr);
+	// Collect shadow caster draw commands by querying the BVH with each light's shadow volume.
+	void CollectShadowCasters(UWorld* World, FRenderBus& RenderBus);
 	void CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
 	bool CollectFromSelectedActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
-	void CollectBVHInternalNodeAABBs(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus,
-	                                 std::unordered_set<int32>& SeenNodeIndices);
+	void CollectBVHInternalNodeAABBs(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus, std::unordered_set<int32>& SeenNodeIndices);
 };

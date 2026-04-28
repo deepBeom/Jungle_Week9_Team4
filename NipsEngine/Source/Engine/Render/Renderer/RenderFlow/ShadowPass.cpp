@@ -70,7 +70,7 @@ bool FShadowPass::DrawCommand(const FRenderPassContext* Context)
 		return false;
 	}
 
-	const TArray<FRenderCommand>& Commands = Context->RenderBus->GetCommands(ERenderPass::Opaque);
+	const TArray<FRenderCommand>& Commands = Context->RenderBus->GetCommands(ERenderPass::ShadowCasters);
 
 	// ─────────────────── Directional Shadow ───────────────────
 	const FDirectionalShadowConstants* DirShadow = Context->RenderBus->GetDirectionalShadow();
