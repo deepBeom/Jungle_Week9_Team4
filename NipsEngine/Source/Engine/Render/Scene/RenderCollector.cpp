@@ -153,6 +153,8 @@ void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const 
 				{
 					FDirectionalShadowConstants ShadowConstants;
 					ShadowConstants.ShadowBias = LightComponent->GetShadowBias();
+                    ShadowConstants.ShadowSlopeBias = LightComponent->GetShadowSlopeBias();
+                    ShadowConstants.ShadowSharpen = LightComponent->GetShadowSharpen();
 					ShadowConstants.bCascadeDebug = RenderBus.GetShowFlags().bCascadeDebug ? 1 : 0;
 					BuildDirectionalShadowViewProjection(DirectionalLight, RenderBus, RenderLight.Direction, ShadowConstants);
 

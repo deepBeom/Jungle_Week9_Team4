@@ -96,10 +96,16 @@ cbuffer DirectionalShadowInfo : register(b7)
     row_major float4x4 LightViewProj[MAX_CASCADE_COUNT];
     float4 SplitDistances;
     float4 CascadeRadius;
+    
     float ShadowBias;
+    float ShadowSlopeBias;
+    float ShadowSharpen;
     uint bCascadeDebug;
+    
     uint bHasShadowMap;
     uint ShadowFilterType;
+    float Padding0;
+    float Padding1;
 }
 
 StructuredBuffer<FSpotShadowConstants> SpotShadowData : register(t11);
@@ -144,16 +150,25 @@ int GetCascadeIndex(float3 WorldPos)
 }
 
 // 뷰 공간 깊이로 Cascade Index를 결정한다.
-float ComputeDirectionalShadowFactor(float3 WorldPos)
+float ComputeDirectionalShadowFactor(float3 WorldPos, float3 N, float3 L)
 {
     if (bHasShadowMap == 0u)
     {
         return 1.0f;
     }
 
+    float CosTheta = saturate(dot(N, L));
+    CosTheta = max(CosTheta, 1e-4f);
+    float TanTheta = sqrt(1.0 - CosTheta * CosTheta) / CosTheta;
+    TanTheta = min(TanTheta, 3.0f);
+    
+    float Bias = ShadowBias + (ShadowSlopeBias * TanTheta);
+    
     int CascadeIndex = GetCascadeIndex(WorldPos);
     
-    float4 ShadowClip = mul(float4(WorldPos, 1.0f), LightViewProj[CascadeIndex]);
+    float NormalOffsetScale = 0.1f; // Noraml Offset Bias
+    float3 OffsetWorldPos = WorldPos + N * NormalOffsetScale * (1.0f - CosTheta);
+    float4 ShadowClip = mul(float4(OffsetWorldPos, 1.0f), LightViewProj[CascadeIndex]);
     
     float W = (ShadowClip.w <= 1.0e-5f) ? 1.0f : ShadowClip.w;
     float3 ShadowNDC = ShadowClip.xyz / W;
@@ -166,9 +181,9 @@ float ComputeDirectionalShadowFactor(float3 WorldPos)
     int2 AtlasSize = int2(kDirectionalAtlasResolution, kDirectionalAtlasResolution);
     
     if (ShadowFilterType == SHADOW_FILTER_TYPE_PCF)
-        return SampleShadowPoissonDisk(AtlasUV, ShadowNDC.z - ShadowBias, DirectionalShadowMap, AtlasSize);
+        return SampleShadowPoissonDisk(AtlasUV, ShadowNDC.z - Bias, DirectionalShadowMap, AtlasSize);
     else
-        return SampleShadowVSM(AtlasUV, ShadowNDC.z - ShadowBias, DirectionalShadowVSMMap, AtlasSize);
+        return SampleShadowVSM(AtlasUV, ShadowNDC.z - Bias, DirectionalShadowVSMMap, AtlasSize);
 }
 
 struct FLightingResult
@@ -368,7 +383,7 @@ FLightingResult EvaluateLightingFromWorld(float3 WorldPos, float3 WorldNormal, f
             float ShadowFactor = 1.0f;
             if (Light.bCastShadows != 0u)
             {
-                ShadowFactor = ComputeDirectionalShadowFactor(WorldPos);
+                ShadowFactor = ComputeDirectionalShadowFactor(WorldPos, N, normalize(Light.Direction));
             }
 
             AccumulateDirectLight(WorldPos, N, V, normalize(Light.Direction), LightColor * ShadowFactor, Result);
@@ -432,7 +447,7 @@ FLightingResult EvaluateLightingFromWorldVertex(float3 WorldPos, float3 WorldNor
             float ShadowFactor = 1.0f;
             if (Light.bCastShadows != 0u)
             {
-                ShadowFactor = ComputeDirectionalShadowFactor(WorldPos);
+                ShadowFactor = ComputeDirectionalShadowFactor(WorldPos, N, normalize(Light.Direction));
             }
             AccumulateDirectLight(WorldPos, N, V, L, LightColor * ShadowFactor, Result);
 
@@ -595,7 +610,6 @@ FUberPSOutput mainPS(FUberPSInput Input)
 #else
     // TOON | PHONG (함수 내에서 내부적으로 계산 흐름 분리)
     Lighting = EvaluateLightingFromWorld(Surface.WorldPos, Surface.WorldNormal, Input.ClipPos.xy);
-
 
 #endif
     return ComposeOutput(Surface, ApplyLighting(Surface, Lighting));
