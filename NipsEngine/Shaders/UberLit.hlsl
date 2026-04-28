@@ -79,7 +79,8 @@ struct FSpotShadowConstants
     float4 AtlasRect; // xy = offset, zw = scale
     float ShadowResolution;
     float ShadowBias;
-    float2 Padding;
+    float SpotShadowSharpen;
+    float Padding;
 };
 
 cbuffer SpotShadowInfo : register(b6)
@@ -184,7 +185,7 @@ float ComputeDirectionalShadowFactor(float3 WorldPos, float3 N, float3 L)
     int2 AtlasSize = int2(kDirectionalAtlasResolution, kDirectionalAtlasResolution);
     
     if (ShadowFilterType == SHADOW_FILTER_TYPE_PCF)
-        return SampleShadowPoissonDisk(AtlasUV, ShadowNDC.z - Bias, DirectionalShadowMap, AtlasSize);
+        return SampleShadowPoissonDisk(AtlasUV, ShadowNDC.z - Bias, DirectionalShadowMap, AtlasSize, ShadowSharpen);
     else
         return SampleShadowVSM(AtlasUV, ShadowNDC.z - Bias, DirectionalShadowVSMMap, AtlasSize);
 }
@@ -286,7 +287,7 @@ float ComputeSpotShadowFactor(float3 WorldPos, uint bCastShadows, int ShadowMapI
     const float Bias = max(LightShadowBias, Shadow.ShadowBias);
     
     if (SpotShadowFilterType == SHADOW_FILTER_TYPE_PCF)
-        return SampleShadowPoissonDisk(AtlasUV, CurrentDepth - Bias, SpotShadowMap, AtlasSize);
+        return SampleShadowPoissonDisk(AtlasUV, CurrentDepth - Bias, SpotShadowMap, AtlasSize, Shadow.SpotShadowSharpen);
     else
         return SampleShadowVSM(AtlasUV, CurrentDepth - Bias, SpotShadowVSMMap, AtlasSize);
 }
