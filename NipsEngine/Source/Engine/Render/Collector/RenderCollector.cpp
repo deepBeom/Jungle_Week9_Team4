@@ -38,7 +38,6 @@ namespace
 	FMatrix MakeViewSubUVSelectionMatrix(const USubUVComponent* SubUVComp, const FRenderBus& RenderBus);
 	
 	// ─────────────────── AABB, BVH ───────────────────
-	FColor MakeBVHInternalNodeColor(int32 PathIndexFromLeaf, int32 PathLength);
 	bool UsesCameraDependentRenderBounds(const UPrimitiveComponent* PrimitiveComponent);
 	FAABB BuildQuadAABB(const FMatrix& WorldMatrix);
 	FAABB BuildRenderAABB(const UPrimitiveComponent* PrimitiveComponent, const FRenderBus& RenderBus);
@@ -62,8 +61,7 @@ void FRenderCollector::ResetShadowStats()
 	LastStats.Shadow = {};
 }
 
-// 조명을 Frustum Culling을 통해 수집한다.
-// Light Collect와 Shadow Collect를 동시에 수행해줍니다.
+// Frustum Culling을 통해 Light Collect와 Shadow Collect를 동시에 수행해줍니다.
 void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const FFrustum* ViewFrustum)
 {
 	LightRenderCollector.Collect(World, RenderBus, LastStats, ViewFrustum);
@@ -176,88 +174,17 @@ void FRenderCollector::CollectShadowCasters(UWorld* World, FRenderBus& RenderBus
 
 void FRenderCollector::CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus)
 {
-	bool bHasSelectionMask = false;
-	for (AActor* Actor : SelectedActors)
-	{
-		bHasSelectionMask |= CollectFromSelectedActor(Actor, ShowFlags, ViewMode, RenderBus);
-	}
-
-	if (bHasSelectionMask)
-	{
-		FRenderCommand PostProcessCmd = {};
-		PostProcessCmd.Type = ERenderCommandType::PostProcessOutline;
-		PostProcessCmd.Material = FResourceManager::Get().GetMaterial("OutlineMaterial");
-
-		UMaterial* Material = Cast<UMaterial>(PostProcessCmd.Material);
-		Material->SetVector2("OutlineViewportSize", RenderBus.GetViewportSize());
-		Material->SetVector2("OutlineViewportOrigin", RenderBus.GetViewportOrigin());
-		Material->DepthStencilType = EDepthStencilType::Default;
-		Material->RasterizerType = ERasterizerType::SolidBackCull;
-		Material->BlendType = EBlendType::AlphaBlend;
-
-		RenderBus.AddCommand(ERenderPass::PostProcessOutline, PostProcessCmd);
-	}
+	OverlayRenderCollector.CollectSelection(SelectedActors, ShowFlags, ViewMode, RenderBus, LineBatcher);
 }
 
 void FRenderCollector::CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus, bool bOrthographic)
 {
-	FRenderCommand Cmd = {};
-	Cmd.Type = ERenderCommandType::Grid;
-	Cmd.Constants.Grid.GridSpacing = GridSpacing;
-	Cmd.Constants.Grid.GridHalfLineCount = GridHalfLineCount;
-	Cmd.Constants.Grid.bOrthographic = bOrthographic;
-	RenderBus.AddCommand(ERenderPass::Grid, Cmd);
+	OverlayRenderCollector.CollectGrid(GridSpacing, GridHalfLineCount, RenderBus, bOrthographic);
 }
 
 void FRenderCollector::CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus, bool bIsActiveOperation)
 {
-	if (ShowFlags.bGizmo == false) return;
-	if (!Gizmo || !Gizmo->IsVisible()) return;
-
-	FMeshBuffer* GizmoMesh = &MeshBufferManager.GetMeshBuffer(Gizmo->GetPrimitiveType());
-	FMatrix WorldMatrix = Gizmo->GetWorldMatrix();
-	bool bHolding = Gizmo->IsHolding();
-	int32 SelectedAxis = Gizmo->GetSelectedAxis();
-
-	auto CreateGizmoCmd = [&](bool bInner) {
-		FRenderCommand Cmd = {};
-		Cmd.Type = ERenderCommandType::Gizmo;
-		Cmd.MeshBuffer = GizmoMesh;
-
-		Cmd.SectionIndexStart = 0;
-		Cmd.SectionIndexCount = GizmoMesh->GetIndexBuffer().GetIndexCount();
-
-		Cmd.PerObjectConstants = FPerObjectConstants{ WorldMatrix };
-
-		UMaterial* Material = Cast<UMaterial>(Gizmo->GetMaterial());
-		Cmd.Material = Material;
-
-		if (bInner)
-		{
-			Material->DepthStencilType = EDepthStencilType::GizmoInside;
-			Material->BlendType = EBlendType::AlphaBlend;
-		}
-		else
-		{
-			Material->DepthStencilType = EDepthStencilType::GizmoOutside;
-			Material->BlendType = EBlendType::Opaque;
-		}
-
-		Material->SetVector4("GizmoColorTint", FVector4(1.0f, 1.0f, 1.0f, 1.0f));
-		Material->SetBool("bIsInnerGizmo", bInner);
-		Material->SetBool("bClicking", bHolding);
-		Material->SetUInt("SelectedAxis", (SelectedAxis >= 0 && bIsActiveOperation) ? static_cast<uint32>(SelectedAxis) : 0xffffffffu);
-		Material->SetFloat("HoveredAxisOpacity", 0.3f);
-
-		return Cmd;
-		};
-
-	RenderBus.AddCommand(ERenderPass::DepthLess, CreateGizmoCmd(false));
-
-	if (!bHolding)
-	{
-		RenderBus.AddCommand(ERenderPass::DepthLess, CreateGizmoCmd(true));
-	}
+	OverlayRenderCollector.CollectGizmo(Gizmo, ShowFlags, RenderBus, bIsActiveOperation);
 }
 
 void FRenderCollector::CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType)
@@ -268,154 +195,6 @@ void FRenderCollector::CollectFromActor(AActor* Actor, const FShowFlags& ShowFla
 	{
 		CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, WorldType);
 	}
-}
-
-bool FRenderCollector::CollectFromSelectedActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus)
-{
-	if (!Actor->IsVisible()) return false;
-
-	bool bHasSelectionMask = false;
-	std::unordered_set<int32> SeenBVHNodeIndices;
-
-	for (UPrimitiveComponent* primitiveComponent : Actor->GetPrimitiveComponents())
-	{
-		if (!primitiveComponent->IsVisible()) continue;
-		if (primitiveComponent->IsEditorOnly())
-		{
-			UWorld* World = Actor->GetFocusedWorld();
-			if (World && World->GetWorldType() != EWorldType::Editor)
-				continue;
-		}
-
-		FMeshBuffer* MeshBuffer = nullptr;
-		if (primitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_StaticMesh)
-		{
-			auto* StaticMeshComp = static_cast<UStaticMeshComponent*>(primitiveComponent);
-			MeshBuffer = MeshBufferManager.GetStaticMeshBuffer(StaticMeshComp->GetStaticMesh());
-		}
-		else
-		{
-			MeshBuffer = &MeshBufferManager.GetMeshBuffer(primitiveComponent->GetPrimitiveType());
-		}
-
-		if (!MeshBuffer)
-		{
-			continue;
-		}
-
-		FRenderCommand BaseCmd{};
-		BaseCmd.MeshBuffer = MeshBuffer;
-		BaseCmd.PerObjectConstants = FPerObjectConstants(primitiveComponent->GetWorldMatrix());
-		BaseCmd.SectionIndexStart = 0;
-		BaseCmd.SectionIndexCount = MeshBuffer->GetIndexBuffer().GetIndexCount();
-
-		if (primitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_Text)
-		{
-			UTextRenderComponent* TextComp = static_cast<UTextRenderComponent*>(primitiveComponent);
-			const FFontResource* Font = TextComp->GetFont();
-			if (!Font || !Font->IsLoaded()) continue;
-			const FString& Text = TextComp->GetText();
-			if (Text.empty()) continue;
-
-			FMatrix WorldMatrix = TextComp->GetTextMatrix();
-
-			FRenderCommand TextCmd = BaseCmd;
-			BaseCmd.PerObjectConstants = FPerObjectConstants(WorldMatrix);
-			TextCmd.PerObjectConstants = FPerObjectConstants(TextComp->GetWorldMatrix(), TextComp->GetColor());
-			TextCmd.Type = ERenderCommandType::Font;
-			TextCmd.Constants.Font.Text = &Text;
-			TextCmd.Constants.Font.Font = Font;
-			TextCmd.Constants.Font.Scale = TextComp->GetFontSize();
-			RenderBus.AddCommand(ERenderPass::Font, TextCmd);
-		}
-		else if (primitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_SubUV)
-		{
-			BaseCmd.PerObjectConstants.Model = MakeViewSubUVSelectionMatrix(
-				static_cast<USubUVComponent*>(primitiveComponent),
-				RenderBus);
-		}
-
-		else if(primitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_Billboard)
-		{
-			const UBillboardComponent* BComp = static_cast<const UBillboardComponent*>(primitiveComponent);
-			BaseCmd.PerObjectConstants.Model = UBillboardComponent::MakeBillboardWorldMatrix(
-				BComp->GetWorldLocation(),
-				FVector(0.01f, BComp->GetWidth(), BComp->GetHeight()),
-				RenderBus.GetCameraForward(),
-				RenderBus.GetCameraRight(),
-				RenderBus.GetCameraUp());
-		}
-
-		if (!primitiveComponent->SupportsOutline()) continue;
-
-		// Selection Mask
-		FRenderCommand MaskCmd = BaseCmd;
-		if (primitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_Billboard)
-		{
-			MaskCmd.Type = ERenderCommandType::BillboardSelectionMask;
-			MaskCmd.Constants.Billboard.Texture = static_cast<UBillboardComponent*>(primitiveComponent)->GetTexture();
-		}
-		else
-		{
-			MaskCmd.Type = ERenderCommandType::SelectionMask;
-		}
-		RenderBus.AddCommand(ERenderPass::SelectionMask, MaskCmd);
-		bHasSelectionMask = true;
-
-		if (ShowFlags.bBoundingVolume)
-		{
-			LineBatcher->AddAABB(BuildRenderAABB(primitiveComponent, RenderBus), FColor::White());
-		}
-
-		CollectBVHInternalNodeAABBs(primitiveComponent, ShowFlags, RenderBus, SeenBVHNodeIndices);
-	}
-
-	// 선택된 Light Components의 Bounding 시각화
-	for (UActorComponent* Component : Actor->GetComponents())
-	{
-		const ULightComponent* LightComponent = Cast<ULightComponent>(Component);
-		if (LightComponent == nullptr || !LightComponent->IsVisible())
-		{
-			continue;
-		}
-
-		switch (LightComponent->GetLightType())
-		{
-		case ELightType::LightType_Directional:
-		{
-			const UDirectionalLightComponent* Light = Cast<UDirectionalLightComponent>(LightComponent);
-			LineBatcher->AddDirectionalLight(Light->GetWorldLocation(), Light->GetForwardVector(), Light->GetRightVector(), Light->GetLightColor().ToVector4());
-			break;
-		}
-		case ELightType::LightType_AmbientLight:
-		{
-			break;
-		}
-
-		case ELightType::LightType_Point:
-		{
-			const UPointLightComponent* Light = Cast<UPointLightComponent>(LightComponent);
-			LineBatcher->AddPointLight(Light->GetWorldLocation(), Light->GetAttenuationRadius(), Light->GetRightVector(), Light->GetUpVector());
-			break;
-		}
-
-		case ELightType::LightType_Spot:
-		{
-			const USpotLightComponent* Light = Cast<USpotLightComponent>(LightComponent);
-			LineBatcher->AddSpotLight(
-				Light->GetWorldLocation(),
-				Light->GetUpVector() * -1.0f,
-				Light->GetRightVector() * -1.0f,
-				Light->GetAttenuationRadius(),
-				Light->GetInnerConeAngle(),
-				Light->GetOuterConeAngle()
-			);
-			break;
-		}
-		}
-	}
-
-	return bHasSelectionMask;
 }
 
 void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType)
@@ -484,11 +263,6 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 			Cmd.SectionIndexStart = Section.StartIndex;
 			Cmd.SectionIndexCount = Section.IndexCount;
 			Cmd.Material = Material;
-
-			//if (Material)
-			//{
-			//	Material->SetVector2("ScrollUV", FVector2(StaticMeshComp->GetScroll().first, StaticMeshComp->GetScroll().second));
-			//}
 
 			RenderBus.AddCommand(ERenderPass::Opaque, Cmd);
 
@@ -709,76 +483,7 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 
 void FRenderCollector::CollectBVHInternalNodeAABBs(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus, std::unordered_set<int32>& SeenNodeIndices)
 {
-	if (!ShowFlags.bBoundingVolume || !ShowFlags.bBVHBoundingVolume || PrimitiveComponent == nullptr || LineBatcher == nullptr)
-	{
-		return;
-	}
-
-	AActor* Owner = PrimitiveComponent->GetOwner();
-	UWorld* World = Owner ? Owner->GetFocusedWorld() : nullptr;
-	if (World == nullptr)
-	{
-		return;
-	}
-
-	const FWorldSpatialIndex& SpatialIndex = World->GetSpatialIndex();
-	const int32 ObjectIndex = SpatialIndex.FindObjectIndex(PrimitiveComponent);
-	if (ObjectIndex == FBVH::INDEX_NONE)
-	{
-		return;
-	}
-
-	const FBVH& BVH = SpatialIndex.GetBVH();
-	const TArray<int32>& ObjectToLeafNode = BVH.GetObjectToLeafNode();
-	if (ObjectIndex < 0 || ObjectIndex >= static_cast<int32>(ObjectToLeafNode.size()))
-	{
-		return;
-	}
-
-	const int32 LeafNodeIndex = ObjectToLeafNode[ObjectIndex];
-	if (LeafNodeIndex == FBVH::INDEX_NONE)
-	{
-		return;
-	}
-
-	const TArray<FBVH::FNode>& Nodes = BVH.GetNodes();
-	if (LeafNodeIndex < 0 || LeafNodeIndex >= static_cast<int32>(Nodes.size()))
-	{
-		return;
-	}
-
-	TArray<int32> PathToRoot;
-	PathToRoot.reserve(16);
-
-	int32 CurrentNodeIndex = Nodes[LeafNodeIndex].Parent;
-	while (CurrentNodeIndex != FBVH::INDEX_NONE)
-	{
-		if (CurrentNodeIndex < 0 || CurrentNodeIndex >= static_cast<int32>(Nodes.size()))
-		{
-			break;
-		}
-
-		PathToRoot.push_back(CurrentNodeIndex);
-		CurrentNodeIndex = Nodes[CurrentNodeIndex].Parent;
-	}
-
-	for (int32 PathIndex = 0; PathIndex < static_cast<int32>(PathToRoot.size()); ++PathIndex)
-	{
-		const int32 NodeIndex = PathToRoot[PathIndex];
-		if (!SeenNodeIndices.insert(NodeIndex).second)
-		{
-			continue;
-		}
-
-		const FBVH::FNode& Node = Nodes[NodeIndex];
-		if (Node.IsLeaf())
-		{
-			continue;
-		}
-
-		const FColor Color = MakeBVHInternalNodeColor(PathIndex, static_cast<int32>(PathToRoot.size()));
-		LineBatcher->AddAABB(Node.Bounds, Color);
-	}
+	OverlayRenderCollector.CollectBVHInternalNodeAABBs(PrimitiveComponent, ShowFlags, RenderBus, LineBatcher, SeenNodeIndices);
 }
 
 void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus,
@@ -858,17 +563,6 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 
 namespace
 {
-	FColor MakeBVHInternalNodeColor(int32 PathIndexFromLeaf, int32 PathLength)
-	{
-		if (PathLength <= 1)
-		{
-			return FColor::Yellow();
-		}
-
-		const float T = static_cast<float>(PathIndexFromLeaf) / static_cast<float>(PathLength - 1);
-		return FColor::Lerp(FColor::Cyan(), FColor::Yellow(), T);
-	}
-
 	bool UsesCameraDependentRenderBounds(const UPrimitiveComponent* PrimitiveComponent)
 	{
 		if (PrimitiveComponent == nullptr)

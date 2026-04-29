@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Render/Collector/LightRenderCollector.h"
+#include "Render/Collector/OverlayRenderCollector.h"
 #include "Render/Collector/RenderCollectionStats.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/MeshBufferManager.h"
@@ -15,7 +16,6 @@ class ASpotLightActor;
 class UPrimitiveComponent;
 class UGizmoComponent;
 class UDecalComponent;
-class UFireballComponent;
 class FLineBatcher;
 struct FFrustum;
 
@@ -23,16 +23,17 @@ class FRenderCollector {
 private:
 	FMeshBufferManager MeshBufferManager;
 	FLightRenderCollector LightRenderCollector;
+	FOverlayRenderCollector OverlayRenderCollector;
 	FLineBatcher* LineBatcher = nullptr;
 
+	// ────── Collects ─────────────────────────────────────────────────────────
 public:
-	void Initialize(ID3D11Device* InDevice) { MeshBufferManager.Create(InDevice); }
-	void Release() { LineBatcher = nullptr; MeshBufferManager.Release(); }
+	void Initialize(ID3D11Device* InDevice) { MeshBufferManager.Create(InDevice); OverlayRenderCollector.Initialize(&MeshBufferManager); }
+	void Release() { LineBatcher = nullptr; OverlayRenderCollector.Release(); MeshBufferManager.Release(); }
 	void SetLineBatcher(FLineBatcher* InLineBatcher) { LineBatcher = InLineBatcher; }
 	void ClearLineBatcher() { LineBatcher = nullptr; }
 
-	void CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus,
-	                  const FFrustum* ViewFrustum = nullptr);
+	void CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, const FFrustum* ViewFrustum = nullptr);
 	void CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus, bool bIsActiveOperation);
 	void CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus, bool bOrthographic = false);
@@ -41,7 +42,6 @@ private:
 	void CollectLight(UWorld* World, FRenderBus& RenderBus, const FFrustum* ViewFrustum = nullptr);
 	void CollectShadowCasters(UWorld* World, FRenderBus& RenderBus);
 	void CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
-	bool CollectFromSelectedActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
 	void CollectBVHInternalNodeAABBs(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus, std::unordered_set<int32>& SeenNodeIndices);
 
