@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Render/Collector/RenderCollectionStats.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/MeshBufferManager.h"
 #include "Spatial/WorldSpatialIndex.h"
@@ -19,52 +20,21 @@ struct FFrustum;
 
 class FRenderCollector {
 public:
-	struct FCullingStats
-	{
-		int32 TotalVisiblePrimitiveCount{0};
-		int32 BVHPassedPrimitiveCount{0};
-		int32 FallbackPassedPrimitiveCount{0};
-	};
-
-	struct FDecalStats
-	{
-		int32 TotalDecalCount = 0;
-		int32 CollectTimeMS = 0;
-	};
-
-	struct FShadowStats
-	{
-		uint32 DirectionalLightCount = 0;
-		uint32 PointLightCount = 0;
-		uint32 SpotLightCount = 0;
-		uint32 AmbientLightCount = 0;
-
-		uint32 DirectionalShadowCount = 0;
-		uint32 PointShadowCount = 0;
-		uint32 SpotShadowCount = 0;
-
-		size_t DirectionalShadowMemoryBytes = 0;
-		size_t PointShadowMemoryBytes = 0;
-		size_t SpotShadowMemoryBytes = 0;
-
-		FDirectionalShadowConstants DirectionalShadowConstants = {};
-
-		size_t GetTotalShadowMemoryBytes() const
-		{
-			return DirectionalShadowMemoryBytes + PointShadowMemoryBytes + SpotShadowMemoryBytes;
-		}
-	};
+	using FCullingStats = ::FCullingStats;
+	using FDecalStats = ::FDecalStats;
+	using FShadowStats = ::FShadowStats;
+	using FRenderCollectionStats = ::FRenderCollectionStats;
 
 private:
 	FMeshBufferManager MeshBufferManager;
+	FLineBatcher* LineBatcher = nullptr;
+	// WorldSpatialIndex 컬링 쿼리용 scratch buffer
 	FWorldSpatialIndex::FPrimitiveFrustumQueryScratch FrustumQueryScratch;
 	FWorldSpatialIndex::FPrimitiveOBBQueryScratch OBBQueryScratch;
 	FWorldSpatialIndex::FPrimitiveSphereQueryScratch SphereQueryScratch;
-	TArray<UPrimitiveComponent*> VisiblePrimitiveScratch;
-	FLineBatcher* LineBatcher = nullptr;
-	FCullingStats LastCullingStats;
-	FDecalStats LastDecalStats;
-	FShadowStats LastShadowStats;
+	// spatial query 결과를 받아 render command 생성 전 임시로 들고 있는 목록
+	TArray<UPrimitiveComponent*> VisiblePrimitiveScratch;	
+	FRenderCollectionStats LastStats;
 
 public:
 	void Initialize(ID3D11Device* InDevice) { MeshBufferManager.Create(InDevice); }
@@ -77,9 +47,10 @@ public:
 	void CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus, bool bIsActiveOperation);
 	void CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus, bool bOrthographic = false);
-	const FCullingStats& GetLastCullingStats() const { return LastCullingStats; }
-	const FDecalStats& GetLastDecalStats() const { return LastDecalStats; }
-	const FShadowStats& GetLastShadowStats() const { return LastShadowStats; }
+	const FRenderCollectionStats& GetLastStats() const { return LastStats; }
+	const FCullingStats& GetLastCullingStats() const { return LastStats.Culling; }
+	const FDecalStats& GetLastDecalStats() const { return LastStats.Decal; }
+	const FShadowStats& GetLastShadowStats() const { return LastStats.Shadow; }
 
 private:
 	void ResetCullingStats();

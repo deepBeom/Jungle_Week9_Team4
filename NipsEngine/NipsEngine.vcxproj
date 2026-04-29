@@ -331,7 +331,6 @@
     <ClCompile Include="Source\Engine\Render\Resource\Shader.cpp" />
     <ClCompile Include="Source\Engine\Render\Resource\Texture.cpp" />
     <ClCompile Include="Source\Engine\Render\Scene\RenderBus.cpp" />
-    <ClCompile Include="Source\Engine\Render\Scene\RenderCollector.cpp" />
     <ClCompile Include="Source\Engine\Runtime\Engine.cpp" />
     <ClCompile Include="Source\Engine\Runtime\EngineLoop.cpp" />
     <ClCompile Include="Source\Engine\Runtime\Launch.cpp" />
@@ -488,6 +487,7 @@
     <ClInclude Include="Source\Engine\Object\Object.h" />
     <ClInclude Include="Source\Engine\Object\ObjectFactory.h" />
     <ClInclude Include="Source\Engine\Object\ObjectIterator.h" />
+    <ClInclude Include="Source\Engine\Render\Collector\RenderCollectionStats.h" />
     <ClInclude Include="Source\Engine\Render\Collector\RenderCollector.h" />
     <ClInclude Include="Source\Engine\Render\FontBatcher.h" />
     <ClInclude Include="Source\Engine\Render\LineBatcher.h" />
@@ -539,7 +539,6 @@
     <ClInclude Include="Source\Engine\Render\Resource\Texture.h" />
     <ClInclude Include="Source\Engine\Render\Resource\VertexTypes.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderBus.h" />
-    <ClInclude Include="Source\Engine\Render\Scene\RenderCollector.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCommand.h" />
     <ClInclude Include="Source\Engine\Runtime\Engine.h" />
     <ClInclude Include="Source\Engine\Runtime\EngineLoop.h" />

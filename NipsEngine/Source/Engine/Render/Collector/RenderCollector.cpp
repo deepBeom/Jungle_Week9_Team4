@@ -110,17 +110,17 @@ struct FSpotShadowCandidate
 
 void FRenderCollector::ResetCullingStats()
 {
-	LastCullingStats = {};
+	LastStats.Culling = {};
 }
 
 void FRenderCollector::ResetDecalStats()
 {
-	LastDecalStats = {};
+	LastStats.Decal = {};
 }
 
 void FRenderCollector::ResetShadowStats()
 {
-	LastShadowStats = {};
+	LastStats.Shadow = {};
 }
 
 // 조명을 Frustum Culling을 통해 수집한다.
@@ -162,14 +162,14 @@ void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const 
 		{
 		case ELightType::LightType_AmbientLight:
 		{
-			++LastShadowStats.AmbientLightCount;
+			++LastStats.Shadow.AmbientLightCount;
 			RenderBus.AddLight(RenderLight);
 			break;
 		}
 
 		case ELightType::LightType_Directional:
 		{
-			++LastShadowStats.DirectionalLightCount;
+			++LastStats.Shadow.DirectionalLightCount;
 
 			FVector Direction = LightComponent->GetForwardVector() * -1.0f; // 빛 방향 벡터
 			Direction.Normalize();
@@ -220,12 +220,12 @@ void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const 
 						ShadowConstants.ShadowFilterType = static_cast<uint32>(RenderBus.GetShadowFilterType());
 						RenderBus.SetDirectionalShadow(ShadowConstants);
 						RenderLight.bCastShadows = 1; // uint32
-						LastShadowStats.DirectionalShadowConstants = ShadowConstants;
-						LastShadowStats.DirectionalShadowCount = 1;
+						LastStats.Shadow.DirectionalShadowConstants = ShadowConstants;
+						LastStats.Shadow.DirectionalShadowCount = 1;
 
 						const uint32 DirectionalTileCount =
 							DirectionalLight->GetShadowMode() == EShadowMode::PSM ? 1u : FShadowAtlasManager::DirectionalCascadeCount;
-						LastShadowStats.DirectionalShadowMemoryBytes =
+						LastStats.Shadow.DirectionalShadowMemoryBytes =
 							CalculateShadowTileMemory(
 								FShadowAtlasManager::DirectionalCascadeResolution,
 								FShadowAtlasManager::DirectionalCascadeResolution) * DirectionalTileCount;
@@ -351,7 +351,7 @@ void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const 
 				}
 			}
 
-			++LastShadowStats.SpotLightCount;
+			++LastStats.Shadow.SpotLightCount;
 
 			RenderLight.Position = LightLocation;
 			RenderLight.Direction = LightDirection;
@@ -466,8 +466,8 @@ void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const 
             ShadowData.ShadowFarPlane = FarPlane;
 			
 			RenderBus.AddCastShadowSpotLight(ShadowData);
-			++LastShadowStats.SpotShadowCount;
-			LastShadowStats.SpotShadowMemoryBytes += CalculateShadowTileMemory(SpotSlot.Width, SpotSlot.Height);
+			++LastStats.Shadow.SpotShadowCount;
+			LastStats.Shadow.SpotShadowMemoryBytes += CalculateShadowTileMemory(SpotSlot.Width, SpotSlot.Height);
 		}
 
 		// 끝까지 atlas에 못 들어간 경우에는 shadow만 빠지고 light만 살아있음.
@@ -1062,8 +1062,8 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 			LineBatcher->AddOBB(DecalOBB, FColor::Green());
 		}
 
-		LastDecalStats.TotalDecalCount += 1;
-		LastDecalStats.CollectTimeMS += static_cast<int32>(RenderDecalScope.Finish());
+		LastStats.Decal.TotalDecalCount += 1;
+		LastStats.Decal.CollectTimeMS += static_cast<int32>(RenderDecalScope.Finish());
 		break;
 	}
 
@@ -1207,7 +1207,7 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 		for (UPrimitiveComponent* Primitive : VisiblePrimitiveScratch)
 		{
 			if (Primitive == nullptr || UsesCameraDependentRenderBounds(Primitive) || !Primitive->IsEnableCull()) continue;
-			++LastCullingStats.BVHPassedPrimitiveCount;
+			++LastStats.Culling.BVHPassedPrimitiveCount;
 			CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
 		}
 	}
@@ -1230,7 +1230,7 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 			{	
 				if (Primitive != nullptr && !Primitive->IsVisible())
 				{
-					++LastCullingStats.TotalVisiblePrimitiveCount;
+					++LastStats.Culling.TotalVisiblePrimitiveCount;
 				}
 			}
 			CollectFromActor(Actor, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
@@ -1242,7 +1242,7 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 		{
 			if (!Primitive || !Primitive->IsVisible()) continue;
 
-			++LastCullingStats.TotalVisiblePrimitiveCount;
+			++LastStats.Culling.TotalVisiblePrimitiveCount;
 
 			const bool bIsCameraDependent = UsesCameraDependentRenderBounds(Primitive);
 			if (!bIsCameraDependent && Primitive->IsEnableCull()) continue;
@@ -1254,7 +1254,7 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 					continue;
 			}
 
-			++LastCullingStats.FallbackPassedPrimitiveCount;
+			++LastStats.Culling.FallbackPassedPrimitiveCount;
 			CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
 		}
 	}

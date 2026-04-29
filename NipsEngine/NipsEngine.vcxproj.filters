@@ -623,9 +623,6 @@
     <ClCompile Include="Source\Engine\Render\Scene\RenderBus.cpp">
       <Filter>Source\Engine\Render\Scene</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Render\Scene\RenderCollector.cpp">
-      <Filter>Source\Engine\Render\Scene</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Runtime\Engine.cpp">
       <Filter>Source\Engine\Runtime</Filter>
     </ClCompile>
@@ -1239,9 +1236,6 @@
     <ClInclude Include="Source\Engine\Render\Scene\RenderBus.h">
       <Filter>Source\Engine\Render\Scene</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Render\Scene\RenderCollector.h">
-      <Filter>Source\Engine\Render\Scene</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Render\Scene\RenderCommand.h">
       <Filter>Source\Engine\Render\Scene</Filter>
     </ClInclude>
@@ -1389,6 +1383,7 @@
     <ClInclude Include="ThirdParty\SimpleJSON\json.hpp">
       <Filter>ThirdParty\SimpleJSON</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Render\Collector\RenderCollectionStats.h" />
     <ClInclude Include="Source\Engine\Render\Collector\RenderCollector.h" />
   </ItemGroup>
 </Project>
