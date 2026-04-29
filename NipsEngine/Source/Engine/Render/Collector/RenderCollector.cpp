@@ -7,7 +7,7 @@
 #include "Object/ActorIterator.h"
 #include "Component/BillboardComponent.h"
 #include "Component/PrimitiveComponent.h"
-#include "Component/StaticMeshComponent.h"
+#include "Component/StaticMeshComponent.h" 
 #include "Component/GizmoComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/SubUVComponent.h"
@@ -16,6 +16,7 @@
 #include "Component/SkyAtmosphereComponent.h"
 #include "Component/Light/AmbientLightComponent.h"
 #include "Component/Light/DirectionalLightComponent.h"
+#include "Component/Light/LightComponent.h"
 #include "Component/Light/PointLightComponent.h"
 #include "Component/Light/SpotLightComponent.h"
 #include "Core/ResourceManager.h"
@@ -64,112 +65,12 @@ void FRenderCollector::ResetShadowStats()
 // Frustum Culling을 통해 Light Collect와 Shadow Collect를 동시에 수행해줍니다.
 void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const FFrustum* ViewFrustum)
 {
-	LightRenderCollector.Collect(World, RenderBus, LastStats, ViewFrustum);
+	LightRenderCollector.CollectLight(World, RenderBus, LastStats, ViewFrustum);
 }
 
-// 조명별 shadow 영향 볼륨으로 BVH를 조회해 shadow caster command를 수집합니다.
 void FRenderCollector::CollectShadowCasters(UWorld* World, FRenderBus& RenderBus)
 {
-	if (World == nullptr)
-	{
-		return;
-	}
-
-	const EWorldType WorldType = World->GetWorldType();
-	std::unordered_set<UPrimitiveComponent*> AddedPrimitives;
-
-	auto AddShadowCaster = [&](UPrimitiveComponent* Primitive)
-	{
-		if (Primitive == nullptr || !Primitive->IsVisible()) return;
-		if (Primitive->IsEditorOnly() && WorldType != EWorldType::Editor) return;
-		if (Primitive->GetPrimitiveType() != EPrimitiveType::EPT_StaticMesh) return;
-		if (!AddedPrimitives.insert(Primitive).second) return;
-
-		UStaticMeshComponent* StaticMeshComp = static_cast<UStaticMeshComponent*>(Primitive);
-		const UStaticMesh* StaticMesh = StaticMeshComp->GetStaticMesh();
-		if (StaticMesh == nullptr || !StaticMesh->HasValidMeshData()) return;
-
-		FMeshBuffer* MeshBuffer = MeshBufferManager.GetStaticMeshBuffer(StaticMesh, 0);
-		if (MeshBuffer == nullptr || !MeshBuffer->IsValid()) return;
-
-		const FStaticMesh* MeshData = StaticMesh->GetMeshData(0);
-		if (MeshData == nullptr) return;
-
-		for (const FStaticMeshSection& Section : MeshData->Sections)
-		{
-			FRenderCommand Cmd = {};
-			Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), FColor::White().ToVector4() };
-			Cmd.Type = ERenderCommandType::StaticMesh;
-			Cmd.MeshBuffer = MeshBuffer;
-			Cmd.SectionIndexStart = Section.StartIndex;
-			Cmd.SectionIndexCount = Section.IndexCount;
-
-			RenderBus.AddCommand(ERenderPass::ShadowCasters, Cmd);
-		}
-	};
-
-	auto AddQueryResults = [&]()
-	{
-		for (UPrimitiveComponent* Primitive : VisiblePrimitiveScratch)
-		{
-			AddShadowCaster(Primitive);
-		}
-	};
-
-	if (const FDirectionalShadowConstants* DirectionalShadow = RenderBus.GetDirectionalShadow())
-	{
-		const int32 DirectionalQueryCount =
-			(DirectionalShadow->ShadowMode == DirectionalShadowModeValue::PSM) ? 1 : MAX_CASCADE_COUNT;
-		for (int32 CascadeIndex = 0; CascadeIndex < DirectionalQueryCount; ++CascadeIndex)
-		{
-			FFrustum CascadeFrustum;
-			CascadeFrustum.UpdateFromCamera(DirectionalShadow->LightViewProj[CascadeIndex]);
-			World->GetSpatialIndex().FrustumQueryPrimitives(CascadeFrustum, VisiblePrimitiveScratch, FrustumQueryScratch);
-			AddQueryResults();
-		}
-	}
-
-	for (const FLightSlot& Slot : World->GetWorldLightSlots())
-	{
-		const ULightComponent* Light = Cast<ULightComponent>(Slot.LightData);
-		if (!Slot.bAlive || Light == nullptr || !Light->IsVisible() || !Light->IsCastShadows()) continue;
-
-		FVector Center = FVector::ZeroVector;
-		float Radius = 0.0f;
-
-		if (Light->GetLightType() == ELightType::LightType_Point)
-		{
-			const UPointLightComponent* PointLight = Cast<UPointLightComponent>(Light);
-			if (PointLight == nullptr) continue;
-
-			Center = PointLight->GetWorldLocation();
-			Radius = PointLight->GetAttenuationRadius();
-		}
-		else if (Light->GetLightType() == ELightType::LightType_Spot)
-		{
-			const USpotLightComponent* SpotLight = Cast<USpotLightComponent>(Light);
-			if (SpotLight == nullptr) continue;
-
-			const float SpotAngle = MathUtil::Clamp(std::max(SpotLight->GetOuterConeAngle(), SpotLight->GetInnerConeAngle()), 0.0f, 89.0f);
-			Center = SpotLight->GetWorldLocation();
-			Radius = SpotLight->GetAttenuationRadius();
-
-			if (SpotAngle <= 45.0f)
-			{
-				const float Offset = Radius * 0.5f;
-				const float BaseRadius = Radius * std::tan(MathUtil::DegreesToRadians(SpotAngle));
-				Center += (SpotLight->GetUpVector() * -1.0f).GetSafeNormal() * Offset;
-				Radius = std::sqrt((Offset * Offset) + (BaseRadius * BaseRadius));
-			}
-		}
-		else
-		{
-			continue;
-		}
-
-		World->GetSpatialIndex().SphereQueryPrimitives(Center, Radius, VisiblePrimitiveScratch, SphereQueryScratch);
-		AddQueryResults();
-	}
+	LightRenderCollector.CollectShadowCasters(World, RenderBus);
 }
 
 void FRenderCollector::CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus)

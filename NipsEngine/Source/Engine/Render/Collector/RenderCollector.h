@@ -28,8 +28,8 @@ private:
 
 	// ────── Collects ─────────────────────────────────────────────────────────
 public:
-	void Initialize(ID3D11Device* InDevice) { MeshBufferManager.Create(InDevice); OverlayRenderCollector.Initialize(&MeshBufferManager); }
-	void Release() { LineBatcher = nullptr; OverlayRenderCollector.Release(); MeshBufferManager.Release(); }
+	void Initialize(ID3D11Device* InDevice) { MeshBufferManager.Create(InDevice); LightRenderCollector.Initialize(&MeshBufferManager); OverlayRenderCollector.Initialize(&MeshBufferManager); }
+	void Release() { LineBatcher = nullptr; LightRenderCollector.Release(); OverlayRenderCollector.Release(); MeshBufferManager.Release(); }
 	void SetLineBatcher(FLineBatcher* InLineBatcher) { LineBatcher = InLineBatcher; }
 	void ClearLineBatcher() { LineBatcher = nullptr; }
 

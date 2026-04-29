@@ -2,8 +2,11 @@
 
 #include "Render/Collector/RenderCollectionStats.h"
 #include "Render/Scene/RenderBus.h"
+#include "Spatial/WorldSpatialIndex.h"
 
+class FMeshBufferManager;
 class ULightComponent;
+class UPrimitiveComponent;
 class USpotLightComponent;
 class UWorld;
 struct FFrustum;
@@ -11,7 +14,11 @@ struct FFrustum;
 class FLightRenderCollector
 {
 public:
-	void Collect(UWorld* World, FRenderBus& RenderBus, FRenderCollectionStats& LastStats, const FFrustum* ViewFrustum = nullptr);
+	void Initialize(FMeshBufferManager* InMeshBufferManager) { MeshBufferManager = InMeshBufferManager; }
+	void Release() { MeshBufferManager = nullptr; }
+
+	void CollectLight(UWorld* World, FRenderBus& RenderBus, FRenderCollectionStats& LastStats, const FFrustum* ViewFrustum = nullptr);
+	void CollectShadowCasters(UWorld* World, FRenderBus& RenderBus);
 
 private:
 	struct FSpotShadowCandidate
@@ -28,6 +35,10 @@ private:
 	};
 
 	FRenderCollectionStats* CurrentStats = nullptr;
+	FMeshBufferManager* MeshBufferManager = nullptr;
+	FWorldSpatialIndex::FPrimitiveFrustumQueryScratch ShadowFrustumQueryScratch;
+	FWorldSpatialIndex::FPrimitiveSphereQueryScratch ShadowSphereQueryScratch;
+	TArray<UPrimitiveComponent*> ShadowVisiblePrimitiveScratch;
 
 	FRenderCollectionStats& GetStats() { return *CurrentStats; }
 
