@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Render/Collector/LightRenderCollector.h"
 #include "Render/Collector/OverlayRenderCollector.h"
+#include "Render/Collector/PrimitiveRenderCollector.h"
 #include "Render/Collector/RenderCollectionStats.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/MeshBufferManager.h"
@@ -24,26 +25,19 @@ private:
 	FMeshBufferManager MeshBufferManager;
 	FLightRenderCollector LightRenderCollector;
 	FOverlayRenderCollector OverlayRenderCollector;
+	FPrimitiveRenderCollector PrimitiveRenderCollector;
 	FLineBatcher* LineBatcher = nullptr;
 
-	// ────── Collects ─────────────────────────────────────────────────────────
+	// ────── Initialize & Release ─────────────────────────────────────────────
 public:
-	void Initialize(ID3D11Device* InDevice) { MeshBufferManager.Create(InDevice); LightRenderCollector.Initialize(&MeshBufferManager); OverlayRenderCollector.Initialize(&MeshBufferManager); }
-	void Release() { LineBatcher = nullptr; LightRenderCollector.Release(); OverlayRenderCollector.Release(); MeshBufferManager.Release(); }
+	void Initialize(ID3D11Device* InDevice);
+	void Release();
 	void SetLineBatcher(FLineBatcher* InLineBatcher) { LineBatcher = InLineBatcher; }
 	void ClearLineBatcher() { LineBatcher = nullptr; }
 
+	// ────── Main Collects ────────────────────────────────────────────────────
+public:
 	void CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, const FFrustum* ViewFrustum = nullptr);
-	void CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
-	void CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus, bool bIsActiveOperation);
-	void CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus, bool bOrthographic = false);
-
-private:
-	void CollectLight(UWorld* World, FRenderBus& RenderBus, const FFrustum* ViewFrustum = nullptr);
-	void CollectShadowCasters(UWorld* World, FRenderBus& RenderBus);
-	void CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
-	void CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
-	void CollectBVHInternalNodeAABBs(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus, std::unordered_set<int32>& SeenNodeIndices);
 
 	// ────── Stats ────────────────────────────────────────────────────────────
 private:
@@ -65,10 +59,19 @@ public:
 
 	// ────── Query Buffer ─────────────────────────────────────────────────────
 private:
-	// WorldSpatialIndex culling queries reuse these scratch buffers each frame.
 	FWorldSpatialIndex::FPrimitiveFrustumQueryScratch FrustumQueryScratch;
-	FWorldSpatialIndex::FPrimitiveOBBQueryScratch OBBQueryScratch;
-	FWorldSpatialIndex::FPrimitiveSphereQueryScratch SphereQueryScratch;
-	// Spatial query results are stored here temporarily before render commands are emitted.
 	TArray<UPrimitiveComponent*> VisiblePrimitiveScratch;	
+	
+	// ────── Sub Collects ─────────────────────────────────────────────────────
+public: 
+	void CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
+	void CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus, bool bIsActiveOperation);
+	void CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus, bool bOrthographic = false);
+
+private:
+	void CollectLight(UWorld* World, FRenderBus& RenderBus, const FFrustum* ViewFrustum = nullptr);
+	void CollectShadowCasters(UWorld* World, FRenderBus& RenderBus);
+	void CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
+	void CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
+	void CollectBVHInternalNodeAABBs(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus, std::unordered_set<int32>& SeenNodeIndices);
 };

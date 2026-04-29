@@ -734,6 +734,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\Engine\Render\Collector\LightRenderCollector.cpp" />
     <ClCompile Include="Source\Engine\Render\Collector\OverlayRenderCollector.cpp" />
+    <ClCompile Include="Source\Engine\Render\Collector\PrimitiveRenderCollector.cpp" />
     <ClCompile Include="Source\Engine\Render\Collector\RenderCollector.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -1387,6 +1388,7 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Render\Collector\LightRenderCollector.h" />
     <ClInclude Include="Source\Engine\Render\Collector\OverlayRenderCollector.h" />
+    <ClInclude Include="Source\Engine\Render\Collector\PrimitiveRenderCollector.h" />
     <ClInclude Include="Source\Engine\Render\Collector\RenderCollectionStats.h" />
     <ClInclude Include="Source\Engine\Render\Collector\RenderCollector.h" />
   </ItemGroup>
