@@ -89,11 +89,18 @@ float SampleShadowVSMFromMoments(float2 Moments, float CurrentDepth, float Sharp
 }
 
 // ESM (저장값 기반 — Cube-aware bilinear에서 사용)
-float SampleShadowESMFromStored(float Stored, float CurrentDepth)
+float GetShadowESMExponent(float Sharpen)
 {
-    static const float ShadowESMExponent = 40.0f;
+    return lerp(20.0f, 80.0f, saturate(Sharpen));
+}
 
-    float Shadow = Stored * exp(-ShadowESMExponent * CurrentDepth);
+float SampleShadowESMFromStored(float Stored, float CurrentDepth, float Sharpen)
+{
+    static const float StoredShadowESMExponent = 40.0f;
+
+    const float ShadowESMExponent = GetShadowESMExponent(Sharpen);
+    const float StoredExponentScale = ShadowESMExponent / StoredShadowESMExponent;
+    float Shadow = pow(max(Stored, 1.0e-20f), StoredExponentScale) * exp(-ShadowESMExponent * CurrentDepth);
     
     return saturate(Shadow);
 }
@@ -105,10 +112,10 @@ float SampleShadowVSM(float2 ShadowUV, float CurrentDepth, Texture2D<float2> Sha
     return SampleShadowVSMFromMoments(Moments, CurrentDepth, Sharpen);
 }
 
-float SampleShadowESM(float2 ShadowUV, float CurrentDepth, Texture2D<float2> ShadowMapESM, int2 AtlasSize)
+float SampleShadowESM(float2 ShadowUV, float CurrentDepth, Texture2D<float2> ShadowMapESM, int2 AtlasSize, float Sharpen)
 {
     float Stored = ShadowMapESM.SampleLevel(SampleState, ShadowUV, 0.0f).x;
-    return SampleShadowESMFromStored(Stored, CurrentDepth);
+    return SampleShadowESMFromStored(Stored, CurrentDepth, Sharpen);
 }
 
 float2 ClampShadowUVToAtlasRect(float2 ShadowUV, float4 AtlasRect, int2 AtlasSize)
