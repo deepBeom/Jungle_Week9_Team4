@@ -454,8 +454,6 @@ float ComputePointShadowFactor(float3 WorldPos, float3 N, uint bCastShadows, int
     const int2 TileMax   = TileBase + TileSpan - int2(1, 1);
 
     const float2 AtlasUV   = AtlasRect.xy + LocalUV * AtlasRect.zw;
-    const int2   RawTexel  = (int2)floor(AtlasUV * (float)AtlasSize);
-    const int2   ShadowTexel = clamp(RawTexel, TileBase, TileMax);
     const int2   GuardTileBase = min(TileBase + int2(1, 1), TileMax);
     const int2   GuardTileMax = max(TileMax - int2(1, 1), TileBase);
 
@@ -463,32 +461,54 @@ float ComputePointShadowFactor(float3 WorldPos, float3 N, uint bCastShadows, int
     {
         float ShadowFactor = 0.0f;
         const float Spread = (1.0f - Shadow.ShadowSharpen) * 2.0f;
+        const float ShadowResolution = max(Shadow.ShadowResolution, 1.0f);
         const float DirectionTexelSize = 2.0f / max(Shadow.ShadowResolution, 1.0f);
+        const float2 LocalTexelSize = 1.0f.xx / ShadowResolution;
+        const float FaceBorder = (Spread + 2.0f) / ShadowResolution;
+        const bool bNeedsCubeAwarePCF =
+            LocalUV.x < FaceBorder || LocalUV.x > 1.0f - FaceBorder ||
+            LocalUV.y < FaceBorder || LocalUV.y > 1.0f - FaceBorder;
         const float Angle = frac(sin(dot(DirectionFromLight, float3(12.9898, 78.233, 37.719))) * 43758.5453) * 6.283185f;
         const float2x2 RotationMatrix = float2x2(cos(Angle), -sin(Angle), sin(Angle), cos(Angle));
-        float3 DirectionTangent = 0.0f.xxx;
-        float3 DirectionBitangent = 0.0f.xxx;
-        BuildPointShadowDirectionBasis(DirectionFromLight, DirectionTangent, DirectionBitangent);
 
-        [unroll]
-        for (int SampleIndex = 0; SampleIndex < 16; ++SampleIndex)
+        if (!bNeedsCubeAwarePCF)
         {
-            const float2 Offset = mul(PoissonDisk[SampleIndex], RotationMatrix) * DirectionTexelSize * Spread;
-            const float3 SampleDirection = normalize(DirectionFromLight + DirectionTangent * Offset.x + DirectionBitangent * Offset.y);
-            const uint SampleFaceIndex = SelectPointShadowFace(SampleDirection);
-            const float2 SampleLocalUV = InsetPointShadowLocalUV(
-                ProjectPointShadowDirectionToFaceUV(SampleDirection, SampleFaceIndex),
-                Shadow.ShadowResolution);
-            const float4 SampleAtlasRect = Shadow.FaceAtlasRects[SampleFaceIndex];
-            const int2 SampleTileBase = (int2)(SampleAtlasRect.xy * (float)AtlasSize);
-            const int2 SampleTileSpan = (int2)(SampleAtlasRect.zw * (float)AtlasSize);
-            const int2 SampleTileMax = SampleTileBase + SampleTileSpan - int2(1, 1);
-            const int2 SampleGuardTileBase = min(SampleTileBase + int2(1, 1), SampleTileMax);
-            const int2 SampleGuardTileMax = max(SampleTileMax - int2(1, 1), SampleTileBase);
-            const float2 SampleAtlasUV = SampleAtlasRect.xy + SampleLocalUV * SampleAtlasRect.zw;
-            const int2 SampleTexel = clamp((int2)floor(SampleAtlasUV * (float)AtlasSize), SampleGuardTileBase, SampleGuardTileMax);
-            const float StoredDepth = PointShadowMap.Load(int3(SampleTexel, 0));
-            ShadowFactor += ((CurrentDepth - Bias) <= StoredDepth) ? 1.0f : 0.0f;
+            [loop]
+            for (int SampleIndex = 0; SampleIndex < 16; ++SampleIndex)
+            {
+                const float2 SampleLocalUV = LocalUV + mul(PoissonDisk[SampleIndex], RotationMatrix) * LocalTexelSize * Spread;
+                const float2 SampleAtlasUV = AtlasRect.xy + SampleLocalUV * AtlasRect.zw;
+                const int2 SampleTexel = clamp((int2)floor(SampleAtlasUV * (float)AtlasSize), GuardTileBase, GuardTileMax);
+                const float StoredDepth = PointShadowMap.Load(int3(SampleTexel, 0));
+                ShadowFactor += ((CurrentDepth - Bias) <= StoredDepth) ? 1.0f : 0.0f;
+            }
+        }
+        else
+        {
+            float3 DirectionTangent = 0.0f.xxx;
+            float3 DirectionBitangent = 0.0f.xxx;
+            BuildPointShadowDirectionBasis(DirectionFromLight, DirectionTangent, DirectionBitangent);
+
+            [loop]
+            for (int SampleIndex = 0; SampleIndex < 16; ++SampleIndex)
+            {
+                const float2 Offset = mul(PoissonDisk[SampleIndex], RotationMatrix) * DirectionTexelSize * Spread;
+                const float3 SampleDirection = normalize(DirectionFromLight + DirectionTangent * Offset.x + DirectionBitangent * Offset.y);
+                const uint SampleFaceIndex = SelectPointShadowFace(SampleDirection);
+                const float2 SampleLocalUV = InsetPointShadowLocalUV(
+                    ProjectPointShadowDirectionToFaceUV(SampleDirection, SampleFaceIndex),
+                    Shadow.ShadowResolution);
+                const float4 SampleAtlasRect = Shadow.FaceAtlasRects[SampleFaceIndex];
+                const int2 SampleTileBase = (int2)(SampleAtlasRect.xy * (float)AtlasSize);
+                const int2 SampleTileSpan = (int2)(SampleAtlasRect.zw * (float)AtlasSize);
+                const int2 SampleTileMax = SampleTileBase + SampleTileSpan - int2(1, 1);
+                const int2 SampleGuardTileBase = min(SampleTileBase + int2(1, 1), SampleTileMax);
+                const int2 SampleGuardTileMax = max(SampleTileMax - int2(1, 1), SampleTileBase);
+                const float2 SampleAtlasUV = SampleAtlasRect.xy + SampleLocalUV * SampleAtlasRect.zw;
+                const int2 SampleTexel = clamp((int2)floor(SampleAtlasUV * (float)AtlasSize), SampleGuardTileBase, SampleGuardTileMax);
+                const float StoredDepth = PointShadowMap.Load(int3(SampleTexel, 0));
+                ShadowFactor += ((CurrentDepth - Bias) <= StoredDepth) ? 1.0f : 0.0f;
+            }
         }
 
         return ShadowFactor / 16.0f;
