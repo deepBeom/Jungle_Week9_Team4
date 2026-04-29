@@ -12,9 +12,6 @@ enum class EViewMode : int32
     Wireframe,
     SceneDepth,
     WorldNormal,
-    PointShadowFace,
-    PointShadowDepthDelta,
-    PointShadowPCF,
     Count
 };
 
@@ -30,10 +27,7 @@ inline bool IsBufferVisualizationViewMode(EViewMode ViewMode)
 inline bool ShouldBypassSceneCompositePasses(EViewMode ViewMode)
 {
     return ViewMode == EViewMode::Wireframe ||
-        IsBufferVisualizationViewMode(ViewMode) ||
-        ViewMode == EViewMode::PointShadowFace ||
-        ViewMode == EViewMode::PointShadowDepthDelta ||
-        ViewMode == EViewMode::PointShadowPCF;
+        IsBufferVisualizationViewMode(ViewMode);
 }
 
 struct FShowFlags

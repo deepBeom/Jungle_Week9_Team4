@@ -161,9 +161,6 @@ static const float3 DEFAULT_AMBIENT_COLOR = float3(0.02f, 0.02f, 0.02f);
 static const uint SHADOW_FILTER_TYPE_PCF = 0u;
 static const uint SHADOW_FILTER_TYPE_VSM = 1u;
 static const uint SHADOW_FILTER_TYPE_ESM = 2u;
-static const uint VIEW_MODE_POINT_SHADOW_FACE = 5u;
-static const uint VIEW_MODE_POINT_SHADOW_DEPTH_DELTA = 6u;
-static const uint VIEW_MODE_POINT_SHADOW_PCF = 7u;
 static const float POINT_SHADOW_FACE_EXTENT = 1.008765f; // tan(radians(90.5 * 0.5))
 
 float3 GetPointShadowFaceForward(uint FaceIndex)
@@ -509,156 +506,6 @@ float ComputePointShadowFactor(float3 WorldPos, float3 N, uint bCastShadows, int
 }
 
 // ─────────────────── Lights ───────────────────
-bool ResolvePointShadowSampleData(
-    float3 WorldPos,
-    float3 N,
-    uint bCastShadows,
-    int ShadowMapIndex,
-    float LightShadowBias,
-    out uint OutFaceIndex,
-    out float OutCurrentDepth,
-    out float OutBias,
-    out float4 OutAtlasRect,
-    out float2 OutAtlasUV,
-    out int2 OutTileBase,
-    out int2 OutTileMax)
-{
-    OutFaceIndex = 0u;
-    OutCurrentDepth = 0.0f;
-    OutBias = 0.0f;
-    OutAtlasRect = 0.0f.xxxx;
-    OutAtlasUV = 0.0f.xx;
-    OutTileBase = int2(0, 0);
-    OutTileMax = int2(0, 0);
-
-    if (bCastShadows == 0u || ShadowMapIndex < 0)
-        return false;
-
-    const uint Slice = (uint)ShadowMapIndex;
-    if (Slice >= PointShadowCount)
-        return false;
-
-    const FPointShadowConstants Shadow = PointShadowData[Slice];
-    if (Shadow.bHasShadowMap == 0u)
-        return false;
-
-    const float3 InitialToFromLight = WorldPos - Shadow.LightPosition;
-    const float InitialDist = length(InitialToFromLight);
-    if (InitialDist <= 1.0e-5f || InitialDist >= Shadow.FarPlane)
-        return false;
-
-    const float3 InitialDirectionFromLight = InitialToFromLight / InitialDist;
-    const float3 ShadowWorldPos = OffsetPointShadowReceiver(Shadow, WorldPos, N, InitialDirectionFromLight, LightShadowBias);
-    const float3 ToFromLight = ShadowWorldPos - Shadow.LightPosition;
-    const float Dist = length(ToFromLight);
-    if (Dist <= 1.0e-5f || Dist >= Shadow.FarPlane)
-        return false;
-
-    const float3 DirectionFromLight = ToFromLight / Dist;
-    OutFaceIndex = SelectPointShadowFace(DirectionFromLight);
-
-    const float4 ShadowClip = mul(float4(ShadowWorldPos, 1.0f), Shadow.LightViewProj[OutFaceIndex]);
-    if (ShadowClip.w <= 1.0e-5f)
-        return false;
-
-    const float3 ShadowNDC = ShadowClip.xyz / ShadowClip.w;
-    if (ShadowNDC.x < -1.0f || ShadowNDC.x > 1.0f ||
-        ShadowNDC.y < -1.0f || ShadowNDC.y > 1.0f ||
-        ShadowNDC.z < 0.0f || ShadowNDC.z > 1.0f)
-    {
-        return false;
-    }
-
-    const float2 LocalUV = InsetPointShadowLocalUV(
-        float2(ShadowNDC.x * 0.5f + 0.5f, 0.5f - ShadowNDC.y * 0.5f),
-        Shadow.ShadowResolution);
-    OutAtlasRect = Shadow.FaceAtlasRects[OutFaceIndex];
-    OutAtlasUV = OutAtlasRect.xy + LocalUV * OutAtlasRect.zw;
-
-    const int AtlasSize = (int)PointAtlasResolution;
-    const int2 TileSpan = (int2)(OutAtlasRect.zw * (float)AtlasSize);
-    OutTileBase = (int2)(OutAtlasRect.xy * (float)AtlasSize);
-    OutTileMax = OutTileBase + TileSpan - int2(1, 1);
-    OutCurrentDepth = Dist / Shadow.FarPlane;
-    OutBias = max(LightShadowBias, Shadow.ShadowBias);
-    return true;
-}
-
-float3 GetPointShadowFaceDebugColor(uint FaceIndex)
-{
-    if (FaceIndex == 0u) return float3(1.0f, 0.1f, 0.1f);
-    if (FaceIndex == 1u) return float3(0.1f, 1.0f, 0.1f);
-    if (FaceIndex == 2u) return float3(0.1f, 0.3f, 1.0f);
-    if (FaceIndex == 3u) return float3(1.0f, 1.0f, 0.1f);
-    if (FaceIndex == 4u) return float3(0.1f, 1.0f, 1.0f);
-    return float3(1.0f, 0.1f, 1.0f);
-}
-
-float3 GetPointShadowDebugColor(float3 WorldPos, float3 N)
-{
-    const uint DebugMode = (uint)(UberDebugViewMode + 0.5f);
-
-    [loop]
-    for (uint LightIndex = 0u; LightIndex < VisibleLightCount; ++LightIndex)
-    {
-        const FVisibleLightData Light = VisibleLights[LightIndex];
-        if (Light.Type != LIGHT_TYPE_POINT || Light.bCastShadows == 0u || Light.ShadowMapIndex < 0)
-        {
-            continue;
-        }
-
-        uint FaceIndex = 0u;
-        float CurrentDepth = 0.0f;
-        float Bias = 0.0f;
-        float4 AtlasRect = 0.0f.xxxx;
-        float2 AtlasUV = 0.0f.xx;
-        int2 TileBase = int2(0, 0);
-        int2 TileMax = int2(0, 0);
-        if (!ResolvePointShadowSampleData(
-            WorldPos,
-            N,
-            Light.bCastShadows,
-            Light.ShadowMapIndex,
-            Light.ShadowBias,
-            FaceIndex,
-            CurrentDepth,
-            Bias,
-            AtlasRect,
-            AtlasUV,
-            TileBase,
-            TileMax))
-        {
-            return float3(0.02f, 0.02f, 0.08f);
-        }
-
-        if (DebugMode == VIEW_MODE_POINT_SHADOW_FACE)
-        {
-            return GetPointShadowFaceDebugColor(FaceIndex);
-        }
-
-        const int AtlasSize = (int)PointAtlasResolution;
-        const int2 CenterTexel = clamp((int2)floor(AtlasUV * (float)AtlasSize), TileBase, TileMax);
-        const float StoredDepth = PointShadowMap.Load(int3(CenterTexel, 0));
-        const float DepthDelta = StoredDepth - (CurrentDepth - Bias);
-
-        if (DebugMode == VIEW_MODE_POINT_SHADOW_DEPTH_DELTA)
-        {
-            const float Intensity = saturate(abs(DepthDelta) * 512.0f);
-            return (DepthDelta >= 0.0f)
-                ? float3(0.0f, Intensity, 0.0f)
-                : float3(Intensity, 0.0f, 0.0f);
-        }
-
-        if (DebugMode == VIEW_MODE_POINT_SHADOW_PCF)
-        {
-            const float ShadowFactor = ComputePointShadowFactor(WorldPos, N, Light.bCastShadows, Light.ShadowMapIndex, Light.ShadowBias);
-            return ShadowFactor.xxx;
-        }
-    }
-
-    return float3(0.15f, 0.0f, 0.15f);
-}
-
 struct FLightingResult
 {
     float3 Diffuse;
@@ -1108,14 +955,6 @@ FUberPSInput mainVS(FUberVSInput Input)
 FUberPSOutput mainPS(FUberPSInput Input)
 {
     const FUberSurfaceData Surface = EvaluateSurface(Input);
-    const uint DebugViewMode = (uint)(UberDebugViewMode + 0.5f);
-    if (DebugViewMode == VIEW_MODE_POINT_SHADOW_FACE ||
-        DebugViewMode == VIEW_MODE_POINT_SHADOW_DEPTH_DELTA ||
-        DebugViewMode == VIEW_MODE_POINT_SHADOW_PCF)
-    {
-        return ComposeDebugOutput(Surface, GetPointShadowDebugColor(Surface.WorldPos, Surface.WorldNormal));
-    }
-
     FLightingResult Lighting;
 
 #if defined(LIGHTING_MODEL_GOURAUD)

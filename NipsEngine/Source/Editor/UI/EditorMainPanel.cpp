@@ -61,12 +61,6 @@ const char* GetViewModeName(EViewMode Mode)
         return "Scene Depth";
     case EViewMode::WorldNormal:
         return "World Normal";
-    case EViewMode::PointShadowFace:
-        return "Point Shadow Face";
-    case EViewMode::PointShadowDepthDelta:
-        return "Point Shadow Depth";
-    case EViewMode::PointShadowPCF:
-        return "Point Shadow PCF";
 	default:
         return "Lit";
     }
@@ -433,9 +427,6 @@ void FEditorMainPanel::RenderViewportMenuBarForIndex(int32 Index)
             EViewMode::Wireframe,
             EViewMode::SceneDepth,
             EViewMode::WorldNormal,
-            EViewMode::PointShadowFace,
-            EViewMode::PointShadowDepthDelta,
-            EViewMode::PointShadowPCF,
         };
         static constexpr const char* Labels[] = {
             "Lit",
@@ -443,12 +434,10 @@ void FEditorMainPanel::RenderViewportMenuBarForIndex(int32 Index)
             "Wireframe",
             "Scene Depth",
             "World Normal",
-            "Point Shadow Face",
-            "Point Shadow Depth",
-            "Point Shadow PCF",
         };
 
-        for (int32 j = 0; j < static_cast<int32>(EViewMode::Count); ++j)
+        static_assert(IM_ARRAYSIZE(Modes) == IM_ARRAYSIZE(Labels));
+        for (int32 j = 0; j < static_cast<int32>(IM_ARRAYSIZE(Modes)); ++j)
         {
             const bool bSel = (State.ViewMode == Modes[j]);
             if (ImGui::MenuItem(Labels[j], nullptr, bSel))

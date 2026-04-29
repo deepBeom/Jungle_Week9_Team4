@@ -949,9 +949,6 @@ namespace
 		case EViewMode::Wireframe:   return "Wireframe";
 		case EViewMode::SceneDepth:  return "Scene Depth";
 		case EViewMode::WorldNormal: return "World Normal";
-		case EViewMode::PointShadowFace: return "Point Shadow Face";
-		case EViewMode::PointShadowDepthDelta: return "Point Shadow Depth";
-		case EViewMode::PointShadowPCF: return "Point Shadow PCF";
 		default:                     return "Lit";
 		}
 	}
