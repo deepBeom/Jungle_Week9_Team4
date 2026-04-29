@@ -181,7 +181,7 @@ int GetCascadeIndex(float3 WorldPos)
 // 뷰 공간 깊이로 Cascade Index를 결정한다.
 float SampleDirectionalShadowAtIndex(float3 WorldPos, float3 N, float3 L, int ShadowIndex)
 {
-    const float BiasScale = (ShadowMode == SHADOW_MODE_PSM) ? PSM_SHADOW_BIAS_SCALE : max(CascadeRadius[ShadowIndex] * 2.0f, 1.0e-4f);
+    const float BiasScale = (ShadowMode == SHADOW_MODE_PSM) ? PSM_SHADOW_BIAS_SCALE : max(SplitDistances.w, 1.0e-4f);
     const float NormalizedBias = ShadowBias / BiasScale;
     const float NormalizedSlopeBias = ShadowSlopeBias / BiasScale;
     
