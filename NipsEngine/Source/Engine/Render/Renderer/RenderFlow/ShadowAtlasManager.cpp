@@ -225,6 +225,10 @@ void FShadowAtlasManager::Release()
     PointAtlasSRV.Reset();
     PointAtlasDSV.Reset();
     PointAtlasTexture.Reset();
+
+    PointVSMAtlasSRV.Reset();
+    PointVSMAtlasRTV.Reset();
+    PointVSMAtlasTexture.Reset();
 }
 
 void FShadowAtlasManager::BeginSpotFrame()
@@ -615,7 +619,7 @@ bool FShadowAtlasManager::InitializePointAtlas(ID3D11Device* Device)
         return false;
     }
 
-    if (PointAtlasTexture && PointAtlasDSV && PointAtlasSRV)
+    if (PointAtlasTexture && PointAtlasDSV && PointAtlasSRV && PointVSMAtlasTexture && PointVSMAtlasRTV && PointVSMAtlasSRV)
     {
         return true;
     }
@@ -653,6 +657,46 @@ bool FShadowAtlasManager::InitializePointAtlas(ID3D11Device* Device)
     ShaderResourceViewDesc.Texture2D.MipLevels = 1;
     
     if (FAILED(Device->CreateShaderResourceView(PointAtlasTexture.Get(), &ShaderResourceViewDesc, PointAtlasSRV.GetAddressOf())))
+    {
+        Release();
+        return false;
+    }
+
+    D3D11_TEXTURE2D_DESC VSMTextureDesc = {};
+    VSMTextureDesc.Width = PointAtlasResolution;
+    VSMTextureDesc.Height = PointAtlasResolution;
+    VSMTextureDesc.MipLevels = 1;
+    VSMTextureDesc.ArraySize = 1;
+    VSMTextureDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+    VSMTextureDesc.SampleDesc.Count = 1;
+    VSMTextureDesc.SampleDesc.Quality = 0;
+    VSMTextureDesc.Usage = D3D11_USAGE_DEFAULT;
+    VSMTextureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+
+    if (FAILED(Device->CreateTexture2D(&VSMTextureDesc, nullptr, PointVSMAtlasTexture.GetAddressOf())))
+    {
+        Release();
+        return false;
+    }
+
+    D3D11_RENDER_TARGET_VIEW_DESC RTVDesc = {};
+    RTVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+    RTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    RTVDesc.Texture2D.MipSlice = 0;
+
+    if (FAILED(Device->CreateRenderTargetView(PointVSMAtlasTexture.Get(), &RTVDesc, PointVSMAtlasRTV.GetAddressOf())))
+    {
+        Release();
+        return false;
+    }
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC VSMSRVDesc = {};
+    VSMSRVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+    VSMSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    VSMSRVDesc.Texture2D.MostDetailedMip = 0;
+    VSMSRVDesc.Texture2D.MipLevels = 1;
+
+    if (FAILED(Device->CreateShaderResourceView(PointVSMAtlasTexture.Get(), &VSMSRVDesc, PointVSMAtlasSRV.GetAddressOf())))
     {
         Release();
         return false;

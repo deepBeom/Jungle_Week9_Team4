@@ -130,7 +130,8 @@ cbuffer PointShadowInfo : register(b8)
 {
     uint PointShadowCount;
     uint PointAtlasResolution;
-    float2 _PointShadowPad;
+    uint PointShadowFilterType;
+    float _PointShadowPad;
 };
 
 StructuredBuffer<FSpotShadowConstants> SpotShadowData : register(t11);
@@ -142,6 +143,7 @@ Texture2D<float2> DirectionalShadowVSMMap : register(t16);
 
 StructuredBuffer<FPointShadowConstants> PointShadowData  : register(t14);
 Texture2D<float> PointShadowMap : register(t17);
+Texture2D<float2> PointShadowVSMMap : register(t18);
 
 static const int kCascadeShadowResoultion = 2048; // ShadowPass::CascadeShadowResolution과 일치
 static const int kDirectionalAtlasResolution = 4096;
@@ -308,9 +310,33 @@ float ComputePointShadowFactor(float3 WorldPos, uint bCastShadows, int ShadowMap
     const int2   RawTexel  = (int2)floor(AtlasUV * (float)AtlasSize);
     const int2   ShadowTexel = clamp(RawTexel, TileBase, TileMax);
 
-    const float StoredDepth = PointShadowMap.Load(int3(ShadowTexel, 0));
+    if (PointShadowFilterType == SHADOW_FILTER_TYPE_PCF)
+    {
+        float ShadowFactor = 0.0f;
+        const float2 TexelSize = 1.0f / (float2)AtlasSize;
+        const float Spread = 2.0f;
+        const float Angle = frac(sin(dot(AtlasUV, float2(12.9898, 78.233))) * 43758.5453) * 6.283185f;
+        const float2x2 RotationMatrix = float2x2(cos(Angle), -sin(Angle), sin(Angle), cos(Angle));
 
-    return (CurrentDepth - Bias) > StoredDepth ? 0.0f : 1.0f;
+        [unroll]
+        for (int SampleIndex = 0; SampleIndex < 16; ++SampleIndex)
+        {
+            const float2 Offset = mul(PoissonDisk[SampleIndex], RotationMatrix) * TexelSize * Spread;
+            const int2 SampleTexel = clamp((int2)floor((AtlasUV + Offset) * (float)AtlasSize), TileBase, TileMax);
+            const float StoredDepth = PointShadowMap.Load(int3(SampleTexel, 0));
+            ShadowFactor += ((CurrentDepth - Bias) <= StoredDepth) ? 1.0f : 0.0f;
+        }
+
+        return ShadowFactor / 16.0f;
+    }
+    else if (PointShadowFilterType == SHADOW_FILTER_TYPE_ESM)
+    {
+        return SampleShadowESM(AtlasUV, CurrentDepth - Bias, PointShadowVSMMap, int2(AtlasSize, AtlasSize));
+    }
+    else
+    {
+        return SampleShadowVSM(AtlasUV, CurrentDepth - Bias, PointShadowVSMMap, int2(AtlasSize, AtlasSize));
+    }
 }
 
 // ─────────────────── Lights ───────────────────

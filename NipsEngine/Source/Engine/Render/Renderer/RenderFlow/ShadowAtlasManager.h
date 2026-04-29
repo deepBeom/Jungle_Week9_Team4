@@ -118,6 +118,8 @@ public:
     static const TArray<FPointAtlasSlotDesc>& GetActivePointSlots() { return ActivePointSlots; }
     ID3D11DepthStencilView* GetPointAtlasDSV() const { return PointAtlasDSV.Get(); }
     ID3D11ShaderResourceView* GetPointAtlasSRV() const { return PointAtlasSRV.Get(); }
+    ID3D11RenderTargetView* GetPointVSMAtlasRTV() const { return PointVSMAtlasRTV.Get(); }
+    ID3D11ShaderResourceView* GetPointVSMAtlasSRV() const { return PointVSMAtlasSRV.Get(); }
 
 private:
     // allocator가 실제로 처리 가능한 PoT 타일 크기로 보정합니다.
@@ -169,6 +171,10 @@ private:
     TComPtr<ID3D11Texture2D> PointAtlasTexture;
     TComPtr<ID3D11DepthStencilView> PointAtlasDSV;
     TComPtr<ID3D11ShaderResourceView> PointAtlasSRV;
+
+    TComPtr<ID3D11Texture2D> PointVSMAtlasTexture;
+    TComPtr<ID3D11RenderTargetView> PointVSMAtlasRTV;
+    TComPtr<ID3D11ShaderResourceView> PointVSMAtlasSRV;
 
     static TArray<uint8> PointAtlasCellOccupancy;
     static TArray<FPointAtlasSlotDesc> ActivePointSlots;
