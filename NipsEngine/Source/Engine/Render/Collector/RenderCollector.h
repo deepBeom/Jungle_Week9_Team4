@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "RenderBus.h"
+#include "Render/Scene/RenderBus.h"
 #include "Render/Resource/MeshBufferManager.h"
 #include "Spatial/WorldSpatialIndex.h"
 #include "Geometry/OBB.h"

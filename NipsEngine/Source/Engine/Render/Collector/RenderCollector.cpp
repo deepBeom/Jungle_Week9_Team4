@@ -1,4 +1,4 @@
-#include "RenderCollector.h"
+﻿#include "RenderCollector.h"
 
 #include "Render/LineBatcher.h"
 #include "Render/Renderer/RenderFlow/ShadowAtlasManager.h"
