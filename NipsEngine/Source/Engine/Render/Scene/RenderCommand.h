@@ -245,7 +245,7 @@ struct FSpotShadowConstants
 {
     FMatrix LightViewProj;
     FVector4 AtlasRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
-    float ShadowResolution = 0.0f;
+    float ShadowSlopeBias = 0.0f;
     float ShadowBias = 0.0f;
     float ShadowSharpen = 0.0f;
     float ShadowFarPlane = 1.0f;
@@ -264,10 +264,12 @@ struct FPointShadowConstants
     float ShadowBias = 0.0f;
     float ShadowResolution = 0.0f;
     float ShadowSharpen = 0.0f;
+    float ShadowSlopeBias = 0.0f;
     uint32 bHasShadowMap = 0;
+    float Padding[3] = { 0.0f, 0.0f, 0.0f };
 };
 
-static_assert(sizeof(FPointShadowConstants) == 512 , "FPointShadowConstants layout must match the shadow pass GPU layout.");
+static_assert(sizeof(FPointShadowConstants) == 528 , "FPointShadowConstants layout must match the shadow pass GPU layout.");
 
 struct FRenderCommand
 {

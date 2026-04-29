@@ -77,7 +77,7 @@ struct FSpotShadowConstants
 {
     row_major float4x4 LightViewProj;
     float4 AtlasRect; // xy = offset, zw = scale
-    float ShadowResolution;
+    float ShadowSlopeBias;
     float ShadowBias;
     float SpotShadowSharpen;
     float ShadowFarPlane;
@@ -101,7 +101,9 @@ struct FPointShadowConstants
     float ShadowBias;
     float ShadowResolution;
     float ShadowSharpen;
+    float ShadowSlopeBias;
     uint bHasShadowMap;
+    float3 Padding;
 };
 
 #define MAX_CASCADE_COUNT 4
@@ -245,7 +247,7 @@ float ComputeDirectionalShadowFactor(float3 WorldPos, float3 N, float3 L)
     return SampleDirectionalShadowAtIndex(WorldPos, N, L, ShadowIndex);
 }
 
-float ComputePointShadowFactor(float3 WorldPos, uint bCastShadows, int ShadowMapIndex, float LightShadowBias)
+float ComputePointShadowFactor(float3 WorldPos, float3 N, uint bCastShadows, int ShadowMapIndex, float LightShadowBias)
 {
     if (bCastShadows == 0u || ShadowMapIndex < 0)
         return 1.0f;
@@ -265,7 +267,15 @@ float ComputePointShadowFactor(float3 WorldPos, uint bCastShadows, int ShadowMap
         return 1.0f;
 
     const float CurrentDepth = Dist / Shadow.FarPlane;
-    const float Bias = max(LightShadowBias, Shadow.ShadowBias);
+    const float3 L = -ToFromLight / Dist;
+
+    float CosTheta = saturate(dot(N, L));
+    CosTheta = max(CosTheta, 1.0e-4f);
+    float TanTheta = sqrt(1.0f - CosTheta * CosTheta) / CosTheta;
+    TanTheta = min(TanTheta, 2.0f);
+
+    const float NormalizedSlopeBias = Shadow.ShadowSlopeBias / max(Shadow.FarPlane, 1.0e-4f);
+    const float Bias = max(LightShadowBias, Shadow.ShadowBias) + NormalizedSlopeBias * TanTheta;
 
     const float3 AbsDir = abs(ToFromLight);
     uint FaceIndex = 0u;
@@ -403,7 +413,7 @@ void AccumulateDirectLight(float3 WorldPos, float3 N, float3 V, float3 L, float3
 #endif
 }
 
-float ComputeSpotShadowFactor(float3 WorldPos, uint bCastShadows, int ShadowMapIndex, float LightShadowBias)
+float ComputeSpotShadowFactor(float3 WorldPos, float3 N, float3 L, uint bCastShadows, int ShadowMapIndex, float LightShadowBias)
 {
     if (bCastShadows == 0u || ShadowMapIndex < 0)
     {
@@ -441,7 +451,14 @@ float ComputeSpotShadowFactor(float3 WorldPos, uint bCastShadows, int ShadowMapI
     
     const float CurrentDepth = ShadowNDC.z;
     const float LinearDepth = saturate(ShadowClip.w / max(Shadow.ShadowFarPlane, 1.0e-4f));
-    const float Bias = max(LightShadowBias, Shadow.ShadowBias);
+
+    float CosTheta = saturate(dot(N, L));
+    CosTheta = max(CosTheta, 1.0e-4f);
+    float TanTheta = sqrt(1.0f - CosTheta * CosTheta) / CosTheta;
+    TanTheta = min(TanTheta, 2.0f);
+
+    const float NormalizedSlopeBias = Shadow.ShadowSlopeBias / max(Shadow.ShadowFarPlane, 1.0e-4f);
+    const float Bias = max(LightShadowBias, Shadow.ShadowBias) + NormalizedSlopeBias * TanTheta;
     
     if (SpotShadowFilterType == SHADOW_FILTER_TYPE_PCF)
     {
@@ -508,7 +525,7 @@ void AccumulateVisiblePointLights(float3 WorldPos, float3 N, float3 V, float2 Sc
                 continue;
             }
 
-            Att *= ComputeSpotShadowFactor(WorldPos, Light.bCastShadows, Light.ShadowMapIndex, Light.ShadowBias);
+            Att *= ComputeSpotShadowFactor(WorldPos, N, L, Light.bCastShadows, Light.ShadowMapIndex, Light.ShadowBias);
             if (Att <= 0.0f)
             {
                 continue;
@@ -516,7 +533,7 @@ void AccumulateVisiblePointLights(float3 WorldPos, float3 N, float3 V, float2 Sc
         }
         else if (Light.Type == LIGHT_TYPE_POINT)
         {
-            Att *= ComputePointShadowFactor(WorldPos, Light.bCastShadows, Light.ShadowMapIndex, Light.ShadowBias);
+            Att *= ComputePointShadowFactor(WorldPos, N, Light.bCastShadows, Light.ShadowMapIndex, Light.ShadowBias);
             if (Att <= 0.0f)
             {
                 continue;
@@ -677,10 +694,14 @@ FLightingResult EvaluateLightingFromWorldVertex(float3 WorldPos, float3 WorldNor
             Att *= saturate((CosAngle - Light.SpotOuterCos) / ConeRange);
             if (Att <= 0.0f)
                 continue;
+
+            Att *= ComputeSpotShadowFactor(WorldPos, N, L, Light.bCastShadows, Light.ShadowMapIndex, Light.ShadowBias);
+            if (Att <= 0.0f)
+                continue;
         }
         else if (Light.Type == LIGHT_TYPE_POINT)
         {
-            Att *= ComputePointShadowFactor(WorldPos, Light.bCastShadows, Light.ShadowMapIndex, Light.ShadowBias);
+            Att *= ComputePointShadowFactor(WorldPos, N, Light.bCastShadows, Light.ShadowMapIndex, Light.ShadowBias);
             if (Att <= 0.0f) continue;
         }
 

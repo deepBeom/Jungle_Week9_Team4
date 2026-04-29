@@ -237,7 +237,6 @@ bool FShadowPass::DrawCommand(const FRenderPassContext* Context)
         Context->DeviceContext->RSSetViewports(1, &ShadowViewport);
 
 		ShaderBinding->SetMatrix4("LightViewProj", SpotShadow.LightViewProj);
-		ShaderBinding->SetFloat("ShadowResolution", SpotShadow.ShadowResolution);
 		ShaderBinding->SetFloat("ShadowBias", SpotShadow.ShadowBias);
 		ShaderBinding->SetFloat("ShadowFarPlane", SpotShadow.ShadowFarPlane);
         ShaderBinding->SetUInt("ShadowFilterType", static_cast<uint32>(Context->RenderBus->GetShadowFilterType()));

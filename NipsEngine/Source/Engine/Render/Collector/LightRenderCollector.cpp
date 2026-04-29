@@ -652,6 +652,7 @@ void FLightRenderCollector::CollectPointLight(
 	const float FarPlane = std::max(Attenuation, NearPlane + 1.0f);
 	const float ShadowBias = LightComponent->GetShadowBias();
 	const float ShadowSharpen = LightComponent->GetShadowSharpen();
+	const float ShadowSlopeBias = LightComponent->GetShadowSlopeBias();
 
 	RenderLight.bCastShadows = 1;
 	RenderLight.ShadowMapIndex = PointShadowIndex;
@@ -670,6 +671,7 @@ void FLightRenderCollector::CollectPointLight(
 	ShadowData.ShadowBias = ShadowBias;
 	ShadowData.ShadowResolution = static_cast<float>(PointAtlasSlot.TileResolution);
 	ShadowData.ShadowSharpen = ShadowSharpen;
+	ShadowData.ShadowSlopeBias = ShadowSlopeBias;
 	ShadowData.bHasShadowMap = 1;
 
 	++GetStats().Shadow.PointShadowCount;
@@ -815,6 +817,7 @@ void FLightRenderCollector::AllocateSpotShadowCandidates(
 			const float NearPlane = SpotShadowNearPlane;
 			const float FarPlane = MakeSpotShadowFarPlane(Candidate.SpotLight);
 			const float ShadowBias = Candidate.LightComponent->GetShadowBias();
+			const float ShadowSlopeBias = Candidate.LightComponent->GetShadowSlopeBias();
 			const float ShadowSharpen = Candidate.LightComponent->GetShadowSharpen();
 			const int32 DebugLightId = ExtractActorNumericSuffix(Candidate.LightComponent->GetOwner());
 
@@ -828,7 +831,7 @@ void FLightRenderCollector::AllocateSpotShadowCandidates(
 			FSpotShadowConstants ShadowData = {};
 			ShadowData.LightViewProj = MakeSpotShadowViewProjection(Candidate.SpotLight, Candidate.LightDirection, NearPlane, FarPlane);
 			ShadowData.AtlasRect = SpotSlot.AtlasRect;
-			ShadowData.ShadowResolution = static_cast<float>(SpotSlot.Width);
+			ShadowData.ShadowSlopeBias = ShadowSlopeBias;
 			ShadowData.ShadowBias = ShadowBias;
 			ShadowData.ShadowSharpen = ShadowSharpen;
 			ShadowData.ShadowFarPlane = FarPlane;
