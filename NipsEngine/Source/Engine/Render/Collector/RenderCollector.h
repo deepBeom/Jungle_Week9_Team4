@@ -6,17 +6,15 @@
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/MeshBufferManager.h"
 #include "Spatial/WorldSpatialIndex.h"
-#include "Geometry/OBB.h"
+
 #include <unordered_set>
 
 enum class EWorldType : uint32;
 
 class UWorld;
 class AActor;
-class ASpotLightActor;
 class UPrimitiveComponent;
 class UGizmoComponent;
-class UDecalComponent;
 class FLineBatcher;
 struct FFrustum;
 

@@ -131,7 +131,7 @@ void FPrimitiveRenderCollector::CollectFromComponent(
 		for (int32 SectionIdx = 0; SectionIdx < static_cast<int32>(Sections.size()); ++SectionIdx)
 		{
 			const FStaticMeshSection& Section = Sections[SectionIdx];
-			UMaterialInterface* Material = Cast<UMaterialInterface>(StaticMeshComp->GetMaterial(Section.MaterialSlotIndex));
+			UMaterialInterface* Material = Cast<UMaterialInterface>(StaticMeshComp->GetMaterial(SectionIdx));
 			if (Material == nullptr)
 			{
 				Material = FResourceManager::Get().GetMaterial("DefaultWhite");
