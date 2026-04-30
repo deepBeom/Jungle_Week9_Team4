@@ -27,7 +27,7 @@ namespace
 	constexpr size_t ShadowBytesPerPixel = ShadowDepthBytesPerPixel + ShadowVSMBytesPerPixel;
 
 	constexpr float PointShadowNearPlane = 0.1f;
-	constexpr float PointShadowBaseResolution = 512.0f;
+	constexpr float PointShadowBaseResolution = 256.0f;
 	constexpr int32 MaxPointShadowCount = 8;
 
 	struct FDirectionalCSMBuildResult

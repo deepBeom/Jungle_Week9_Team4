@@ -885,6 +885,9 @@ float FEditorViewportOverlayWidget::RenderShadowAtlasWindow(int32 ViewportIndex,
 
 			if (bHasPointShadow)
 			{
+				ImFont* Font = ImGui::GetFont();
+				const float SmallFontSize = ImGui::GetFontSize() * 0.9f;
+
 				const TArray<FPointAtlasSlotDesc>& ActivePointSlots = FShadowAtlasManager::GetActivePointSlots();
 				for (const FPointAtlasSlotDesc& Slot : ActivePointSlots)
 				{
@@ -896,21 +899,17 @@ float FEditorViewportOverlayWidget::RenderShadowAtlasWindow(int32 ViewportIndex,
 						const float Y0 = Min.y + Rect.Y * PreviewSize;
 						const float X1 = Min.x + (Rect.X + Rect.Z) * PreviewSize;
 						const float Y1 = Min.y + (Rect.Y + Rect.W) * PreviewSize;
-						
-						ImFont* Font = ImGui::GetFont();
-						const float SmallFontSize = ImGui::GetFontSize() * 0.9f;
-						
+
 						DrawList->AddRect(ImVec2(X0, Y0), ImVec2(X1, Y1), IM_COL32(80, 190, 255, 220), 0.0f, 0, 1.5f);
-						DrawList->AddText(Font, SmallFontSize, ImVec2(X0 + 15.0f, Y0 + 15.0f), IM_COL32(80, 190, 255, 255), GetPointFaceLabel(FaceIndex));
 					}
 				    
 				    const FVector4& FirstRect = Slot.FaceAtlasRects[0];
-				    const float LabelX = Min.x + FirstRect.X * PreviewSize + 4.0f;
-				    const float LabelY = Min.y + FirstRect.Y * PreviewSize + 1.0f;
+				    const float LabelX = Min.x + FirstRect.X * PreviewSize + 2.0f;
+				    const float LabelY = Min.y + FirstRect.Y * PreviewSize;
 
 				    char Label[32];
 				    snprintf(Label, sizeof(Label), "P%u", Slot.CubeIndex);
-				    DrawList->AddText(ImVec2(LabelX, LabelY), IM_COL32(0, 255, 255, 255), Label);
+				    DrawList->AddText(Font, SmallFontSize, ImVec2(LabelX, LabelY), IM_COL32(0, 255, 255, 255), Label);
 				}
 			}
 		}
