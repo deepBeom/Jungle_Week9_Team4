@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "Engine/Component/ActorComponent.h"
-#include "sol2/include/sol/sol.hpp"
+#include <sol/sol.hpp>
 
 class UScriptComponent : public UActorComponent
 {
