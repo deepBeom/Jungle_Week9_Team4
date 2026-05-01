@@ -1,5 +1,4 @@
 ﻿#include "Engine/Runtime/Engine.h"
-#include "Engine/Runtime/Engine.h"
 
 #include "Core/Paths.h"
 #include "Core/Logging/Stats.h"
