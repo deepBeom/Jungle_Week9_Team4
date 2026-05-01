@@ -2,6 +2,8 @@
 
 #include "Editor/EditorEngine.h"
 #include "Misc/ObjViewer/ObjViewerEngine.h"
+#include "sol/sol.hpp"
+
 
 void FEngineLoop::CreateEngine()
 {
@@ -19,6 +21,24 @@ bool FEngineLoop::Init(HINSTANCE hInstance, int nShowCmd)
 	(void)nShowCmd;
 	
 	UE_LOG("Hello, ZZup Engine!");
+
+	// Sol2 / Lua 연동 테스트
+	{
+		sol::state lua;
+		lua.open_libraries(sol::lib::base, sol::lib::math);
+
+		lua.set_function("add", [](int a, int b) { return a + b; });
+
+		lua.script(R"(
+			result = add(3, 7)
+			greeting = "Hello from Lua!"
+		)");
+
+		int result = lua["result"];
+		std::string greeting = lua["greeting"];
+		UE_LOG("[Lua] add(3, 7) = %d", result);
+		UE_LOG("[Lua] %s", greeting.c_str());
+	}
 
 	if (!Application.Init(hInstance))
 	{
