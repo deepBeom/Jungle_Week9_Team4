@@ -1,8 +1,17 @@
 ﻿#pragma once
 
-#include "StaticMesh.h"
+#include "Core/Containers/Array.h"
+#include "Core/Containers/Map.h"
+#include "Core/Containers/Set.h"
+#include "Core/CoreTypes.h"
 #include "Geometry/Edge.h"
-#include <queue>
+#include "Math/Matrix.h"
+#include "Math/Vector.h"
+
+#include <cfloat>
+
+struct FStaticMesh;
+class UStaticMesh;
 
 struct FTopoUVBounds 
 {

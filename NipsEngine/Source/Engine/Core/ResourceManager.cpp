@@ -1,34 +1,18 @@
 ﻿#include "Core/ResourceManager.h"
 
-#include "Core/Paths.h"
-#include "Core/PlatformTime.h"
-#include "SimpleJSON/json.hpp"
-
-#include <algorithm>
-#include <chrono>
-#include <cstring>
-#include <cstdio>
-#include <cstdint>
-#include <cwctype>
-#include <filesystem>
-#include <fstream>
-#include <ranges>
-#include <set>
-#include <string>
-#include <unordered_set>
-#include <vector>
-
+#include "Asset/BinarySerializer.h"
 #include "Asset/FileUtils.h"
+#include "Asset/StaticMeshSimplifier.h"
+#include "Asset/StaticMeshTypes.h"
+#include "Core/Paths.h"
+#include "Render/Resource/ObjMtlLoader.h"
+#include "Render/Scene/RenderCommand.h"
+#include "Settings/EditorSettings.h"
+#include "UI/EditorConsoleWidget.h"
 
 #include "DDSTextureLoader.h"
+#include "SimpleJSON/json.hpp"
 #include "WICTextureLoader.h"
-#include "UI/EditorConsoleWidget.h"
-#include "Settings/EditorSettings.h"
-#include "Asset/BinarySerializer.h"
-#include "Asset/StaticMeshTypes.h"
-#include "Asset/StaticMeshSimplifier.h"
-#include "Render/Scene/RenderCommand.h"
-#include "Render/Resource/ObjMtlLoader.h"
 
 namespace
 {

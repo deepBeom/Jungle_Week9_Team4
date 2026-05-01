@@ -1,9 +1,6 @@
 ﻿#include "Editor/Settings/EditorSettings.h"
 #include "SimpleJSON/json.hpp"
 
-#include <algorithm>
-#include <fstream>
-#include <filesystem>
 
 namespace EditorKey
 {

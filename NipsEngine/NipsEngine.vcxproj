@@ -124,8 +124,13 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;WITH_EDITOR=1;NOMINMAX;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>Core/EnginePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)EnginePCH.pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>Core/EnginePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,8 +146,13 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;WITH_EDITOR=1;NOMINMAX;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>Core/EnginePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)EnginePCH.pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>Core/EnginePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -156,6 +166,10 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;WITH_EDITOR=1;NOMINMAX;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>Core/EnginePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)EnginePCH.pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>Core/EnginePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -175,6 +189,10 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;WITH_EDITOR=1;NOMINMAX;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>Core/EnginePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)EnginePCH.pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>Core/EnginePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -194,6 +212,10 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;WITH_EDITOR=1;NOMINMAX;%(PreprocessorDefinitions);IS_OBJ_VIEWER=1;</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>Core/EnginePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)EnginePCH.pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>Core/EnginePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
@@ -266,6 +288,9 @@
     <ClCompile Include="Source\Engine\Component\Movement\PursuitMovementComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Movement\RotatingMovementComponent.cpp" />
     <ClCompile Include="Source\Engine\Core\CrashDump.cpp" />
+    <ClCompile Include="Source\Engine\Core\EnginePCH.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Core\EngineTypes.cpp" />
     <ClCompile Include="Source\Engine\Core\FileWatcher.cpp" />
     <ClCompile Include="Source\Engine\Core\Paths.cpp" />
@@ -384,39 +409,138 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_tables.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="ThirdParty\Lua\lapi.c" />
-    <ClCompile Include="ThirdParty\Lua\lauxlib.c" />
-    <ClCompile Include="ThirdParty\Lua\lbaselib.c" />
-    <ClCompile Include="ThirdParty\Lua\lcode.c" />
-    <ClCompile Include="ThirdParty\Lua\lcorolib.c" />
-    <ClCompile Include="ThirdParty\Lua\lctype.c" />
-    <ClCompile Include="ThirdParty\Lua\ldblib.c" />
-    <ClCompile Include="ThirdParty\Lua\ldebug.c" />
-    <ClCompile Include="ThirdParty\Lua\ldo.c" />
-    <ClCompile Include="ThirdParty\Lua\ldump.c" />
-    <ClCompile Include="ThirdParty\Lua\lfunc.c" />
-    <ClCompile Include="ThirdParty\Lua\lgc.c" />
-    <ClCompile Include="ThirdParty\Lua\linit.c" />
-    <ClCompile Include="ThirdParty\Lua\liolib.c" />
-    <ClCompile Include="ThirdParty\Lua\llex.c" />
-    <ClCompile Include="ThirdParty\Lua\lmathlib.c" />
-    <ClCompile Include="ThirdParty\Lua\lmem.c" />
-    <ClCompile Include="ThirdParty\Lua\loadlib.c" />
-    <ClCompile Include="ThirdParty\Lua\lobject.c" />
-    <ClCompile Include="ThirdParty\Lua\lopcodes.c" />
-    <ClCompile Include="ThirdParty\Lua\loslib.c" />
-    <ClCompile Include="ThirdParty\Lua\lparser.c" />
-    <ClCompile Include="ThirdParty\Lua\lstate.c" />
-    <ClCompile Include="ThirdParty\Lua\lstring.c" />
-    <ClCompile Include="ThirdParty\Lua\lstrlib.c" />
-    <ClCompile Include="ThirdParty\Lua\ltable.c" />
-    <ClCompile Include="ThirdParty\Lua\ltablib.c" />
-    <ClCompile Include="ThirdParty\Lua\ltm.c" />
-    <ClCompile Include="ThirdParty\Lua\luac.c" />
-    <ClCompile Include="ThirdParty\Lua\lundump.c" />
-    <ClCompile Include="ThirdParty\Lua\lutf8lib.c" />
-    <ClCompile Include="ThirdParty\Lua\lvm.c" />
-    <ClCompile Include="ThirdParty\Lua\lzio.c" />
+    <ClCompile Include="ThirdParty\Lua\lapi.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lauxlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lbaselib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lcode.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lcorolib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lctype.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ldblib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ldebug.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ldo.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ldump.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lfunc.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lgc.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\linit.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\liolib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\llex.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lmathlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lmem.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\loadlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lobject.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lopcodes.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\loslib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lparser.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lstate.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lstring.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lstrlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ltable.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ltablib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ltm.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\luac.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lundump.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lutf8lib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lvm.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lzio.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h" />
@@ -482,6 +606,7 @@
     <ClInclude Include="Source\Engine\Core\ConsoleHelper.h" />
     <ClInclude Include="Source\Engine\Core\CoreMinimal.h" />
     <ClInclude Include="Source\Engine\Core\CoreTypes.h" />
+    <ClInclude Include="Source\Engine\Core\EnginePCH.h" />
     <ClInclude Include="Source\Engine\Core\CrashDump.h" />
     <ClInclude Include="Source\Engine\Core\Debug.h" />
     <ClInclude Include="Source\Engine\Core\EngineTypes.h" />

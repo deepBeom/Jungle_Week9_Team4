@@ -1,8 +1,6 @@
 ﻿#include "Misc/ObjViewer/Settings/ObjViewerSettings.h"
 #include "SimpleJSON/json.hpp"
 
-#include <fstream>
-#include <filesystem>
 
 namespace ObjViewerKey
 {

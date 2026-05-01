@@ -1,6 +1,7 @@
 ﻿#pragma once
+#include "Core/Containers/Array.h"
+#include "Core/Containers/String.h"
 #include "ObjViewerWidget.h"
-#include "Engine/Core/Common.h"
 
 class FObjViewerMenuBarWidget : public FObjViewerWidget
 {
