@@ -17,6 +17,7 @@
 #include "Component/Light/DirectionalLightComponent.h"
 #include "Component/Light/PointLightComponent.h"
 #include "Component/Light/SpotLightComponent.h"
+#include "Component/ObjectTypeComponent.h"
 
 // 새로운 컴포넌트를 레지스트리에 등록합니다. 특수한 설정이 필요한 컴포넌트는 직접 설정합니다.
 template<typename ComponentType>
@@ -113,6 +114,8 @@ const TArray<FComponentMenuEntry>& FEditorComponentFactory::GetMenuRegistry()
         { "DirectionalLight Component", "Light", RegisterLightComp<UDirectionalLightComponent> },
         { "PointLight Component", "Light", RegisterLightComp<UPointLightComponent> },
         { "SpotLight Component", "Light", RegisterLightComp<USpotLightComponent> },
+    
+        { "ObjectType Component", "Gameplay", RegisterComp<UObjectTypeComponent> },
     };
 
     return Registry;

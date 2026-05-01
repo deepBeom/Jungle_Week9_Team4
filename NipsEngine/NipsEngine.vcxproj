@@ -246,8 +246,10 @@
     <ClCompile Include="Source\Engine\Component\HeightFogComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\LineBatchComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\ObjectTypeComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SceneComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SkyAtmosphereComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SubUVComponent.cpp" />
@@ -422,8 +424,10 @@
     <ClInclude Include="Source\Engine\Component\HeightFogComponent.h" />
     <ClInclude Include="Source\Engine\Component\LineBatchComponent.h" />
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\ObjectTypeComponent.h" />
     <ClInclude Include="Source\Engine\Component\PrimitiveComponent.h" />
     <ClInclude Include="Source\Engine\Component\SceneComponent.h" />
+    <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
     <ClInclude Include="Source\Engine\Component\SkyAtmosphereComponent.h" />
     <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
     <ClInclude Include="Source\Engine\Component\SubUVComponent.h" />
@@ -446,6 +450,7 @@
     <ClInclude Include="Source\Engine\Core\CrashDump.h" />
     <ClInclude Include="Source\Engine\Core\Debug.h" />
     <ClInclude Include="Source\Engine\Core\EngineTypes.h" />
+    <ClInclude Include="Source\Engine\Core\GameObjectTypes.h" />
     <ClInclude Include="Source\Engine\Core\Paths.h" />
     <ClInclude Include="Source\Engine\Core\PlatformTime.h" />
     <ClInclude Include="Source\Engine\Core\PropertyTypes.h" />

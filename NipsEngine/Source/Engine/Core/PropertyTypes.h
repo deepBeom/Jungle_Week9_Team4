@@ -50,6 +50,7 @@ inline size_t GetPropertySize(EPropertyType Type)
     {
     case EPropertyType::Bool:   return sizeof(bool);
     case EPropertyType::Int:    return sizeof(int32);
+    case EPropertyType::Enum:   return sizeof(int32);
     case EPropertyType::Float:  return sizeof(float);
     case EPropertyType::Vec3:   return sizeof(FVector);
     case EPropertyType::Color:	return sizeof(FColor);
