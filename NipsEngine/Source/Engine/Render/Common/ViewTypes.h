@@ -39,6 +39,7 @@ struct FShowFlags
 	bool bGizmo = true;
 	bool bBillboardText = false;
 	bool bBoundingVolume = false;
+	bool bCollisionDebug = false;
 	bool bBVHBoundingVolume = false;
 	bool bEnableLOD = true;
 	bool bDecals = true;

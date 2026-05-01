@@ -23,7 +23,7 @@ public:
     void SetObjectType(EObjectType NewType)
     {
         ObjectTypeValue = static_cast<int32>(NewType);
-        ApplyDefaultTagsForObjectType();
+        ApplyDefaultsForObjectType();
     }
     
     uint32 GetGameplayTagMask() const
@@ -55,11 +55,13 @@ private:
     void ApplyDefaultsForObjectType();
     void ApplyDefaultTagsForObjectType();
     void ApplyDefaultMeshForObjectType();
+    void ApplyDefaultCollisionForObjectType();
+    void FitCollisionToStaticMesh(class UShapeComponent* ShapeComponent, class UStaticMeshComponent* StaticMeshComponent);
     
 private:
     int32 ObjectTypeValue = static_cast<int32>(EObjectType::None);
     uint32 GameplayTagMask = GT_None;
     
     bool bAutoApplyDefaultTags = true;
-    bool bAutoAppluObjectDefaults = true;
+    bool bAutoApplyObjectDefaults = true;
 };

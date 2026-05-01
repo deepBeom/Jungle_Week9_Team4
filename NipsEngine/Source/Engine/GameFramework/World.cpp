@@ -1,4 +1,6 @@
 ﻿#include "GameFramework/World.h"
+
+#include "Collision/CollisionSystem.h"
 #include "Component/Light/LightComponent.h"
 
 DEFINE_CLASS(UWorld, UObject)
@@ -77,7 +79,8 @@ void UWorld::Tick(float DeltaTime)
 		PersistentLevel->TickEditor(DeltaTime);
 	else
 		PersistentLevel->TickGame(DeltaTime);
-
+    CollisionSystem.Tick(this, DeltaTime);
+    
     SyncSpatialIndex();
 }
 

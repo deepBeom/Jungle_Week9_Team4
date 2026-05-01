@@ -27,7 +27,7 @@ enum EGameplayTagBits : uint32
     GT_Environment = 1 << 7,
 };
 
-enum class EObjectCollsionShape : int32
+enum class EObjectCollisionShape : int32
 {
     None = 0,
     Sphere,
@@ -42,7 +42,7 @@ struct FObjectTypeBinding
     const char* MeshPath = "";
     const char* LuePath = "";
     
-    EObjectCollsionShape CollisionShape = EObjectCollsionShape::None;
+    EObjectCollisionShape CollisionShape = EObjectCollisionShape::None;
     bool bGenerateOverlapEvents = false;
     bool bBlockComponent = false;
     
