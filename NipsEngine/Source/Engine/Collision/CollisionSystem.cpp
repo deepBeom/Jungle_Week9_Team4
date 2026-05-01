@@ -7,7 +7,7 @@
 #include "Component/ObjectTypeComponent.h"
 #include "Component/Movement/MovementComponent.h"
 #include "UI/EditorConsoleWidget.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 
 namespace

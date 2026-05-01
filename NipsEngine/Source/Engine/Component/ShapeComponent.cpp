@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cmath>
 
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 
 DEFINE_CLASS(UShapeComponent, UPrimitiveComponent)
 

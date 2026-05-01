@@ -8,7 +8,7 @@
 #include "Component/StaticMeshComponent.h"
 #include "Core/GameObjectTypes.h"
 #include "Core/ResourceManager.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "Object/ObjectFactory.h"
 
 DEFINE_CLASS(UObjectTypeComponent, UActorComponent)
