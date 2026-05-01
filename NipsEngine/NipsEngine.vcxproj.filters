@@ -853,6 +853,7 @@
     <ClCompile Include="ThirdParty\Lua\lzio.c">
       <Filter>ThirdParty\Lua</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\GameFramework\DelegateTestActor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -1609,5 +1610,6 @@
     <ClInclude Include="Source\Engine\Core\Delegate\MulticastDelegate.h" />
     <ClInclude Include="Source\Engine\Core\Delegate\DelegateHandle.h" />
     <ClInclude Include="Source\Engine\Core\Delegate\DelegateMacros.h" />
+    <ClInclude Include="Source\Engine\GameFramework\DelegateTestActor.h" />
   </ItemGroup>
 </Project>

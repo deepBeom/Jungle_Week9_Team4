@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Core/CoreMinimal.h"
 
 /*
@@ -15,8 +15,13 @@ public:
 	explicit FDelegateHandle(uint64 ID) : HandleID(ID) {};
 
 public:
-	bool IsValid() { HandleID != InvalidID; };
-	void Reset() { HandleID = InvalidID; };
+	bool IsValid() const { return HandleID != InvalidID; }
+	void Reset() { HandleID = InvalidID; }
+
+	bool operator==(const FDelegateHandle& Other) const
+	{
+		return HandleID == Other.HandleID;
+	}
 
 private:
 	uint64 HandleID = { };
