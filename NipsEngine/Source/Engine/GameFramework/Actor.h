@@ -108,6 +108,8 @@ public:
 	void PostEditProperty(const char* PropertyName) override {}
 
 	const TArray<UPrimitiveComponent*>& GetPrimitiveComponents() const;
+    
+    bool IsOverlappingActor(const AActor* Other) const;
 
 protected:
 	void MarkPrimitiveComponentsDirty();

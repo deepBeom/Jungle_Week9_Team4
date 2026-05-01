@@ -13,6 +13,8 @@
 #include "Component/TextRenderComponent.h"
 
 
+#include "Component/ObjectTypeComponent.h"
+
 DEFINE_CLASS(ASceneActor, AActor)
 REGISTER_FACTORY(ASceneActor)
 
@@ -68,6 +70,8 @@ void AStaticMeshActor::InitDefaultComponents()
 {
 	auto* StaticMesh = AddComponent<UStaticMeshComponent>();
 	SetRootComponent(StaticMesh);
+    
+    AddComponent<UObjectTypeComponent>();
 }
 
 void ASubUVActor::InitDefaultComponents()
