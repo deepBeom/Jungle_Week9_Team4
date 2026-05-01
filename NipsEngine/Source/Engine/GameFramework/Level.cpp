@@ -35,7 +35,7 @@ void ULevel::BeginPlay()
 {
 	for (AActor* Actor : Actors)
 	{
-		if (Actor)
+		if (Actor && !Actor->IsPendingDestroy())
 		{
 			Actor->BeginPlay();
 		}
@@ -46,7 +46,7 @@ void ULevel::TickEditor(float DeltaTime)
 {
     for (AActor* Actor : Actors)
     {
-        if (Actor && Actor->IsActive() && Actor->ShouldTickInEditor())
+        if (Actor && !Actor->IsPendingDestroy() && Actor->IsActive() && Actor->ShouldTickInEditor())
         {
             Actor->Tick(DeltaTime);
         }
@@ -57,7 +57,7 @@ void ULevel::TickGame(float DeltaTime)
 {
     for (AActor* Actor : Actors)
     {
-        if (Actor && Actor->IsActive())
+        if (Actor && !Actor->IsPendingDestroy() && Actor->IsActive())
         {
             Actor->Tick(DeltaTime);
         }
@@ -68,9 +68,18 @@ void ULevel::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	for (AActor* Actor : Actors)
 	{
-		if (Actor)
+		if (Actor && !Actor->IsBeingDestroyed())
 		{
 			Actor->EndPlay(EndPlayReason);
 		}
 	}
+}
+
+void ULevel::RemovePendingDestroyActors()
+{
+    auto It = std::remove_if(Actors.begin(), Actors.end(), [](AActor* Actor)
+    {
+        return Actor == nullptr || Actor->IsBeingDestroyed();
+    });
+    Actors.erase(It, Actors.end());
 }

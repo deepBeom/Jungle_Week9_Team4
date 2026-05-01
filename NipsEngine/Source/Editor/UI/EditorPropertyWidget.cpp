@@ -14,6 +14,7 @@
 #include "GameFramework/Actor.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/GizmoComponent.h"
+#include "Component/Script/ScriptComponent.h"
 #include "Component/Light/LightComponent.h"
 #include "Component/Movement/InterpToMovementComponent.h"
 #include "Editor/Viewport/ViewportLayout.h"
@@ -547,6 +548,17 @@ void FEditorPropertyWidget::RenderComponentProperties()
 	if (UInterpToMovementComponent* InterpComp = Cast<UInterpToMovementComponent>(SelectedComponent))
 	{
 		RenderInterpControlPoints(InterpComp);
+	}
+
+	if (UScriptComponent* ScriptComp = Cast<UScriptComponent>(SelectedComponent))
+	{
+		ImGui::Spacing();
+		ImGui::Separator();
+		if (ImGui::Button("Reload Script", ImVec2(-1, 0)))
+		{
+			ScriptComp->ReloadScript();
+		}
+		ImGui::TextDisabled("Loaded: %s", ScriptComp->IsScriptLoaded() ? "Yes" : "No");
 	}
 
 	// Special: Light component — override camera with light's perspective

@@ -9,6 +9,7 @@
 #include "Component/Movement/ProjectileMovementComponent.h"
 #include "Component/Movement/InterpToMovementComponent.h"
 #include "Component/Movement/PursuitMovementComponent.h"
+#include "Component/Script/ScriptComponent.h"
 #include "Component/SkyAtmosphereComponent.h"
 #include "Component/HeightFogComponent.h"
 #include "Component/Light/AmbientLightComponent.h"
@@ -96,6 +97,7 @@ const TArray<FComponentMenuEntry>& FEditorComponentFactory::GetMenuRegistry()
     static const TArray<FComponentMenuEntry> Registry = {
         { "Scene Component", "Common", RegisterComp<USceneComponent> },
         { "StaticMesh Component", "Common", RegisterComp<UStaticMeshComponent> },
+        { "Script Component", "Common", RegisterComp<UScriptComponent> },
         { "SubUV Component", "Common", RegisterComp<USubUVComponent> },
         { "TextRender Component", "Common", RegisterComp<UTextRenderComponent> },
         { "Billboard Component", "Common", RegisterComp<UBillboardComponent> },

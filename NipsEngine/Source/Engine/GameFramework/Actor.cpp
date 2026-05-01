@@ -291,11 +291,20 @@ void AActor::BeginPlay()
 
 void AActor::Tick(float DeltaTime)
 {
+    if (bPendingDestroy || bBeingDestroyed)
+    {
+        return;
+    }
+
     for (UActorComponent* Component : OwnedComponents)
     {
         if (Component && Component->IsActive())
         {
             Component->ExecuteTick(DeltaTime);
+            if (bPendingDestroy || bBeingDestroyed)
+            {
+                break;
+            }
         }
     }
 }
@@ -320,7 +329,19 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void AActor::Destroy()
 {
+    if (bPendingDestroy || bBeingDestroyed)
+    {
+        return;
+    }
 
+    if (OwningWorld != nullptr)
+    {
+        OwningWorld->RequestDestroyActor(this);
+    }
+    else
+    {
+        bPendingDestroy = true;
+    }
 }
 
 

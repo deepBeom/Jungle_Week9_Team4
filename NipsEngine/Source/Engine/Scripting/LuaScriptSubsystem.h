@@ -4,6 +4,7 @@
 #include "Engine/Scripting/LuaScriptInstance.h"
 
 class AActor;
+class UScriptComponent;
 
 class FLuaScriptSubsystem
 {
@@ -13,10 +14,14 @@ public:
 
     std::shared_ptr<FLuaScriptInstance> CreateScriptInstance(
         AActor* Owner,
+        UScriptComponent* OwnerComponent,
         const FString& ScriptPath);
 
     bool LoadScript(std::shared_ptr<FLuaScriptInstance> Instance);
     bool ReloadScript(std::shared_ptr<FLuaScriptInstance> Instance);
+    void DestroyScriptInstance(const std::shared_ptr<FLuaScriptInstance>& Instance);
+    void ReloadAllScripts();
+    bool HasFunction(std::shared_ptr<FLuaScriptInstance> Instance, const std::string& FunctionName) const;
 
 	template <typename... Args>
     bool CallFunction(
@@ -24,7 +29,7 @@ public:
         const std::string& FunctionName,
         Args&&... args)
     {
-        if (!Instance || !Instance->bLoaded)
+        if (!CanInvoke(Instance))
         {
             return false;
         }
@@ -46,7 +51,7 @@ public:
         if (!Result.valid())
         {
             sol::error Error = Result;
-            printf("[Lua Function Error] %s\n", Error.what());
+            LogFunctionError(FunctionName, Instance->ScriptPath, Error.what());
             return false;
         }
 
@@ -58,6 +63,9 @@ public:
 private:
     void BindEngineTypes();
     void BindGlobalFunctions();
+    bool CanInvoke(const std::shared_ptr<FLuaScriptInstance>& Instance) const;
+    FString ResolveScriptPath(const FString& ScriptPath) const;
+    void LogFunctionError(const std::string& FunctionName, const FString& ScriptPath, const char* ErrorMessage) const;
 
 private:
     sol::state Lua;

@@ -3,10 +3,12 @@
 #include <sol/sol.hpp>
 
 class AActor;
+class UScriptComponent;
 
 struct FLuaScriptInstance
 {
     AActor* Owner = nullptr;
+    UScriptComponent* OwnerComponent = nullptr;
     FString ScriptPath;
 
     // Actor별 Lua 전역 공간

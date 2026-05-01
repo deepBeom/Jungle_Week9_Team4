@@ -25,13 +25,16 @@ void UEngine::Init(FWindowsWindow* InWindow)
 
 	FResourceManager::Get().LoadFromAssetDirectory(FPaths::ToUtf8(FPaths::AssetDirectoryPath()));
 
+	LuaScriptSubsystem.Initialize();
 	Renderer.CreateResources();
 
 	SetRenderPipeline(std::make_unique<FDefaultRenderPipeline>(this, Renderer));
+	FrameCounter = 0;
 }
 
 void UEngine::Shutdown()
 {
+	LuaScriptSubsystem.Shutdown();
 	RenderPipeline.reset();
 	FResourceManager::Get().ReleaseGPUResources();
 	Renderer.Release();
@@ -53,6 +56,7 @@ void UEngine::Tick(float DeltaTime)
 {
 	InputSystem::Get().Tick();
 	WorldTick(DeltaTime);
+	++FrameCounter;
 	Render(DeltaTime);
 }
 

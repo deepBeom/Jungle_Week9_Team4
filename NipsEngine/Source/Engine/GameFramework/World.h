@@ -63,7 +63,9 @@ public:
 
     void DestroyActor(AActor* Actor) 
 	{
-        if (!Actor) return;
+        if (!Actor || !UObject::IsValid(Actor) || Actor->IsBeingDestroyed()) return;
+
+        Actor->MarkBeingDestroyed();
 
         Actor->EndPlay(EEndPlayReason::Type::Destroyed);
 
@@ -83,6 +85,9 @@ public:
         Actor->SetWorld(nullptr);
         UObjectManager::Get().DestroyObject(Actor);
     }
+
+    void RequestDestroyActor(AActor* Actor);
+    void FlushPendingDestroyActors();
 
 	TArray<AActor*> GetActors() const { return PersistentLevel->GetActors(); }
 
@@ -126,4 +131,5 @@ private:
 
 	TArray<FLightSlot> WorldLightSlots;
     TArray<uint32> FreeLightSlotList;  // 삭제된 Light 의 Index 만 Free 로 등록
+    TArray<AActor*> PendingDestroyActors;
 };

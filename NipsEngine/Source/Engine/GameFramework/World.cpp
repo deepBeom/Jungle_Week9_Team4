@@ -85,6 +85,7 @@ void UWorld::Tick(float DeltaTime)
 	else
 		PersistentLevel->TickGame(DeltaTime);
 
+    FlushPendingDestroyActors();
     SyncSpatialIndex();
 }
 
@@ -105,6 +106,43 @@ void UWorld::RebuildSpatialIndex()
 void UWorld::SyncSpatialIndex()
 {
     SpatialIndex.FlushDirtyBounds();
+}
+
+void UWorld::RequestDestroyActor(AActor* Actor)
+{
+    if (!Actor || !UObject::IsValid(Actor) || Actor->IsPendingDestroy() || Actor->IsBeingDestroyed())
+    {
+        return;
+    }
+
+    Actor->MarkPendingDestroy();
+    PendingDestroyActors.push_back(Actor);
+}
+
+void UWorld::FlushPendingDestroyActors()
+{
+    if (PendingDestroyActors.empty())
+    {
+        return;
+    }
+
+    TArray<AActor*> ActorsToDestroy = PendingDestroyActors;
+    PendingDestroyActors.clear();
+
+    for (AActor* Actor : ActorsToDestroy)
+    {
+        if (!Actor || !UObject::IsValid(Actor))
+        {
+            continue;
+        }
+
+        DestroyActor(Actor);
+    }
+
+    if (PersistentLevel)
+    {
+        PersistentLevel->RemovePendingDestroyActors();
+    }
 }
 
 FLightHandle UWorld::RegisterLight(ULightComponentBase* Comp)

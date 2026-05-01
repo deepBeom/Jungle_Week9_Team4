@@ -43,6 +43,8 @@ public:
 	virtual void Tick(float DeltaTime);
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
     virtual void Destroy();
+	bool IsPendingDestroy() const { return bPendingDestroy; }
+	bool IsBeingDestroyed() const { return bBeingDestroyed; }
 
 	bool IsActive() const { return bIsActive ; }
 	void SetActive(bool bEnabled) { bIsActive = bEnabled; }
@@ -108,6 +110,8 @@ public:
 	void PostEditProperty(const char* PropertyName) override {}
 
 	const TArray<UPrimitiveComponent*>& GetPrimitiveComponents() const;
+	void MarkPendingDestroy() { bPendingDestroy = true; }
+	void MarkBeingDestroyed() { bBeingDestroyed = true; }
 
 protected:
 	void MarkPrimitiveComponentsDirty();
@@ -120,6 +124,8 @@ protected:
 	bool bVisible = true;
 	bool bIsActive = true;
     bool bTickInEditor = false;
+	bool bPendingDestroy = false;
+	bool bBeingDestroyed = false;
 
 	TArray<UActorComponent*> OwnedComponents;
 

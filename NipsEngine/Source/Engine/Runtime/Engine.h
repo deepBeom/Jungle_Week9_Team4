@@ -56,6 +56,7 @@ public:
 	IRenderPipeline* GetRenderPipeline() const { return RenderPipeline.get(); }
 
 	FLuaScriptSubsystem& GetLuaScriptSubsystem() { return LuaScriptSubsystem; }
+	uint64 GetFrameCount() const { return FrameCounter; }
 
 protected:
 	void Render(float DeltaTime);
@@ -72,6 +73,7 @@ protected:
 
 	FRenderer Renderer;
     FLuaScriptSubsystem LuaScriptSubsystem;
+	uint64 FrameCounter = 0;
 
 private:
 	std::unique_ptr<IRenderPipeline> RenderPipeline;
