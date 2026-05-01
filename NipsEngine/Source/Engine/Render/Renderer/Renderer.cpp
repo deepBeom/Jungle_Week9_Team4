@@ -13,6 +13,8 @@
 #include "Render/Renderer/RenderTarget/RenderTargetFactory.h"
 #include "Render/Renderer/RenderTarget/DepthStencilFactory.h"
 
+#include <set>
+
 void FRenderer::Create(HWND hWindow)
 {
 	Device.Create(hWindow);
@@ -49,6 +51,11 @@ void FRenderer::Create(HWND hWindow)
     FResourceManager::Get().LoadShader("Shaders/ShaderLine.hlsl", "mainVS", "mainPS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderBillboard.hlsl", "mainVS", "mainPS", TextureVertexInputLayout, ARRAYSIZE(TextureVertexInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/ToonOutlinePass.hlsl", "mainVS", "mainPS", NormalVertexInputLayout, ARRAYSIZE(NormalVertexInputLayout), nullptr);
+
+	if (!ShaderFileWatcher.Start(FPaths::ShaderDir(), true))
+	{
+		UE_LOG("[ShaderHotReload] Failed to start shader file watcher.");
+	}
 }
 
 void FRenderer::CreateResources()
@@ -77,6 +84,8 @@ void FRenderer::CreateResources()
 
 void FRenderer::Release()
 {
+	ShaderFileWatcher.Stop();
+
 	InvalidateSceneFinalTargets();
 
 	RenderPipeline.Release();
@@ -134,6 +143,10 @@ const TArray<FRenderCommand>& FRenderer::GetAlignedCommands(ERenderPass Pass, co
 //	GPU 프레임 시작. 반드시 Render 이전에 호출되어야 함.
 void FRenderer::BeginFrame()
 {
+	const TArray<FWString> ChangedShaderFiles = ShaderFileWatcher.DequeueChangedFiles();
+	const std::set<FWString> ReadyShaderFiles = FResourceManager::Get().ProcessShaderHotReloads(ChangedShaderFiles);
+	RenderPipeline.ProcessShaderHotReloads(ReadyShaderFiles, Device.GetDevice());
+
 	Device.BeginFrame();
 	UseBackBufferRenderTargets();
 

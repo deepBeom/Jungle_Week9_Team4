@@ -2,6 +2,8 @@
 #include "Core/CoreMinimal.h"
 #include "RenderPassContext.h"
 
+#include <set>
+
 class FShadowPass;
 class FBlurPass;
 class FToonOutlineRenderPass;
@@ -29,6 +31,7 @@ class FRenderPipeline
 {
 public:
     bool Initialize();
+    void ProcessShaderHotReloads(const std::set<FWString>& DirtyFiles, ID3D11Device* Device);
     bool Render(const FRenderPassContext* Context);
     void Release();
 

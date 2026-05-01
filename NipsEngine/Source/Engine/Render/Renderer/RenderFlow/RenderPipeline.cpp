@@ -1,4 +1,5 @@
 ﻿#include "RenderPipeline.h"
+#include "Core/Paths.h"
 #include "LightCullingPass.h"
 #include "SkyRenderPass.h"
 #include "OpaqueRenderPass.h"
@@ -18,6 +19,41 @@
 #include "ShadowPass.h"
 #include "BlurPass.h"
 #include "ToonOutlineRenderPass.h"
+#include "UI/EditorConsoleWidget.h"
+
+#include <algorithm>
+#include <cwctype>
+#include <filesystem>
+
+namespace
+{
+	FWString NormalizeShaderHotReloadPath(const FWString& InPath)
+	{
+		FWString Result = std::filesystem::path(InPath).lexically_normal().generic_wstring();
+		std::transform(Result.begin(), Result.end(), Result.begin(),
+			[](wchar_t Character) { return static_cast<wchar_t>(towlower(Character)); });
+		return Result;
+	}
+
+	FWString NormalizeShaderHotReloadPath(const FString& InPath)
+	{
+		return NormalizeShaderHotReloadPath(FPaths::ToAbsolute(FPaths::ToWide(InPath)));
+	}
+
+	bool IsShaderIncludeFile(const FWString& InPath)
+	{
+		const SIZE_T DotIndex = InPath.find_last_of(L'.');
+		if (DotIndex == FWString::npos)
+		{
+			return false;
+		}
+
+		FWString Extension = InPath.substr(DotIndex);
+		std::transform(Extension.begin(), Extension.end(), Extension.begin(),
+			[](wchar_t Character) { return static_cast<wchar_t>(towlower(Character)); });
+		return Extension == L".hlsli";
+	}
+}
 
 bool FRenderPipeline::Initialize()
 {
@@ -110,6 +146,40 @@ bool FRenderPipeline::Initialize()
 	RenderPasses.push_back(PostProcessOutlineRenderPass);
 
 	return true;
+}
+
+void FRenderPipeline::ProcessShaderHotReloads(const std::set<FWString>& DirtyFiles, ID3D11Device* Device)
+{
+	if (Device == nullptr || DirtyFiles.empty())
+	{
+		return;
+	}
+
+	const bool bAnyIncludeChanged = std::any_of(
+		DirtyFiles.begin(),
+		DirtyFiles.end(),
+		[](const FWString& DirtyFile) { return IsShaderIncludeFile(DirtyFile); });
+
+	const auto ShouldReload = [&](const FString& RelativePath)
+	{
+		return bAnyIncludeChanged || DirtyFiles.contains(NormalizeShaderHotReloadPath(RelativePath));
+	};
+
+	if (BlurPass && ShouldReload(FBlurPass::ComputeShaderPath))
+	{
+		if (!BlurPass->ReloadComputeShader(Device))
+		{
+			UE_LOG("[ShaderHotReload] Failed to reload compute shader: %s", FBlurPass::ComputeShaderPath);
+		}
+	}
+
+	if (LightCullingPass && ShouldReload(FLightCullingPass::ComputeShaderPath))
+	{
+		if (!LightCullingPass->ReloadComputeShader(Device))
+		{
+			UE_LOG("[ShaderHotReload] Failed to reload compute shader: %s", FLightCullingPass::ComputeShaderPath);
+		}
+	}
 }
 
 bool FRenderPipeline::Render(const FRenderPassContext* Context)

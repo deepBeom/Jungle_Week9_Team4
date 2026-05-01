@@ -14,14 +14,19 @@ struct FShadowBlurConstants
 class FBlurPass : public FBaseRenderPass
 {
 public:
+	static constexpr const char* ComputeShaderPath = "Shaders/Multipass/ShadowBlurCS.hlsl";
+	static constexpr const char* ComputeShaderEntryPoint = "mainCS";
+
 	bool Initialize() override;
     bool Release() override;
+	bool ReloadComputeShader(ID3D11Device* Device);
 
 	bool Begin(const FRenderPassContext* Context) override;
     bool DrawCommand(const FRenderPassContext* Context) override;
     bool End(const FRenderPassContext* Context) override;
 
 private:
+    bool CompileComputeShader(ID3D11Device* Device, TComPtr<ID3D11ComputeShader>& OutShader) const;
     bool EnsureComputeShader(ID3D11Device* Device);
     bool EnsureConstantBuffer(ID3D11Device* Device);
     bool EnsureSpotShadowBlurResources(ID3D11Device* Device);
