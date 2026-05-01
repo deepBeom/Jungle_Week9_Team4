@@ -1,5 +1,6 @@
 ﻿#pragma once
-#include "Core/CoreMinimal.h"
+#include "Core/Containers/String.h"
+#include "Core/CoreTypes.h"
 #include "Object/FName.h"
 
 class UWorld;

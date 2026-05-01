@@ -1,6 +1,7 @@
 ﻿#pragma once
 
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/Array.h"
 #include "Core/Containers/Map.h"
 #include "Engine/Geometry/AABB.h"
 #include "Spatial/BVH.h"

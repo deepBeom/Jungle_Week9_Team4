@@ -1,4 +1,5 @@
 ﻿#include "RenderPipeline.h"
+#include "RenderPassContext.h"
 #include "Core/Paths.h"
 #include "LightCullingPass.h"
 #include "SkyRenderPass.h"

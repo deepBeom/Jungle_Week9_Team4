@@ -3,9 +3,13 @@
 #include <string>
 #include <filesystem>
 #include <unordered_map>
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/Array.h"
+#include "Core/Containers/String.h"
 #include "Core/Paths.h"
 #include "GameFramework/WorldContext.h"
+#include "Math/Rotator.h"
+#include "Math/Vector.h"
 
 // Forward declarations
 class UObject;

@@ -1,6 +1,4 @@
 ﻿#pragma once
-#pragma once
-
 #include "Core/CoreTypes.h"
 #include "Core/Singleton.h"
 #include "Math/Vector.h"

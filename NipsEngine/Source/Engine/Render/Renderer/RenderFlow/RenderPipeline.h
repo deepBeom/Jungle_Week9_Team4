@@ -1,8 +1,14 @@
 ﻿#pragma once
-#include "Core/CoreMinimal.h"
-#include "RenderPassContext.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/Array.h"
 
+#include <memory>
 #include <set>
+
+struct FRenderPassContext;
+struct ID3D11Device;
+struct ID3D11RenderTargetView;
+struct ID3D11ShaderResourceView;
 
 class FShadowPass;
 class FBlurPass;
@@ -26,7 +32,6 @@ class FHitMapRenderPass;
 class FPostProcessOutlineRenderPass;
 class FOpaqueRenderPass;
 class FLightCullingPass;
-class FShadowPass;
 class FBaseRenderPass;
 
 class FRenderPipeline

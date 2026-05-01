@@ -11,7 +11,8 @@
 #include "Render/Resource/Buffer.h"
 #include "Render/Resource/Material.h"
 #include "Render/Device/D3DDevice.h"
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/String.h"
 #include "Core/ResourceTypes.h"
 
 #include "Math/Matrix.h"

@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
 
 class EngineStatics
 {

@@ -1,6 +1,10 @@
 ﻿#pragma once
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/Array.h"
+#include "Core/Containers/Map.h"
+#include "Core/Containers/String.h"
 #include <cstdarg>
+#include <cstdlib>
 #include <functional>
 #include <sstream>
 

@@ -12,6 +12,7 @@
 #include "Editor/Viewport/FSceneViewport.h"
 #include "Render/Renderer/RenderTarget/RenderTargetFactory.h"
 #include "Render/Renderer/RenderTarget/DepthStencilFactory.h"
+#include "Render/Renderer/RenderFlow/RenderPassContext.h"
 
 #include <set>
 
