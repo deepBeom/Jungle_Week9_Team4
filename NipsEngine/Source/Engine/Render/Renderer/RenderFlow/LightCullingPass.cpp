@@ -292,13 +292,43 @@ bool FLightCullingPass::EnsureComputeShader(ID3D11Device* Device)
         return true;
     }
 
+    TComPtr<ID3D11ComputeShader> NewComputeShader;
+    if (!CompileComputeShader(Device, NewComputeShader))
+    {
+        return false;
+    }
+
+    ComputeShader = std::move(NewComputeShader);
+    return true;
+}
+
+bool FLightCullingPass::ReloadComputeShader(ID3D11Device* Device)
+{
+    TComPtr<ID3D11ComputeShader> NewComputeShader;
+    if (!CompileComputeShader(Device, NewComputeShader))
+    {
+        return false;
+    }
+
+    ComputeShader = std::move(NewComputeShader);
+    UE_LOG("[ShaderHotReload] Reloaded compute shader: %s", ComputeShaderPath);
+    return true;
+}
+
+bool FLightCullingPass::CompileComputeShader(ID3D11Device* Device, TComPtr<ID3D11ComputeShader>& OutShader) const
+{
+    if (Device == nullptr)
+    {
+        return false;
+    }
+
     TComPtr<ID3DBlob> CSBlob;
     TComPtr<ID3DBlob> ErrorBlob;
     const HRESULT CompileResult = D3DCompileFromFile(
-        FPaths::ToWide("Shaders/Multipass/LightCullingCS.hlsl").c_str(),
+        FPaths::ToWide(ComputeShaderPath).c_str(),
         nullptr,
         D3D_COMPILE_STANDARD_FILE_INCLUDE,
-        "mainCS",
+        ComputeShaderEntryPoint,
         "cs_5_0",
         0,
         0,
@@ -313,19 +343,21 @@ bool FLightCullingPass::EnsureComputeShader(ID3D11Device* Device)
         }
         else
         {
-            UE_LOG("Failed to compile LightCullingCS.hlsl");
+            UE_LOG("Failed to compile %s", ComputeShaderPath);
         }
         return false;
     }
 
+    TComPtr<ID3D11ComputeShader> NewComputeShader;
     const HRESULT CreateResult =
-        Device->CreateComputeShader(CSBlob->GetBufferPointer(), CSBlob->GetBufferSize(), nullptr, ComputeShader.GetAddressOf());
+        Device->CreateComputeShader(CSBlob->GetBufferPointer(), CSBlob->GetBufferSize(), nullptr, NewComputeShader.GetAddressOf());
     if (FAILED(CreateResult))
     {
         UE_LOG("Failed to create LightCulling compute shader");
         return false;
     }
 
+    OutShader = std::move(NewComputeShader);
     return true;
 }
 

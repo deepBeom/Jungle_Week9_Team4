@@ -159,6 +159,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -177,6 +178,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -195,6 +197,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -264,6 +267,7 @@
     <ClCompile Include="Source\Engine\Component\Movement\RotatingMovementComponent.cpp" />
     <ClCompile Include="Source\Engine\Core\CrashDump.cpp" />
     <ClCompile Include="Source\Engine\Core\EngineTypes.cpp" />
+    <ClCompile Include="Source\Engine\Core\FileWatcher.cpp" />
     <ClCompile Include="Source\Engine\Core\Paths.cpp" />
     <ClCompile Include="Source\Engine\Core\PlatformTime.cpp" />
     <ClCompile Include="Source\Engine\Core\ResourceManager.cpp" />
@@ -378,6 +382,39 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_tables.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ThirdParty\Lua\lapi.c" />
+    <ClCompile Include="ThirdParty\Lua\lauxlib.c" />
+    <ClCompile Include="ThirdParty\Lua\lbaselib.c" />
+    <ClCompile Include="ThirdParty\Lua\lcode.c" />
+    <ClCompile Include="ThirdParty\Lua\lcorolib.c" />
+    <ClCompile Include="ThirdParty\Lua\lctype.c" />
+    <ClCompile Include="ThirdParty\Lua\ldblib.c" />
+    <ClCompile Include="ThirdParty\Lua\ldebug.c" />
+    <ClCompile Include="ThirdParty\Lua\ldo.c" />
+    <ClCompile Include="ThirdParty\Lua\ldump.c" />
+    <ClCompile Include="ThirdParty\Lua\lfunc.c" />
+    <ClCompile Include="ThirdParty\Lua\lgc.c" />
+    <ClCompile Include="ThirdParty\Lua\linit.c" />
+    <ClCompile Include="ThirdParty\Lua\liolib.c" />
+    <ClCompile Include="ThirdParty\Lua\llex.c" />
+    <ClCompile Include="ThirdParty\Lua\lmathlib.c" />
+    <ClCompile Include="ThirdParty\Lua\lmem.c" />
+    <ClCompile Include="ThirdParty\Lua\loadlib.c" />
+    <ClCompile Include="ThirdParty\Lua\lobject.c" />
+    <ClCompile Include="ThirdParty\Lua\lopcodes.c" />
+    <ClCompile Include="ThirdParty\Lua\loslib.c" />
+    <ClCompile Include="ThirdParty\Lua\lparser.c" />
+    <ClCompile Include="ThirdParty\Lua\lstate.c" />
+    <ClCompile Include="ThirdParty\Lua\lstring.c" />
+    <ClCompile Include="ThirdParty\Lua\lstrlib.c" />
+    <ClCompile Include="ThirdParty\Lua\ltable.c" />
+    <ClCompile Include="ThirdParty\Lua\ltablib.c" />
+    <ClCompile Include="ThirdParty\Lua\ltm.c" />
+    <ClCompile Include="ThirdParty\Lua\luac.c" />
+    <ClCompile Include="ThirdParty\Lua\lundump.c" />
+    <ClCompile Include="ThirdParty\Lua\lutf8lib.c" />
+    <ClCompile Include="ThirdParty\Lua\lvm.c" />
+    <ClCompile Include="ThirdParty\Lua\lzio.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h" />
@@ -446,6 +483,7 @@
     <ClInclude Include="Source\Engine\Core\CrashDump.h" />
     <ClInclude Include="Source\Engine\Core\Debug.h" />
     <ClInclude Include="Source\Engine\Core\EngineTypes.h" />
+    <ClInclude Include="Source\Engine\Core\FileWatcher.h" />
     <ClInclude Include="Source\Engine\Core\Paths.h" />
     <ClInclude Include="Source\Engine\Core\PlatformTime.h" />
     <ClInclude Include="Source\Engine\Core\PropertyTypes.h" />
@@ -600,6 +638,34 @@
     <ClInclude Include="ThirdParty\ImGui\imstb_rectpack.h" />
     <ClInclude Include="ThirdParty\ImGui\imstb_textedit.h" />
     <ClInclude Include="ThirdParty\ImGui\imstb_truetype.h" />
+    <ClInclude Include="ThirdParty\Lua\lapi.h" />
+    <ClInclude Include="ThirdParty\Lua\lauxlib.h" />
+    <ClInclude Include="ThirdParty\Lua\lcode.h" />
+    <ClInclude Include="ThirdParty\Lua\lctype.h" />
+    <ClInclude Include="ThirdParty\Lua\ldebug.h" />
+    <ClInclude Include="ThirdParty\Lua\ldo.h" />
+    <ClInclude Include="ThirdParty\Lua\lfunc.h" />
+    <ClInclude Include="ThirdParty\Lua\lgc.h" />
+    <ClInclude Include="ThirdParty\Lua\ljumptab.h" />
+    <ClInclude Include="ThirdParty\Lua\llex.h" />
+    <ClInclude Include="ThirdParty\Lua\llimits.h" />
+    <ClInclude Include="ThirdParty\Lua\lmem.h" />
+    <ClInclude Include="ThirdParty\Lua\lobject.h" />
+    <ClInclude Include="ThirdParty\Lua\lopcodes.h" />
+    <ClInclude Include="ThirdParty\Lua\lopnames.h" />
+    <ClInclude Include="ThirdParty\Lua\lparser.h" />
+    <ClInclude Include="ThirdParty\Lua\lprefix.h" />
+    <ClInclude Include="ThirdParty\Lua\lstate.h" />
+    <ClInclude Include="ThirdParty\Lua\lstring.h" />
+    <ClInclude Include="ThirdParty\Lua\ltable.h" />
+    <ClInclude Include="ThirdParty\Lua\ltm.h" />
+    <ClInclude Include="ThirdParty\Lua\lua.h" />
+    <ClInclude Include="ThirdParty\Lua\lua.hpp" />
+    <ClInclude Include="ThirdParty\Lua\luaconf.h" />
+    <ClInclude Include="ThirdParty\Lua\lualib.h" />
+    <ClInclude Include="ThirdParty\Lua\lundump.h" />
+    <ClInclude Include="ThirdParty\Lua\lvm.h" />
+    <ClInclude Include="ThirdParty\Lua\lzio.h" />
     <ClInclude Include="ThirdParty\SimpleJSON\json.hpp" />
   </ItemGroup>
   <ItemGroup>
