@@ -3,7 +3,6 @@
 #include "Core/CoreTypes.h"
 #include "Core/ResourceManager.h"
 #include "Render/Resource/RenderResources.h"
-#include "Render/Scene/RenderBus.h"
 
 void FFontBatcher::Create(ID3D11Device* InDevice)
 {

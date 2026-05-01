@@ -5,7 +5,6 @@
 #include "DDSTextureLoader.h"
 #include "WICTextureLoader.h"
 
-#include <algorithm>
 #include <filesystem>
 
 bool FFontAtlasLoader::Load(const FName& FontName, const FString& Path, uint32 Columns, uint32 Rows,

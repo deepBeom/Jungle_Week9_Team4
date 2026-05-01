@@ -12,14 +12,13 @@
 #include "Component/Light/LightComponent.h"
 #include "Core/ResourceManager.h"
 #include "Engine/Asset/StaticMesh.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 #include "Geometry/OBB.h"
 #include "Render/LineBatcher.h"
 #include "Render/Resource/Material.h"
 #include "Render/Resource/MeshBufferManager.h"
 #include "Runtime/Stats/ScopeCycleCounter.h"
-#include <algorithm>
 #include <cmath>
 
 namespace

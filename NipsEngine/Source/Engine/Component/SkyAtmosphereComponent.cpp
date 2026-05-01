@@ -1,7 +1,7 @@
 ﻿#include "SkyAtmosphereComponent.h"
 
 #include "Object/ObjectFactory.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 #include "Component/Light/AmbientLightComponent.h"
 #include "Component/Light/DirectionalLightComponent.h"

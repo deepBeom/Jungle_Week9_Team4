@@ -1,19 +1,13 @@
 ﻿#include "OverlayRenderCollector.h"
 
-#include "Component/ActorComponent.h"
 #include "Component/BillboardComponent.h"
 #include "Component/GizmoComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
-#include "Component/Light/DirectionalLightComponent.h"
-#include "Component/Light/LightComponent.h"
-#include "Component/Light/PointLightComponent.h"
-#include "Component/Light/SpotLightComponent.h"
 #include "Core/ResourceManager.h"
-#include "Engine/Asset/StaticMesh.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 #include "Render/LineBatcher.h"
 #include "Render/Resource/Material.h"
@@ -133,13 +127,19 @@ void FOverlayRenderCollector::CollectSelection(
 	}
 }
 
-void FOverlayRenderCollector::CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus, bool bOrthographic)
+void FOverlayRenderCollector::CollectGrid(
+	float GridSpacing,
+	int32 GridHalfLineCount,
+	FRenderBus& RenderBus,
+	bool bOrthographic,
+	const FGridRenderSettings& GridRenderSettings)
 {
 	FRenderCommand Cmd = {};
 	Cmd.Type = ERenderCommandType::Grid;
 	Cmd.Constants.Grid.GridSpacing = GridSpacing;
 	Cmd.Constants.Grid.GridHalfLineCount = GridHalfLineCount;
 	Cmd.Constants.Grid.bOrthographic = bOrthographic;
+	Cmd.Constants.Grid.RenderSettings = GridRenderSettings;
 	RenderBus.AddCommand(ERenderPass::Grid, Cmd);
 }
 
@@ -301,46 +301,6 @@ bool FOverlayRenderCollector::CollectFromSelectedActor(
 		}
 
 		CollectBVHInternalNodeAABBs(primitiveComponent, ShowFlags, RenderBus, LineBatcher, SeenBVHNodeIndices);
-	}
-
-	for (UActorComponent* Component : Actor->GetComponents())
-	{
-		const ULightComponent* LightComponent = Cast<ULightComponent>(Component);
-		if (LightComponent == nullptr || !LightComponent->IsVisible() || LineBatcher == nullptr)
-		{
-			continue;
-		}
-
-		switch (LightComponent->GetLightType())
-		{
-		case ELightType::LightType_Directional:
-		{
-			const UDirectionalLightComponent* Light = Cast<UDirectionalLightComponent>(LightComponent);
-			LineBatcher->AddDirectionalLight(Light->GetWorldLocation(), Light->GetForwardVector(), Light->GetRightVector(), Light->GetLightColor().ToVector4());
-			break;
-		}
-		case ELightType::LightType_AmbientLight:
-			break;
-		case ELightType::LightType_Point:
-		{
-			const UPointLightComponent* Light = Cast<UPointLightComponent>(LightComponent);
-			LineBatcher->AddPointLight(Light->GetWorldLocation(), Light->GetAttenuationRadius(), Light->GetRightVector(), Light->GetUpVector());
-			break;
-		}
-		case ELightType::LightType_Spot:
-		{
-			const USpotLightComponent* Light = Cast<USpotLightComponent>(LightComponent);
-			LineBatcher->AddSpotLight(
-				Light->GetWorldLocation(),
-				Light->GetUpVector() * -1.0f,
-				Light->GetRightVector() * -1.0f,
-				Light->GetAttenuationRadius(),
-				Light->GetInnerConeAngle(),
-				Light->GetOuterConeAngle()
-			);
-			break;
-		}
-		}
 	}
 
 	return bHasSelectionMask;

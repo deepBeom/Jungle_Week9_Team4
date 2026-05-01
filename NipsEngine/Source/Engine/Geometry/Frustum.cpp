@@ -1,6 +1,5 @@
 ﻿#include "Frustum.h"
 
-#include <cmath>
 #include <cassert>
 
 void FFrustum::UpdateFromCamera(const FMatrix& View, const FMatrix& Projection)

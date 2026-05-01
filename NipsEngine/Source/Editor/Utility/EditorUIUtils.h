@@ -1,7 +1,13 @@
 ﻿#pragma once
-#include "Core/CoreMinimal.h"
+#include "Core/Containers/Array.h"
+#include "Core/Containers/String.h"
+#include "Core/CoreTypes.h"
 #include "Runtime/ViewportRect.h"
 #include "Render/Common/ViewTypes.h"
+
+#include <algorithm>
+#include <cstddef>
+#include <vector>
 
 class UMovementComponent;
 

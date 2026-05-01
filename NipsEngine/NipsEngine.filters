@@ -655,7 +655,7 @@
     <ClInclude Include="Source\Engine\Core\Logging\Timer.h">
       <Filter>Source\Engine\Core\Logging</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\GameFramework\AActor.h">
+    <ClInclude Include="Source\Engine\GameFramework\Actor.h">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\PrimitiveActors.h">

@@ -3,14 +3,13 @@
 #include "Editor/Viewport/ViewportCamera.h"
 #include "Engine/Component/GizmoComponent.h"
 #include "GameFramework/World.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/Level.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Collision/RayCollision/RayCollision.h"
 #include "Math/Utils.h"
 
 #include <cmath>
-#include <windows.h>
 
 void FEditorWorldController::SetCamera(FViewportCamera* InCamera)
 {

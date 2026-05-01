@@ -2,8 +2,7 @@
 
 #include <cmath>
 #include <cstring>
-#include "Editor/Viewport/ViewportCamera.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "Core/ResourceManager.h"
 #include "Object/ObjectFactory.h"
 

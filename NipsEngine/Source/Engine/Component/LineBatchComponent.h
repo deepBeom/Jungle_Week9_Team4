@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "Component/PrimitiveComponent.h"
 
+struct FOBB;
+
 struct FLineVertex
 {
 	FVector Position;

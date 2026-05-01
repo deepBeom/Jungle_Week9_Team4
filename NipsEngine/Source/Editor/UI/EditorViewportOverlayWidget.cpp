@@ -11,10 +11,12 @@
 #include "Engine/Asset/StaticMesh.h"
 #include "Engine/Asset/StaticMeshTypes.h"
 #include "Engine/Component/GizmoComponent.h"
+#include "Engine/Component/Light/LightComponent.h"
 #include "Engine/Object/FName.h"
 #include "Engine/Render/Renderer/RenderFlow/LightCullingPass.h"
 #include "Engine/Render/Renderer/RenderFlow/ShadowPass.h"
 #include "Engine/Render/Renderer/RenderFlow/ShadowAtlasManager.h"
+#include "Engine/GameFramework/World.h"
 #include "GameFramework/PrimitiveActors.h"
 
 #include "Slate/SSplitterV.h"
@@ -98,6 +100,104 @@ namespace
 		void (*Spawn)(UWorld*, FSelectionManager&, const FVector&);
 	};
 
+	struct FLightDebugListEntry
+	{
+		ULightComponentBase* LightComponent = nullptr;
+		FString OwnerName;
+		uint32 SlotIndex = 0;
+	};
+
+	const char* GetLightTypeLabel(ELightType Type)
+	{
+		switch (Type)
+		{
+		case ELightType::LightType_Directional:
+			return "Directional";
+		case ELightType::LightType_Point:
+			return "Point";
+		case ELightType::LightType_Spot:
+			return "Spot";
+		case ELightType::LightType_AmbientLight:
+			return "Ambient";
+		default:
+			return "Light";
+		}
+	}
+
+	void RenderLightDebugSection(const char* SectionLabel, const char* SectionId, const TArray<FLightDebugListEntry>& Entries)
+	{
+		const FString HeaderLabel = std::string(SectionLabel) + " (" + std::to_string(Entries.size()) + ")##" + SectionId;
+		const bool bOpen = ImGui::TreeNodeEx(HeaderLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+		ImGui::SameLine();
+
+		bool bAnyEnabled = false;
+		bool bAllEnabled = !Entries.empty();
+		for (const FLightDebugListEntry& Entry : Entries)
+		{
+			const bool bEnabled = Entry.LightComponent && Entry.LightComponent->IsDebugDrawEnabled();
+			bAnyEnabled |= bEnabled;
+			bAllEnabled &= bEnabled;
+		}
+
+		bool bToggleAll = bAllEnabled;
+
+		ImGui::PushID(SectionId);
+		if (Entries.empty())
+		{
+			ImGui::BeginDisabled();
+		}
+
+		if (ImGui::Checkbox("All Debug Lines", &bToggleAll))
+		{
+			for (const FLightDebugListEntry& Entry : Entries)
+			{
+				if (Entry.LightComponent)
+				{
+					Entry.LightComponent->SetDebugDrawEnabled(bToggleAll);
+				}
+			}
+		}
+
+		if (bAnyEnabled && !bAllEnabled)
+		{
+			ImGui::SameLine();
+			ImGui::TextDisabled("(mixed)");
+		}
+		if (Entries.empty())
+		{
+			ImGui::EndDisabled();
+		}
+		ImGui::PopID();
+
+		if (bOpen)
+		{
+			if (Entries.empty())
+			{
+				ImGui::TextDisabled("No %s lights in the focused world.", SectionLabel);
+			}
+			else
+			{
+				for (const FLightDebugListEntry& Entry : Entries)
+				{
+					if (Entry.LightComponent == nullptr)
+					{
+						continue;
+					}
+
+					const FString CheckboxLabel = Entry.OwnerName + "##LightDebug_" + std::to_string(Entry.SlotIndex);
+					bool bDebugDraw = Entry.LightComponent->IsDebugDrawEnabled();
+					if (ImGui::Checkbox(CheckboxLabel.c_str(), &bDebugDraw))
+					{
+						Entry.LightComponent->SetDebugDrawEnabled(bDebugDraw);
+					}
+				}
+			}
+
+			ImGui::TreePop();
+		}
+	}
+
 	// 꼭 모든 Actor Types가 저장될 필요는 없습니다. 우클릭으로 생성할 수 있는 액터만 관리합니다.
 	static const FPlacementActorEntry PlacementActorTypes[] = {
 		{ "Scene", SpawnActorAt<ASceneActor> },
@@ -130,6 +230,8 @@ void FEditorViewportOverlayWidget::Render(float DeltaTime)
 // 뷰포트 설정(표시 플래그, 그리드, 카메라 감도, BVH 관리 정책 등)을 조작하는 창을 렌더링합니다.
 void FEditorViewportOverlayWidget::RenderViewportSettings(float DeltaTime)
 {
+	(void)DeltaTime;
+
 	FEditorSettings& Settings = FEditorSettings::Get();
 
 	if (!ImGui::Begin("Viewport Settings"))
@@ -138,83 +240,180 @@ void FEditorViewportOverlayWidget::RenderViewportSettings(float DeltaTime)
 		return;
 	}
 
-	// 위젯 너비를 현재 창 콘텐츠 영역의 50%로 설정하는 람다 또는 변수
 	float ItemWidth = ImGui::GetContentRegionAvail().x * 0.5f;
-
-	// Show Flags
-	ImGui::Text("Show");
-	ImGui::Checkbox("Primitives", &Settings.ShowFlags.bPrimitives);
-	ImGui::Checkbox("BillboardText", &Settings.ShowFlags.bBillboardText);
-	ImGui::Checkbox("Axis", &Settings.ShowFlags.bAxis);
-	ImGui::Checkbox("Grid", &Settings.ShowFlags.bGrid);
-	ImGui::Checkbox("Gizmo", &Settings.ShowFlags.bGizmo);
-	ImGui::Checkbox("Bounding Volume", &Settings.ShowFlags.bBoundingVolume);
-	ImGui::Checkbox("Collision Debug", &Settings.ShowFlags.bCollisionDebug);
-	if (Settings.ShowFlags.bBoundingVolume)
+	auto SetControlWidth = [ItemWidth]()
 	{
-		ImGui::Indent();
-		ImGui::Checkbox("BVH Bounding Volume", &Settings.ShowFlags.bBVHBoundingVolume);
-		ImGui::Unindent();
-	}
-	ImGui::Checkbox("Enable LOD", &Settings.ShowFlags.bEnableLOD);
-	ImGui::Checkbox("Decals", &Settings.ShowFlags.bDecals);
-	ImGui::Checkbox("Fog", &Settings.ShowFlags.bFog);
-	ImGui::Checkbox("Shadow", &Settings.ShowFlags.bShadow);
-
-	ImGui::Separator();
-
-	// Grid Settings
-	ImGui::Text("Grid");
-	ImGui::SetNextItemWidth(ItemWidth);
-	ImGui::SliderFloat("Spacing", &Settings.GridSpacing, 0.1f, 10.0f, "%.1f");
-	
-	ImGui::SetNextItemWidth(ItemWidth);
-	ImGui::SliderInt("Half Line Count", &Settings.GridHalfLineCount, 10, 500);
-
-	ImGui::Separator();
-	ImGui::Text("Post Process");
-	ImGui::Checkbox("Enable FXAA", &Settings.bEnableFXAA);
-
-	ImGui::Separator();
-
-	// Camera Sensitivity
-	ImGui::Text("Camera");
-
-	ImGui::SetNextItemWidth(ItemWidth);
-	ImGui::SliderFloat("Move Sensitivity", &Settings.CameraMoveSensitivity, 0.05f, 5.0f, "%.1f");
-	
-	ImGui::SetNextItemWidth(ItemWidth);
-	ImGui::SliderFloat("Rotate Sensitivity", &Settings.CameraRotateSensitivity, 0.05f, 5.0f, "%.1f");
-
-	if (EditorEngine)
-	{
-		FEditorViewportLayout& Layout = EditorEngine->GetViewportLayout();
-		const int32 FocusedIdx = Layout.GetLastFocusedViewportIndex();
-		FEditorViewportClient* FocusedClient = Layout.GetViewportClient(FocusedIdx);
-
 		ImGui::SetNextItemWidth(ItemWidth);
-		ImGui::SliderFloat("Zoom Speed", &Settings.CameraZoomSpeed, 0.1f, 100.0f, "%.1f");
+	};
+	auto BeginSettingsSection = [](const char* Label, bool bDefaultOpen)
+	{
+		ImGui::SetNextItemOpen(bDefaultOpen, ImGuiCond_FirstUseEver);
+		return ImGui::CollapsingHeader(Label);
+	};
+
+	if (BeginSettingsSection("Show Flags", true))
+	{
+		ImGui::Checkbox("Primitives", &Settings.ShowFlags.bPrimitives);
+		ImGui::Checkbox("BillboardText", &Settings.ShowFlags.bBillboardText);
+		ImGui::Checkbox("Axis", &Settings.ShowFlags.bAxis);
+		ImGui::Checkbox("Grid", &Settings.ShowFlags.bGrid);
+		ImGui::Checkbox("Gizmo", &Settings.ShowFlags.bGizmo);
+		ImGui::Checkbox("Bounding Volume", &Settings.ShowFlags.bBoundingVolume);
+	    ImGui::Checkbox("Collision Debug", &Settings.ShowFlags.bCollisionDebug);
+	    if (Settings.ShowFlags.bBoundingVolume)
+		{
+			ImGui::Indent();
+			ImGui::Checkbox("BVH Bounding Volume", &Settings.ShowFlags.bBVHBoundingVolume);
+			ImGui::Unindent();
+		}
+		ImGui::Checkbox("Enable LOD", &Settings.ShowFlags.bEnableLOD);
+		ImGui::Checkbox("Decals", &Settings.ShowFlags.bDecals);
+		ImGui::Checkbox("Fog", &Settings.ShowFlags.bFog);
 	}
 
-	if (Settings.ShowFlags.bBoundingVolume && Settings.ShowFlags.bBVHBoundingVolume)
+	if (BeginSettingsSection("Shadow Settings", false))
 	{
-		ImGui::Separator();
-		ImGui::Text("BVH Maintenance");
+			ImGui::Checkbox("Shadow", &Settings.ShowFlags.bShadow);
+	}
+
+
+	if (BeginSettingsSection("Light Settings", false))
+	{
+		ImGui::Checkbox("Light HitMap Overlay", &Settings.ShowFlags.bShowLightHitmapOverlay);
+
+		UWorld* FocusedWorld = EditorEngine ? EditorEngine->GetFocusedWorld() : nullptr;
+		if (FocusedWorld == nullptr)
+		{
+			ImGui::TextDisabled("No focused world.");
+		}
+		else
+		{
+			const TArray<FLightSlot>& LightSlots = FocusedWorld->GetWorldLightSlots();
+			TArray<FLightDebugListEntry> DirectionalLights;
+			TArray<FLightDebugListEntry> SpotLights;
+			TArray<FLightDebugListEntry> PointLights;
+
+			for (uint32 SlotIndex = 0; SlotIndex < static_cast<uint32>(LightSlots.size()); ++SlotIndex)
+			{
+				const FLightSlot& Slot = LightSlots[SlotIndex];
+				if (!Slot.bAlive || Slot.LightData == nullptr)
+				{
+					continue;
+				}
+
+				ULightComponentBase* LightComponent = Slot.LightData;
+				AActor* Owner = LightComponent->GetOwner();
+				FLightDebugListEntry Entry;
+				Entry.LightComponent = LightComponent;
+				Entry.OwnerName = Owner ? Owner->GetFName().ToString() : "Unowned";
+				Entry.SlotIndex = SlotIndex;
+
+				if (const ULightComponent* TypedLight = Cast<ULightComponent>(LightComponent))
+				{
+					switch (TypedLight->GetLightType())
+					{
+					case ELightType::LightType_Directional:
+						DirectionalLights.push_back(Entry);
+						break;
+					case ELightType::LightType_Spot:
+						SpotLights.push_back(Entry);
+						break;
+					case ELightType::LightType_Point:
+						PointLights.push_back(Entry);
+						break;
+					}
+				}
+			}
+
+			if (DirectionalLights.empty() && SpotLights.empty() && PointLights.empty())
+			{
+				ImGui::TextDisabled("No lights in the focused world.");
+			}
+			else
+			{
+				RenderLightDebugSection("Directional", "DirectionalLights", DirectionalLights);
+				RenderLightDebugSection("Spot", "SpotLights", SpotLights);
+				RenderLightDebugSection("Point", "PointLights", PointLights);
+			}
+		}
+	}
+
+
+	if (BeginSettingsSection("Grid / Axis Settings", false))
+	{
+		SetControlWidth();
+		ImGui::SliderFloat("Spacing", &Settings.GridSpacing, 0.1f, 10.0f, "%.1f");
+
+		SetControlWidth();
+		ImGui::SliderInt("Half Line Count", &Settings.GridHalfLineCount, 10, 500);
+
+		SetControlWidth();
+		ImGui::SliderFloat("Line Thickness", &Settings.GridRenderSettings.LineThickness, 0.0f, 4.0f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Major Line Thickness", &Settings.GridRenderSettings.MajorLineThickness, 0.0f, 6.0f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderInt("Major Line Interval", &Settings.GridRenderSettings.MajorLineInterval, 1, 50);
+
+		SetControlWidth();
+		ImGui::SliderFloat("Minor Intensity", &Settings.GridRenderSettings.MinorIntensity, 0.0f, 1.5f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Major Intensity", &Settings.GridRenderSettings.MajorIntensity, 0.0f, 1.5f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Axis Thickness", &Settings.GridRenderSettings.AxisThickness, 0.0f, 8.0f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Axis Intensity", &Settings.GridRenderSettings.AxisIntensity, 0.0f, 1.5f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Axis Length Scale", &Settings.GridRenderSettings.AxisLengthScale, 0.25f, 4.0f, "%.2f");
+	}
+
+	if (BeginSettingsSection("Post Process", false))
+	{
+		ImGui::Checkbox("Enable FXAA", &Settings.bEnableFXAA);
+	}
+
+	if (BeginSettingsSection("Camera Settings", true))
+	{
+		SetControlWidth();
+		ImGui::SliderFloat("Move Sensitivity", &Settings.CameraMoveSensitivity, 0.05f, 5.0f, "%.1f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Rotate Sensitivity", &Settings.CameraRotateSensitivity, 0.05f, 5.0f, "%.1f");
+
+		if (EditorEngine)
+		{
+			FEditorViewportLayout& Layout = EditorEngine->GetViewportLayout();
+			const int32 FocusedIdx = Layout.GetLastFocusedViewportIndex();
+			FEditorViewportClient* FocusedClient = Layout.GetViewportClient(FocusedIdx);
+			(void)FocusedClient;
+
+			SetControlWidth();
+			ImGui::SliderFloat("Zoom Speed", &Settings.CameraZoomSpeed, 0.1f, 100.0f, "%.1f");
+		}
+	}
+
+	if (Settings.ShowFlags.bBoundingVolume && Settings.ShowFlags.bBVHBoundingVolume && BeginSettingsSection("BVH Settings", false))
+	{
 		bool bPolicyChanged = false;
 
-		ImGui::SetNextItemWidth(ItemWidth);
+		SetControlWidth();
 		bPolicyChanged |= ImGui::SliderInt("Batch Refit Min Dirty", &Settings.SpatialBatchRefitMinDirtyCount, 1, 256);
 
-		ImGui::SetNextItemWidth(ItemWidth);
+		SetControlWidth();
 		bPolicyChanged |= ImGui::SliderInt("Batch Refit Dirty %", &Settings.SpatialBatchRefitDirtyPercentThreshold, 1, 100);
 
-		ImGui::SetNextItemWidth(ItemWidth);
+		SetControlWidth();
 		bPolicyChanged |= ImGui::SliderInt("Rotation Structural Changes", &Settings.SpatialRotationStructuralChangeThreshold, 1, 256);
 
-		ImGui::SetNextItemWidth(ItemWidth);
+		SetControlWidth();
 		bPolicyChanged |= ImGui::SliderInt("Rotation Dirty Count", &Settings.SpatialRotationDirtyCountThreshold, 1, 512);
 
-		ImGui::SetNextItemWidth(ItemWidth);
+		SetControlWidth();
 		bPolicyChanged |= ImGui::SliderInt("Rotation Dirty %", &Settings.SpatialRotationDirtyPercentThreshold, 1, 100);
 
 		if (bPolicyChanged && EditorEngine)

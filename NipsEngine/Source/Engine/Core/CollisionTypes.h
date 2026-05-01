@@ -1,5 +1,8 @@
 ﻿#pragma once
-#include "Math/Vector.h" // 필요한 최소한의 수학 라이브러리만
+#include "Core/CoreTypes.h"
+#include "Math/Vector.h"
+
+#include <cfloat>
 
 struct FHitResult 
 {
@@ -11,7 +14,7 @@ struct FHitResult
     FVector Location = { 0, 0, 0 };
     FVector Normal = { 0, 0, 0 };
 	
-    int FaceIndex = -1; 
+    int32 FaceIndex = -1;
 
     bool bHit = false;
 	

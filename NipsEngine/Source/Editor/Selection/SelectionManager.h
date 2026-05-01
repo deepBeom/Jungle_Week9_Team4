@@ -1,6 +1,8 @@
 #pragma once
 
-#include "Core/CoreMinimal.h"
+#include "Core/Containers/Array.h"
+
+#include <algorithm>
 
 class AActor;
 class UGizmoComponent;

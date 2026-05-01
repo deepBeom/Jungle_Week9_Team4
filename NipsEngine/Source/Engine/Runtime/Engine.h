@@ -5,6 +5,7 @@
 #include "GameFramework/WorldContext.h"
 #include "Render/Renderer/Renderer.h"
 #include "Render/Renderer/IRenderPipeline.h"
+#include "Engine/Scripting/LuaScriptSubsystem.h"
 
 #include <memory>
 
@@ -54,6 +55,8 @@ public:
 	FRenderer& GetRenderer() { return Renderer; }
 	IRenderPipeline* GetRenderPipeline() const { return RenderPipeline.get(); }
 
+	FLuaScriptSubsystem& GetLuaScriptSubsystem() { return LuaScriptSubsystem; }
+
 protected:
 	void Render(float DeltaTime);
 	void SetRenderPipeline(std::unique_ptr<IRenderPipeline> InPipeline);
@@ -68,6 +71,7 @@ protected:
 	FTimer* Timer = nullptr;
 
 	FRenderer Renderer;
+    FLuaScriptSubsystem LuaScriptSubsystem;
 
 private:
 	std::unique_ptr<IRenderPipeline> RenderPipeline;

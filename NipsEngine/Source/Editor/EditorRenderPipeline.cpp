@@ -1,9 +1,7 @@
 ﻿#include "EditorRenderPipeline.h"
 
 #include "Editor/EditorEngine.h"
-#include "Editor/Viewport/ViewportCamera.h"
 #include "Render/Renderer/Renderer.h"
-#include "GameFramework/World.h"
 #include "Core/Logging/Stats.h"
 #include "Core/Logging/GPUProfiler.h"
 #include "Runtime/SceneView.h"
@@ -66,7 +64,12 @@ void FEditorRenderPipeline::RenderViewport(FRenderer& Renderer, int32 ViewportIn
 	ViewportDecalStats[ViewportIndex] = Collector.GetLastDecalStats();
 	ViewportShadowStats[ViewportIndex] = Collector.GetLastShadowStats();
 
-	Collector.CollectGrid(Settings.GridSpacing, Settings.GridHalfLineCount, Bus, SceneView.bOrthographic);
+	Collector.CollectGrid(
+		Settings.GridSpacing,
+		Settings.GridHalfLineCount,
+		Bus,
+		SceneView.bOrthographic,
+		Settings.GridRenderSettings);
 
 	// 뷰포트가 편집 모드일 때만 기즈모·선택 오버레이를 그립니다.
 	if (VC->GetPlayState() == EViewportPlayState::Editing)

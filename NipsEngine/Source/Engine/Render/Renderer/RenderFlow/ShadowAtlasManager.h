@@ -1,6 +1,8 @@
 ﻿#pragma once
 
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/Array.h"
+#include "Math/Vector4.h"
 #include "Render/Common/ComPtr.h"
 #include "Render/Common/RenderTypes.h"
 

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "DepthStencilResource.h"
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
 
 class FDepthStencilBuilder
 {

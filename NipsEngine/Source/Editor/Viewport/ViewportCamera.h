@@ -1,6 +1,10 @@
 ﻿#pragma once
 
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
+#include "Math/Matrix.h"
+#include "Math/Quat.h"
+#include "Math/Rotator.h"
+#include "Math/Vector.h"
 #include "Engine/Geometry/Ray.h"
 #include "Engine/Geometry/Frustum.h"
 

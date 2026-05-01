@@ -4,9 +4,14 @@
  * @brief Bounding Volume Hierarchy (BVH) structure and query interface.
  */
 
-#include "Engine/Core/CoreMinimal.h"
-#include "Engine/Core/CoreTypes.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/Array.h"
+#include "Engine/Geometry/AABB.h"
 #include <cassert>
+
+struct FFrustum;
+struct FRay;
+struct FOBB;
 
 /** @brief Internal helper symbols used by `FBVH` implementation. */
 namespace BVHDetail

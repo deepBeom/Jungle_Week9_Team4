@@ -1,6 +1,5 @@
 ﻿#include "HeightFogComponent.h"
 #include "Object/Object.h"
-#include "GameFramework/AActor.h"
 
 
 DEFINE_CLASS(UHeightFogComponent, UPrimitiveComponent)

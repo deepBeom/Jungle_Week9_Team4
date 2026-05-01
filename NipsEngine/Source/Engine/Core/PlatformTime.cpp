@@ -1,5 +1,4 @@
-﻿#include "PlatformTime.h"
-
+#include "PlatformTime.h"
 #include <Windows.h>
 
 namespace

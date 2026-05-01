@@ -4,9 +4,7 @@
 #include <DbgHelp.h>
 #include <filesystem>
 #include <fstream>
-#include <iomanip>
 #include <ctime>
-#include <cstdio>
 
 #pragma comment(lib, "DbgHelp.lib")
 
@@ -137,6 +135,11 @@ void WriteCrashLog(EXCEPTION_POINTERS* ExceptionInfo)
 
 int ReportCrash(EXCEPTION_POINTERS* ExceptionInfo)
 {
+	if (IsDebuggerPresent())
+	{
+		return EXCEPTION_CONTINUE_SEARCH;
+	}
+
 	WriteCrashDump(ExceptionInfo);
 	WriteCrashLog(ExceptionInfo);
 	return EXCEPTION_EXECUTE_HANDLER;

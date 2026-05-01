@@ -1,6 +1,5 @@
 ﻿#include "Quat.h"
 
-#include "Utils.h"
 #include "Rotator.h"
 
 #include <algorithm>

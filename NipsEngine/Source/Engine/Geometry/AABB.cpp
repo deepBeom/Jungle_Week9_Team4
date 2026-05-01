@@ -4,7 +4,6 @@
 #include "Engine/Geometry/Ray.h"
 
 #include <algorithm>
-#include <cfloat>
 
 FAABB::FAABB() { Reset(); }
 

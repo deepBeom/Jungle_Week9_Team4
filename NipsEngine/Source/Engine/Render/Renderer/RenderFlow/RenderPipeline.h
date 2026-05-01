@@ -1,6 +1,14 @@
 ﻿#pragma once
-#include "Core/CoreMinimal.h"
-#include "RenderPassContext.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/Array.h"
+
+#include <memory>
+#include <set>
+
+struct FRenderPassContext;
+struct ID3D11Device;
+struct ID3D11RenderTargetView;
+struct ID3D11ShaderResourceView;
 
 class FShadowPass;
 class FBlurPass;
@@ -19,16 +27,18 @@ class FSelectionMaskRenderPass;
 class FGridRenderPass;
 class FEditorRenderPass;
 class FDepthLessRenderPass;
+class FDepthPrepassRenderPass;
+class FHitMapRenderPass;
 class FPostProcessOutlineRenderPass;
 class FOpaqueRenderPass;
 class FLightCullingPass;
-class FShadowPass;
 class FBaseRenderPass;
 
 class FRenderPipeline
 {
 public:
     bool Initialize();
+    void ProcessShaderHotReloads(const std::set<FWString>& DirtyFiles, ID3D11Device* Device);
     bool Render(const FRenderPassContext* Context);
     void Release();
 
@@ -36,9 +46,11 @@ public:
 
 private:
     std::shared_ptr<FLightCullingPass> LightCullingPass;
+    std::shared_ptr<FHitMapRenderPass> HitMapRenderPass;
     std::shared_ptr<FSkyRenderPass> SkyRenderPass;
     std::shared_ptr<FShadowPass> ShadowPass;
     std::shared_ptr<FBlurPass> BlurPass;
+    std::shared_ptr<FDepthPrepassRenderPass> DepthPrepassRenderPass;
     std::shared_ptr<FOpaqueRenderPass> OpaqueRenderPass;
     std::shared_ptr<FDecalRenderPass> DecalRenderPass;
     std::shared_ptr<FBufferVisualizationRenderPass> BufferVisualizationRenderPass;

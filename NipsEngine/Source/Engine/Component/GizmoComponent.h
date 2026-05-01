@@ -1,11 +1,12 @@
 ﻿#pragma once
 
 #include "PrimitiveComponent.h"
-#include "Core/CoreMinimal.h"
-#include "Render/Resource/Material.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/Array.h"
 
 class AActor;
-#include "Render/Resource/VertexTypes.h"
+class UMaterialInterface;
+struct FMeshData;
 
 class UGizmoComponent : public UPrimitiveComponent
 {

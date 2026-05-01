@@ -3,6 +3,10 @@
 #include "Collision/CollisionSystem.h"
 #include "Component/Light/LightComponent.h"
 
+
+//test
+#include "DelegateTestActor.h"
+
 DEFINE_CLASS(UWorld, UObject)
 REGISTER_FACTORY(UWorld)
 
@@ -68,6 +72,9 @@ void UWorld::BeginPlay()
     bHasBegunPlay = true;
     PersistentLevel->BeginPlay();
     RebuildSpatialIndex();
+
+	SpawnActor<ADelegateTestActor>();
+
 }
 
 void UWorld::Tick(float DeltaTime)

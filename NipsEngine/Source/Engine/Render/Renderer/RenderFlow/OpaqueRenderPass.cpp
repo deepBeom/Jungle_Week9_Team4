@@ -1,5 +1,4 @@
 ﻿#include "OpaqueRenderPass.h"
-#include "LightCullingPass.h"
 #include "Render/Device/D3DDevice.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/RenderResources.h"
@@ -41,6 +40,9 @@ bool FOpaqueRenderPass::Begin(const FRenderPassContext* Context)
     ID3D11DepthStencilView* DSV = RenderTargets->DepthStencilView;
 
 	Context->DeviceContext->OMSetRenderTargets(ARRAYSIZE(RTVs), RTVs, DSV);
+    ID3D11DepthStencilState* DepthStencilState =
+        FResourceManager::Get().GetOrCreateDepthStencilState(EDepthStencilType::DepthReadOnly);
+    Context->DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
     OutSRV = RenderTargets->SceneColorSRV;
     OutRTV = RenderTargets->SceneColorRTV;
 
@@ -101,6 +103,9 @@ bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)
         if (Cmd.Material)
         {
             Cmd.Material->Bind(Context->DeviceContext, Context->RenderBus, &Cmd.PerObjectConstants, ShaderOverride, Context);
+            ID3D11DepthStencilState* DepthStencilState =
+                FResourceManager::Get().GetOrCreateDepthStencilState(EDepthStencilType::DepthReadOnly);
+            Context->DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
         }
 
 		SceneLightBinding::BindResources(

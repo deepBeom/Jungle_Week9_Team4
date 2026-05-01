@@ -1,6 +1,7 @@
 ﻿#pragma once
 
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/Array.h"
 #include "Core/Containers/Map.h"
 #include "Engine/Geometry/AABB.h"
 #include "Spatial/BVH.h"
@@ -8,6 +9,9 @@
 class AActor;
 class UPrimitiveComponent;
 class UWorld;
+struct FRay;
+struct FFrustum;
+struct FOBB;
 
 /**
  * @brief World-level owner for primitive-to-index mappings, AABB snapshots, and a BVH.

@@ -3,7 +3,6 @@
 #include "Core/EngineTypes.h"
 #include "Core/ResourceManager.h"
 #include "Math/Utils.h"
-#include "Render/Scene/RenderBus.h"
 
 #include <algorithm>
 #include <cmath>

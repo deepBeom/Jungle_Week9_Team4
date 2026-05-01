@@ -3,7 +3,7 @@
 #include "Asset/ObjRawTypes.h"
 #include "Asset/StaticMeshTypes.h"
 #include "Asset/IAssetLoader.h"
-#include <Core/ResourceTypes.h>
+#include "Core/ResourceTypes.h"
 
 class FObjLoader : public IAssetLoader
 {

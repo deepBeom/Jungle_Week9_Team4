@@ -1,9 +1,7 @@
 ﻿#include <d3d11.h>
-#include <UI/EditorConsoleWidget.h>
 #include "SubUVBatcher.h"
 #include "Core/CoreTypes.h"
 #include "Core/ResourceManager.h"
-#include "Render/Scene/RenderBus.h"
 
 void FSubUVBatcher::Create(ID3D11Device* InDevice)
 {

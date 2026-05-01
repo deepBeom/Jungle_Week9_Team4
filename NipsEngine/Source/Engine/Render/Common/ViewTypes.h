@@ -45,4 +45,31 @@ struct FShowFlags
 	bool bDecals = true;
 	bool bFog = true;
 	bool bShadow = true;
+	bool bShowLightHitmapOverlay = false;
 };
+
+struct FGridRenderSettings
+{
+	float LineThickness;
+	float MajorLineThickness;
+	int32 MajorLineInterval;
+	float MinorIntensity;
+	float MajorIntensity;
+	float AxisThickness;
+	float AxisIntensity;
+	float AxisLengthScale;
+};
+
+constexpr FGridRenderSettings MakeDefaultGridRenderSettings()
+{
+	return {
+		1.0f,
+		1.25f,
+		10,
+		0.45f,
+		0.9f,
+		1.5f,
+		1.0f,
+		1.0f,
+	};
+}

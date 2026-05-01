@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <d3d11.h>
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
 
 struct FRenderTargetSet;
 struct FRenderResources;

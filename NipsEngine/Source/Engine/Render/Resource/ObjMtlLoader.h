@@ -1,7 +1,9 @@
 ﻿#pragma once
 
-#include "Core/CoreMinimal.h"
-#include "Render/Resource/Material.h"
+#include "Core/Containers/Map.h"
+#include "Core/Containers/String.h"
+class UMaterial;
+struct ID3D11Device;
 
 /**
  * @brief Obj전용 .mtl 파일 파서

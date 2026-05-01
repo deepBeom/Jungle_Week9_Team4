@@ -4,37 +4,76 @@
 #include "Collision/CollisionSystem.h"
 #include "Render/Renderer/RenderFlow/ShadowAtlasManager.h"
 #include "GameFramework/World.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "Object/ActorIterator.h"
 #include "Component/BillboardComponent.h"
 #include "Component/PrimitiveComponent.h"
-#include "Component/StaticMeshComponent.h"
-#include "Component/GizmoComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/SubUVComponent.h"
-#include "Component/DecalComponent.h"
-#include "Component/HeightFogComponent.h"
-#include "Component/SkyAtmosphereComponent.h"
-#include "Component/Light/AmbientLightComponent.h"
 #include "Component/Light/DirectionalLightComponent.h"
 #include "Component/Light/LightComponent.h"
 #include "Component/Light/PointLightComponent.h"
 #include "Component/Light/SpotLightComponent.h"
-#include "Core/ResourceManager.h"
 #include "Engine/Geometry/Frustum.h"
-#include "Engine/Asset/StaticMesh.h"
-#include "Engine/GameFramework/PrimitiveActors.h"
-#include "Render/Resource/Material.h"
-#include "Math/Utils.h"
-#include "Object/ObjectIterator.h"
-#include "Runtime/Stats/ScopeCycleCounter.h"
-#include <algorithm>
-#include <cctype>
-#include <cmath>
 #include <unordered_set>
 
 namespace
 {
+	void AddDebugLightShape(const ULightComponent* LightComponent, FLineBatcher* LineBatcher)
+	{
+		if (LightComponent == nullptr || LineBatcher == nullptr || !LightComponent->IsDebugDrawEnabled() || !LightComponent->IsVisible())
+		{
+			return;
+		}
+
+		switch (LightComponent->GetLightType())
+		{
+		case ELightType::LightType_Directional:
+		{
+			const UDirectionalLightComponent* Light = Cast<UDirectionalLightComponent>(LightComponent);
+			if (Light != nullptr)
+			{
+				LineBatcher->AddDirectionalLight(
+					Light->GetWorldLocation(),
+					Light->GetForwardVector(),
+					Light->GetRightVector(),
+					Light->GetLightColor().ToVector4());
+			}
+			break;
+		}
+		case ELightType::LightType_Point:
+		{
+			const UPointLightComponent* Light = Cast<UPointLightComponent>(LightComponent);
+			if (Light != nullptr)
+			{
+				LineBatcher->AddPointLight(
+					Light->GetWorldLocation(),
+					Light->GetAttenuationRadius(),
+					Light->GetRightVector(),
+					Light->GetUpVector());
+			}
+			break;
+		}
+		case ELightType::LightType_Spot:
+		{
+			const USpotLightComponent* Light = Cast<USpotLightComponent>(LightComponent);
+			if (Light != nullptr)
+			{
+				LineBatcher->AddSpotLight(
+					Light->GetWorldLocation(),
+					Light->GetUpVector() * -1.0f,
+					Light->GetRightVector() * -1.0f,
+					Light->GetAttenuationRadius(),
+					Light->GetInnerConeAngle(),
+					Light->GetOuterConeAngle());
+			}
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
 	// ─────────────────── Billboard, SubUV ───────────────────
 	FMatrix MakeViewSubUVSelectionMatrix(const USubUVComponent* SubUVComp, const FRenderBus& RenderBus);
 
@@ -88,7 +127,7 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 	if (!World)
 		return;
 
-	CollectLight(World, RenderBus, ViewFrustum);
+	CollectLight(World, ShowFlags, RenderBus, ViewFrustum);
 	if (ShowFlags.bShadow)
 	{
 		CollectShadowCasters(World, RenderBus);
@@ -169,9 +208,26 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 // ─────────────────── Sub Collects ────────────────────────────────────────────────────────────
 
 // Frustum Culling을 통해 Light Collect와 Shadow Collect를 동시에 수행해줍니다.
-void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const FFrustum* ViewFrustum)
+void FRenderCollector::CollectLight(UWorld* World, const FShowFlags& ShowFlags, FRenderBus& RenderBus, const FFrustum* ViewFrustum)
 {
+	(void)ShowFlags;
 	LightRenderCollector.CollectLight(World, RenderBus, LastStats, ViewFrustum);
+
+	if (World == nullptr || LineBatcher == nullptr)
+	{
+		return;
+	}
+
+	for (const FLightSlot& Slot : World->GetWorldLightSlots())
+	{
+		const ULightComponent* LightComponent = Cast<ULightComponent>(Slot.LightData);
+		if (!Slot.bAlive || LightComponent == nullptr)
+		{
+			continue;
+		}
+
+		AddDebugLightShape(LightComponent, LineBatcher);
+	}
 }
 
 void FRenderCollector::CollectShadowCasters(UWorld* World, FRenderBus& RenderBus)
@@ -184,9 +240,14 @@ void FRenderCollector::CollectSelection(const TArray<AActor*>& SelectedActors, c
 	OverlayRenderCollector.CollectSelection(SelectedActors, ShowFlags, ViewMode, RenderBus, LineBatcher);
 }
 
-void FRenderCollector::CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus, bool bOrthographic)
+void FRenderCollector::CollectGrid(
+	float GridSpacing,
+	int32 GridHalfLineCount,
+	FRenderBus& RenderBus,
+	bool bOrthographic,
+	const FGridRenderSettings& GridRenderSettings)
 {
-	OverlayRenderCollector.CollectGrid(GridSpacing, GridHalfLineCount, RenderBus, bOrthographic);
+	OverlayRenderCollector.CollectGrid(GridSpacing, GridHalfLineCount, RenderBus, bOrthographic, GridRenderSettings);
 }
 
 void FRenderCollector::CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus, bool bIsActiveOperation)

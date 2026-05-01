@@ -7,10 +7,12 @@
 */
 
 #include "Render/Common/RenderTypes.h"
+#include "Render/Common/ViewTypes.h"
 #include "Render/Resource/Buffer.h"
 #include "Render/Resource/Material.h"
 #include "Render/Device/D3DDevice.h"
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/String.h"
 #include "Core/ResourceTypes.h"
 
 #include "Math/Matrix.h"
@@ -57,6 +59,7 @@ struct FFrameConstants
 	FMatrix View;          
 	FMatrix Projection;    
 	FMatrix InverseViewProjection;
+	FMatrix InverseProjection;
 	FVector CameraPosition;
 	float Padding0;
 	float bIsWireframe = 0.0f;
@@ -91,6 +94,7 @@ struct FGridConstants
 	float GridSpacing;
 	int32 GridHalfLineCount;
 	bool  bOrthographic;
+	FGridRenderSettings RenderSettings;
 	float Padding0[1];
 };
 

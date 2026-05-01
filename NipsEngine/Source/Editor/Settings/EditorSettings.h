@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-#include "Core/CoreMinimal.h"
 #include "Core/Paths.h"
 #include "Core/Singleton.h"
 #include "Math/Vector.h"
@@ -35,6 +34,7 @@ public:
 	// Grid
 	float GridSpacing = 1.0f;
 	int32 GridHalfLineCount = 100;
+	FGridRenderSettings GridRenderSettings = MakeDefaultGridRenderSettings();
 
 	// Camera Sensitivity
 	float CameraMoveSensitivity = 1.0f;

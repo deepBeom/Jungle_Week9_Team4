@@ -1,6 +1,4 @@
 ﻿#include "PrimitiveComponent.h"
-#include "Engine/Geometry/Ray.h"
-#include "Core/CollisionTypes.h"
 #include "GameFramework/World.h"
 #include "Math/Utils.h"
 

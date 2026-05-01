@@ -5,7 +5,8 @@
 	Renderer가 RenderBus에 담긴 Draw Call 요청들을 처리할 수 있게 합니다.
 */
 
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/Array.h"
 #include "Render/Scene/RenderCommand.h"
 #include "Render/Common/ViewTypes.h"
 #include <optional>

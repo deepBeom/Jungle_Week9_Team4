@@ -1,6 +1,10 @@
 #pragma once
 
-#include "Core/CoreMinimal.h"
+#include "Core/CoreTypes.h"
+#include "Core/Containers/Array.h"
+#include "Math/Color.h"
+#include "Math/Vector.h"
+#include "Math/Vector2.h"
 
 /*
 	Vertex 구조체들을 정의하는 Header입니다.

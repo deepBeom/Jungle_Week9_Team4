@@ -1,6 +1,5 @@
 ﻿#include "LightRenderCollector.h"
 
-#include "Component/Light/AmbientLightComponent.h"
 #include "Component/Light/DirectionalLightComponent.h"
 #include "Component/Light/PointLightComponent.h"
 #include "Component/Light/SpotLightComponent.h"
@@ -8,7 +7,7 @@
 #include "Component/StaticMeshComponent.h"
 #include "Engine/Asset/StaticMesh.h"
 #include "Engine/Geometry/Frustum.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 #include "Math/Utils.h"
 #include "Render/Renderer/RenderFlow/ShadowAtlasManager.h"

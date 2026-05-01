@@ -2,9 +2,6 @@
 
 #include "Math/Utils.h"
 
-#include <fstream>
-#include <iostream>
-#include <sstream>
 
 FMeshData FEditorMeshLibrary::TranslationGizmoMeshData;
 FMeshData FEditorMeshLibrary::RotationGizmoMeshData;

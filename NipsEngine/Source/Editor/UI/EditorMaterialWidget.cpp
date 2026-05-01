@@ -4,13 +4,11 @@
 #include "Editor/Selection/SelectionManager.h"
 
 #include "Component/PrimitiveComponent.h"
-#include "Component/DecalComponent.h"
 #include "Component/StaticMeshComponent.h"
 #include "Asset/StaticMesh.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "Core/ResourceManager.h"
 #include "Object/ObjectIterator.h"
-#include <algorithm>
 #include <filesystem>
 
 #include "ImGui/imgui.h"

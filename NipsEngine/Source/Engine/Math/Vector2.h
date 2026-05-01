@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Core/CoreTypes.h"
+#include "Math/Vector.h"
 
 struct FVector2
 {

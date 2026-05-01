@@ -9,9 +9,11 @@
 #include "Core/Logging/Stats.h"
 #include "Core/Logging/GPUProfiler.h"
 #include "Editor/UI/EditorConsoleWidget.h"
-#include "Editor/Viewport/FSceneViewport.h"
 #include "Render/Renderer/RenderTarget/RenderTargetFactory.h"
 #include "Render/Renderer/RenderTarget/DepthStencilFactory.h"
+#include "Render/Renderer/RenderFlow/RenderPassContext.h"
+
+#include <set>
 
 void FRenderer::Create(HWND hWindow)
 {
@@ -40,6 +42,7 @@ void FRenderer::Create(HWND hWindow)
     FResourceManager::Get().LoadShader(MakeUberLitShaderCompileKey(EMaterialDomain::Surface, ELightingModel::Toon), NormalVertexInputLayout, ARRAYSIZE(NormalVertexInputLayout));
     FResourceManager::Get().LoadShader(MakeUberLitShaderCompileKey(EMaterialDomain::Decal), NormalVertexInputLayout, ARRAYSIZE(NormalVertexInputLayout));
     FResourceManager::Get().LoadShader("Shaders/UberUnlit.hlsl", "mainVS", "mainPS", NormalVertexInputLayout, ARRAYSIZE(NormalVertexInputLayout), nullptr);
+    FResourceManager::Get().LoadShader("Shaders/DepthPrepass.hlsl", "DepthPrepassVS", "DepthPrepassPS", DepthPrepassInputLayout, ARRAYSIZE(DepthPrepassInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/LightPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/BufferVisualizationPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/SkyPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
@@ -47,8 +50,16 @@ void FRenderer::Create(HWND hWindow)
     FResourceManager::Get().LoadShader("Shaders/Multipass/FXAAPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderFont.hlsl", "VS", "PS", TextureVertexInputLayout, ARRAYSIZE(TextureVertexInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderLine.hlsl", "mainVS", "mainPS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout), nullptr);
+    FResourceManager::Get().LoadShader("Shaders/ShaderGrid.hlsl", "GridVS", "GridPS", nullptr, 0, nullptr);
+    FResourceManager::Get().LoadShader("Shaders/ShaderAxis.hlsl", "VS", "PS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderBillboard.hlsl", "mainVS", "mainPS", TextureVertexInputLayout, ARRAYSIZE(TextureVertexInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/ToonOutlinePass.hlsl", "mainVS", "mainPS", NormalVertexInputLayout, ARRAYSIZE(NormalVertexInputLayout), nullptr);
+    FResourceManager::Get().LoadShader("Shaders/HitMap.hlsl", "HitMapVS", "HitMapPS", nullptr, 0, nullptr);
+
+	if (!ShaderFileWatcher.Start(FPaths::ShaderDir(), true))
+	{
+		UE_LOG("[ShaderHotReload] Failed to start shader file watcher.");
+	}
 }
 
 void FRenderer::CreateResources()
@@ -77,6 +88,8 @@ void FRenderer::CreateResources()
 
 void FRenderer::Release()
 {
+	ShaderFileWatcher.Stop();
+
 	InvalidateSceneFinalTargets();
 
 	RenderPipeline.Release();
@@ -134,6 +147,10 @@ const TArray<FRenderCommand>& FRenderer::GetAlignedCommands(ERenderPass Pass, co
 //	GPU 프레임 시작. 반드시 Render 이전에 호출되어야 함.
 void FRenderer::BeginFrame()
 {
+	const TArray<FWString> ChangedShaderFiles = ShaderFileWatcher.DequeueChangedFiles();
+	const std::set<FWString> ReadyShaderFiles = FResourceManager::Get().ProcessShaderHotReloads(ChangedShaderFiles);
+	RenderPipeline.ProcessShaderHotReloads(ReadyShaderFiles, Device.GetDevice());
+
 	Device.BeginFrame();
 	UseBackBufferRenderTargets();
 
@@ -406,24 +423,11 @@ void FRenderer::ReleaseViewportResource(FSceneViewport* VP, int32 Index)
 // ============================================================
 void FRenderer::InitializePassBatchers()
 {
-	// --- Grid 패스: 월드 그리드 + 축 → GridLineBatcher ---
+	// --- Grid 패스: ShaderGrid/ShaderAxis가 직접 procedural draw ---
     PassBatchers[(uint32)ERenderPass::Grid] = {
         /*.Clear   =*/[this]()
         { GridLineBatcher.Clear(); },
-        /*.Collect =*/[this](const FRenderCommand& Cmd, const FRenderBus& Bus)
-        {
-			if (Cmd.Type == ERenderCommandType::Grid)
-			{
-				const FVector CameraPos = Bus.GetView().GetInverse().GetOrigin();
-				const FVector CameraFwd = Bus.GetCameraForward();
-
-				GridLineBatcher.AddWorldHelpers(
-					Bus.GetShowFlags(),
-					Cmd.Constants.Grid.GridSpacing,
-					Cmd.Constants.Grid.GridHalfLineCount,
-					CameraPos, CameraFwd,
-					Cmd.Constants.Grid.bOrthographic);
-			} },
+        /*.Collect =*/[](const FRenderCommand&, const FRenderBus&) {},
     };
 
 	// --- Font 패스: 텍스트 → FontBatcher ---

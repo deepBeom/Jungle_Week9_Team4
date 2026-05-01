@@ -124,8 +124,13 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;WITH_EDITOR=1;NOMINMAX;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>Core/EnginePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)EnginePCH.pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>Core/EnginePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -141,8 +146,13 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;WITH_EDITOR=1;NOMINMAX;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>Core/EnginePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)EnginePCH.pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>Core/EnginePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -156,9 +166,14 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;WITH_EDITOR=1;NOMINMAX;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>Core/EnginePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)EnginePCH.pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>Core/EnginePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -174,9 +189,14 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;WITH_EDITOR=1;NOMINMAX;%(PreprocessorDefinitions);</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>Core/EnginePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)EnginePCH.pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>Core/EnginePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -192,9 +212,14 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;WITH_EDITOR=1;NOMINMAX;%(PreprocessorDefinitions);IS_OBJ_VIEWER=1;</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <ConformanceMode>true</ConformanceMode>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>Core/EnginePCH.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderOutputFile>$(IntDir)EnginePCH.pch</PrecompiledHeaderOutputFile>
+      <ForcedIncludeFiles>Core/EnginePCH.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -209,6 +234,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Scripting\LuaScriptSubsystem.cpp" />
+    <ClCompile Include="Source\Engine\Scripting\LuaBinder.cpp" />
+    <ClCompile Include="Source\Engine\Component\Script\ScriptComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorEngine.cpp" />
     <ClCompile Include="Source\Editor\EditorRenderPipeline.cpp" />
     <ClCompile Include="Source\Editor\Selection\SelectionManager.cpp" />
@@ -266,14 +294,19 @@
     <ClCompile Include="Source\Engine\Component\Movement\PursuitMovementComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Movement\RotatingMovementComponent.cpp" />
     <ClCompile Include="Source\Engine\Core\CrashDump.cpp" />
+    <ClCompile Include="Source\Engine\Core\EnginePCH.cpp">
+      <PrecompiledHeader>Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Core\EngineTypes.cpp" />
+    <ClCompile Include="Source\Engine\Core\FileWatcher.cpp" />
     <ClCompile Include="Source\Engine\Core\Paths.cpp" />
     <ClCompile Include="Source\Engine\Core\PlatformTime.cpp" />
     <ClCompile Include="Source\Engine\Core\ResourceManager.cpp" />
     <ClCompile Include="Source\Engine\Core\Logging\GPUProfiler.cpp" />
     <ClCompile Include="Source\Engine\Core\Logging\Stats.cpp" />
     <ClCompile Include="Source\Engine\Core\Logging\Timer.cpp" />
-    <ClCompile Include="Source\Engine\GameFramework\AActor.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Actor.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\DelegateTestActor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Level.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\PrimitiveActors.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\World.cpp" />
@@ -313,11 +346,13 @@
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\BufferVisualizationRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\DecalRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\DepthLessRenderPass.cpp" />
+    <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\DepthPrepassRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\EditorRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\FXAARenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\FogRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\FontRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\GridRenderPass.cpp" />
+    <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\HitMapRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\LightCullingPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\OpaqueRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessOutlineRenderPass.cpp" />
@@ -381,8 +416,144 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_tables.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ThirdParty\Lua\lapi.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lauxlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lbaselib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lcode.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lcorolib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lctype.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ldblib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ldebug.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ldo.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ldump.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lfunc.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lgc.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\linit.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\liolib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\llex.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lmathlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lmem.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\loadlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lobject.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lopcodes.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\loslib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lparser.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lstate.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lstring.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lstrlib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ltable.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ltablib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\ltm.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\luac.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lundump.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lutf8lib.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lvm.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
+    <ClCompile Include="ThirdParty\Lua\lzio.c">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <ForcedIncludeFiles />
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Scripting\LuaScriptSubsystem.h" />
+    <ClInclude Include="Source\Engine\Scripting\LuaScriptInstance.h" />
+    <ClInclude Include="Source\Engine\Scripting\LuaBinder.h" />
+    <ClInclude Include="Source\Engine\Component\Script\ScriptComponent.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />
     <ClInclude Include="Source\Editor\EditorRenderPipeline.h" />
     <ClInclude Include="Source\Editor\Selection\SelectionManager.h" />
@@ -449,10 +620,16 @@
     <ClInclude Include="Source\Engine\Core\ConsoleHelper.h" />
     <ClInclude Include="Source\Engine\Core\CoreMinimal.h" />
     <ClInclude Include="Source\Engine\Core\CoreTypes.h" />
+    <ClInclude Include="Source\Engine\Core\EnginePCH.h" />
     <ClInclude Include="Source\Engine\Core\CrashDump.h" />
     <ClInclude Include="Source\Engine\Core\Debug.h" />
+    <ClInclude Include="Source\Engine\Core\Delegate\Delegate.h" />
+    <ClInclude Include="Source\Engine\Core\Delegate\DelegateHandle.h" />
+    <ClInclude Include="Source\Engine\Core\Delegate\DelegateMacros.h" />
+    <ClInclude Include="Source\Engine\Core\Delegate\MulticastDelegate.h" />
     <ClInclude Include="Source\Engine\Core\EngineTypes.h" />
     <ClInclude Include="Source\Engine\Core\GameObjectTypes.h" />
+    <ClInclude Include="Source\Engine\Core\FileWatcher.h" />
     <ClInclude Include="Source\Engine\Core\Paths.h" />
     <ClInclude Include="Source\Engine\Core\PlatformTime.h" />
     <ClInclude Include="Source\Engine\Core\PropertyTypes.h" />
@@ -471,7 +648,8 @@
     <ClInclude Include="Source\Engine\Core\Logging\GPUProfiler.h" />
     <ClInclude Include="Source\Engine\Core\Logging\Stats.h" />
     <ClInclude Include="Source\Engine\Core\Logging\Timer.h" />
-    <ClInclude Include="Source\Engine\GameFramework\AActor.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Actor.h" />
+    <ClInclude Include="Source\Engine\GameFramework\DelegateTestActor.h" />
     <ClInclude Include="Source\Engine\GameFramework\Level.h" />
     <ClInclude Include="Source\Engine\GameFramework\PrimitiveActors.h" />
     <ClInclude Include="Source\Engine\GameFramework\World.h" />
@@ -525,11 +703,13 @@
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\BufferVisualizationRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\DecalRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\DepthLessRenderPass.h" />
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\DepthPrepassRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\EditorRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\FXAARenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\FogRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\FontRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\GridRenderPass.h" />
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\HitMapRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\LightCullingPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\OpaqueRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessOutlineRenderPass.h" />
@@ -607,6 +787,34 @@
     <ClInclude Include="ThirdParty\ImGui\imstb_rectpack.h" />
     <ClInclude Include="ThirdParty\ImGui\imstb_textedit.h" />
     <ClInclude Include="ThirdParty\ImGui\imstb_truetype.h" />
+    <ClInclude Include="ThirdParty\Lua\lapi.h" />
+    <ClInclude Include="ThirdParty\Lua\lauxlib.h" />
+    <ClInclude Include="ThirdParty\Lua\lcode.h" />
+    <ClInclude Include="ThirdParty\Lua\lctype.h" />
+    <ClInclude Include="ThirdParty\Lua\ldebug.h" />
+    <ClInclude Include="ThirdParty\Lua\ldo.h" />
+    <ClInclude Include="ThirdParty\Lua\lfunc.h" />
+    <ClInclude Include="ThirdParty\Lua\lgc.h" />
+    <ClInclude Include="ThirdParty\Lua\ljumptab.h" />
+    <ClInclude Include="ThirdParty\Lua\llex.h" />
+    <ClInclude Include="ThirdParty\Lua\llimits.h" />
+    <ClInclude Include="ThirdParty\Lua\lmem.h" />
+    <ClInclude Include="ThirdParty\Lua\lobject.h" />
+    <ClInclude Include="ThirdParty\Lua\lopcodes.h" />
+    <ClInclude Include="ThirdParty\Lua\lopnames.h" />
+    <ClInclude Include="ThirdParty\Lua\lparser.h" />
+    <ClInclude Include="ThirdParty\Lua\lprefix.h" />
+    <ClInclude Include="ThirdParty\Lua\lstate.h" />
+    <ClInclude Include="ThirdParty\Lua\lstring.h" />
+    <ClInclude Include="ThirdParty\Lua\ltable.h" />
+    <ClInclude Include="ThirdParty\Lua\ltm.h" />
+    <ClInclude Include="ThirdParty\Lua\lua.h" />
+    <ClInclude Include="ThirdParty\Lua\lua.hpp" />
+    <ClInclude Include="ThirdParty\Lua\luaconf.h" />
+    <ClInclude Include="ThirdParty\Lua\lualib.h" />
+    <ClInclude Include="ThirdParty\Lua\lundump.h" />
+    <ClInclude Include="ThirdParty\Lua\lvm.h" />
+    <ClInclude Include="ThirdParty\Lua\lzio.h" />
     <ClInclude Include="ThirdParty\SimpleJSON\json.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -621,6 +829,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewer|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shaders\DepthPrepass.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewer|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shaders\HitMap.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewer|x64'">true</ExcludedFromBuild>
@@ -731,6 +944,11 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewer|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shaders\Multipass\LightCullingCS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewer|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shaders\Multipass\LightCulling25DCS.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewer|x64'">true</ExcludedFromBuild>

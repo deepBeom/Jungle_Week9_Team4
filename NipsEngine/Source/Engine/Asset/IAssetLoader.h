@@ -1,7 +1,5 @@
 ﻿#pragma once
-#pragma once
-
-#include "Core/CoreMinimal.h"
+#include "Core/Containers/String.h"
 
 class IAssetLoader
 {

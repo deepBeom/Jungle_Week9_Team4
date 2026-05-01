@@ -1,6 +1,6 @@
 ﻿#include "LightComponent.h"
 #include "Object/ObjectFactory.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 
 DEFINE_CLASS(ULightComponentBase, USceneComponent)
 REGISTER_FACTORY(ULightComponentBase)
@@ -13,6 +13,7 @@ void ULightComponentBase::GetEditableProperties(TArray<FPropertyDescriptor>& Out
     OutProps.push_back({ "Intensity", EPropertyType::Float, &Intensity, 0.0f, 20.0f, 0.1f });
     OutProps.push_back({ "Visible", EPropertyType::Bool, &bVisible });
     OutProps.push_back({ "Cast Shadows", EPropertyType::Bool, &bCastShadows });
+    OutProps.push_back({ "Debug Line", EPropertyType::Bool, &bDebugDraw });
 }
 
 void ULightComponentBase::PostEditProperty(const char* PropertyName)
@@ -28,6 +29,7 @@ void ULightComponentBase::Serialize(FArchive& Ar)
     Ar << "Intensity" << Intensity;
     Ar << "Visible" << bVisible;
     Ar << "CastShadows" << bCastShadows;
+    Ar << "DebugLine" << bDebugDraw;
 }
 
 void ULightComponentBase::BeginPlay()
@@ -83,6 +85,8 @@ void ULightComponentBase::PostDuplicate(UObject* Original)
     LightColor = Orig->LightColor;
     Intensity = Orig->Intensity;
     bVisible = Orig->bVisible;
+    bCastShadows = Orig->bCastShadows;
+    bDebugDraw = Orig->bDebugDraw;
 
     LightHandle = FLightHandle();
 }

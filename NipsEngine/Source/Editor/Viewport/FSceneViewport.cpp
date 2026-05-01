@@ -1,6 +1,4 @@
 ﻿#include "FSceneViewport.h"
-#include "Render/Renderer/RenderTarget/RenderTargetFactory.h"
-#include "Render/Renderer/RenderTarget/DepthStencilFactory.h"
 
 
 void FSceneViewport::Draw()

@@ -1,8 +1,6 @@
 ﻿#include "D3DDevice.h"
 
 #include <d3d11sdklayers.h>
-#include "Render/Renderer/RenderTarget/RenderTargetFactory.h"
-#include "Render/Renderer/RenderTarget/DepthStencilFactory.h"
 
 
 void FD3DDevice::Create(HWND InHWindow)

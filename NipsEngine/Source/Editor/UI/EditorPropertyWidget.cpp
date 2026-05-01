@@ -2,7 +2,6 @@
 
 #include "Editor/EditorEngine.h"
 #include "ImGui/imgui.h"
-#include "GameFramework/PrimitiveActors.h"
 #include "Core/PropertyTypes.h"
 #include "Math/Color.h"
 #include "Core/ResourceManager.h"
@@ -12,7 +11,7 @@
 
 #include "Editor/Utility/EditorComponentFactory.h"
 
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/GizmoComponent.h"
 #include "Component/Light/LightComponent.h"
