@@ -1,4 +1,4 @@
-﻿#include "GameFramework/AActor.h"
+﻿#include "GameFramework/Actor.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/ActorComponent.h"
 #include "Component/Movement/MovementComponent.h"
@@ -316,6 +316,11 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
             Components[i]->EndPlay();
         }
 	}
+}
+
+void AActor::Destroy()
+{
+
 }
 
 

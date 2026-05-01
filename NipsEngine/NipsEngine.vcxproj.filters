@@ -440,7 +440,7 @@
     <ClCompile Include="Source\Engine\Core\Logging\Timer.cpp">
       <Filter>Source\Engine\Core\Logging</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\GameFramework\AActor.cpp">
+    <ClCompile Include="Source\Engine\GameFramework\Actor.cpp">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\Level.cpp">
@@ -871,6 +871,7 @@
     <ClCompile Include="Source\Engine\Component\Script\ScriptComponent.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaScriptEngine.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaBinder.cpp" />
+    <ClCompile Include="Source\Engine\Scripting\LuaScriptSubsystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -1131,7 +1132,7 @@
     <ClInclude Include="Source\Engine\Core\Logging\Timer.h">
       <Filter>Source\Engine\Core\Logging</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\GameFramework\AActor.h">
+    <ClInclude Include="Source\Engine\GameFramework\Actor.h">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\Level.h">
@@ -1635,5 +1636,7 @@
     <ClInclude Include="Source\Engine\Component\Script\ScriptComponent.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptEngine.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaBinder.h" />
+    <ClInclude Include="Source\Engine\Scripting\LuaScriptInstance.h" />
+    <ClInclude Include="Source\Engine\Scripting\LuaScriptSubsystem.h" />
   </ItemGroup>
 </Project>

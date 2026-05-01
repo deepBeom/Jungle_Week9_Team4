@@ -6,7 +6,7 @@
 #include "Component/PrimitiveComponent.h"
 #include "Component/StaticMeshComponent.h"
 #include "Asset/StaticMesh.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "Core/ResourceManager.h"
 #include "Object/ObjectIterator.h"
 #include <filesystem>

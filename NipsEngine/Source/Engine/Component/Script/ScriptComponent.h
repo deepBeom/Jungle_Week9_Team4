@@ -6,15 +6,18 @@ class UScriptComponent : public UActorComponent
 {
 public:
     void BeginPlay() override;
-    void Tick(float DeltaTime);
+    void TickComponent(float DeltaTime) override;
 
-    void HandleOverlap(AActor* OtherActor);
+    void OnOverlap(AActor* OtherActor);
+    void OnHit(AActor* OtherActor);
+
+    void SetScriptPath(const std::string& InPath)
+    {
+        ScriptPath = InPath;
+    }
 
 private:
     std::string ScriptPath;
 
-    sol::environment Env;
-    sol::protected_function LuaOnBeginPlay;
-    sol::protected_function LuaOnTick;
-    sol::protected_function LuaOnOverlap;
+    std::shared_ptr<FLuaScriptInstance> ScriptInstance;
 };

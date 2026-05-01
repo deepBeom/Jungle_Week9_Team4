@@ -2,7 +2,7 @@
 
 #include "Render/LineBatcher.h"
 #include "GameFramework/World.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "Object/ActorIterator.h"
 #include "Component/BillboardComponent.h"
 #include "Component/PrimitiveComponent.h"

@@ -1,6 +1,6 @@
 ﻿#include "EditorComponentFactory.h"
 
-#include "Engine/GameFramework/AActor.h"
+#include "Engine/GameFramework/Actor.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/BillboardComponent.h"
 #include "Component/TextRenderComponent.h"

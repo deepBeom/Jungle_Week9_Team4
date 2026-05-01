@@ -11,7 +11,7 @@
 
 #include "Editor/Utility/EditorComponentFactory.h"
 
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/GizmoComponent.h"
 #include "Component/Light/LightComponent.h"

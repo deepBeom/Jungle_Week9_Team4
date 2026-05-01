@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "Object/Object.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "Level.h"
 #include "Spatial/WorldSpatialIndex.h"
 

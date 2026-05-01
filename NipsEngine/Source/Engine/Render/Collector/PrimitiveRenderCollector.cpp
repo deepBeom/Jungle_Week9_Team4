@@ -11,7 +11,7 @@
 #include "Component/Light/LightComponent.h"
 #include "Core/ResourceManager.h"
 #include "Engine/Asset/StaticMesh.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 #include "Geometry/OBB.h"
 #include "Render/LineBatcher.h"

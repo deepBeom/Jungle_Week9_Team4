@@ -234,8 +234,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Scripting\LuaScriptSubsystem.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaBinder.cpp" />
-    <ClCompile Include="Source\Engine\Scripting\LuaScriptEngine.cpp" />
     <ClCompile Include="Source\Engine\Component\Script\ScriptComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorEngine.cpp" />
     <ClCompile Include="Source\Editor\EditorRenderPipeline.cpp" />
@@ -302,7 +302,7 @@
     <ClCompile Include="Source\Engine\Core\Logging\GPUProfiler.cpp" />
     <ClCompile Include="Source\Engine\Core\Logging\Stats.cpp" />
     <ClCompile Include="Source\Engine\Core\Logging\Timer.cpp" />
-    <ClCompile Include="Source\Engine\GameFramework\AActor.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Actor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Level.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\PrimitiveActors.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\World.cpp" />
@@ -546,8 +546,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Scripting\LuaScriptSubsystem.h" />
+    <ClInclude Include="Source\Engine\Scripting\LuaScriptInstance.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaBinder.h" />
-    <ClInclude Include="Source\Engine\Scripting\LuaScriptEngine.h" />
     <ClInclude Include="Source\Engine\Component\Script\ScriptComponent.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />
     <ClInclude Include="Source\Editor\EditorRenderPipeline.h" />
@@ -635,7 +636,7 @@
     <ClInclude Include="Source\Engine\Core\Logging\GPUProfiler.h" />
     <ClInclude Include="Source\Engine\Core\Logging\Stats.h" />
     <ClInclude Include="Source\Engine\Core\Logging\Timer.h" />
-    <ClInclude Include="Source\Engine\GameFramework\AActor.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Actor.h" />
     <ClInclude Include="Source\Engine\GameFramework\Level.h" />
     <ClInclude Include="Source\Engine\GameFramework\PrimitiveActors.h" />
     <ClInclude Include="Source\Engine\GameFramework\World.h" />
