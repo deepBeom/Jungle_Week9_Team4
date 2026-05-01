@@ -29,6 +29,19 @@ bool FEngineLoop::Init(HINSTANCE hInstance, int nShowCmd)
 
 		lua.set_function("add", [](int a, int b) { return a + b; });
 
+		lua["a"] = 0;
+		lua.script(R"(
+			function Tick()
+				a = 1;
+			end
+		)");
+
+		sol::safe_function name = lua["Tick"];
+		name();
+
+		int a_val = lua["a"];
+		UE_LOG("[Lua] KH = %d", a_val);
+
 		lua.script(R"(
 			result = add(3, 7)
 			greeting = "Hello from Lua!"
