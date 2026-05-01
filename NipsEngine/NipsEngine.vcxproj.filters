@@ -1605,5 +1605,9 @@
     <ClInclude Include="ThirdParty\Lua\lzio.h">
       <Filter>ThirdParty\Lua</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Core\Delegate\Delegate.h" />
+    <ClInclude Include="Source\Engine\Core\Delegate\MulticastDelegate.h" />
+    <ClInclude Include="Source\Engine\Core\Delegate\DelegateHandle.h" />
+    <ClInclude Include="Source\Engine\Core\Delegate\DelegateMacros.h" />
   </ItemGroup>
 </Project>

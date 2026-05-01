@@ -482,6 +482,10 @@
     <ClInclude Include="Source\Engine\Core\CoreTypes.h" />
     <ClInclude Include="Source\Engine\Core\CrashDump.h" />
     <ClInclude Include="Source\Engine\Core\Debug.h" />
+    <ClInclude Include="Source\Engine\Core\Delegate\Delegate.h" />
+    <ClInclude Include="Source\Engine\Core\Delegate\DelegateHandle.h" />
+    <ClInclude Include="Source\Engine\Core\Delegate\DelegateMacros.h" />
+    <ClInclude Include="Source\Engine\Core\Delegate\MulticastDelegate.h" />
     <ClInclude Include="Source\Engine\Core\EngineTypes.h" />
     <ClInclude Include="Source\Engine\Core\FileWatcher.h" />
     <ClInclude Include="Source\Engine\Core\Paths.h" />
