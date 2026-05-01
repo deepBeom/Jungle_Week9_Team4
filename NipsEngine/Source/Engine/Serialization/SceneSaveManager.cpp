@@ -1,27 +1,20 @@
 ﻿#include "SceneSaveManager.h"
 
-#include <iostream>
 #include <fstream>
-#include <chrono>
 #include <functional>
 #include <unordered_map>
 
 #include "SimpleJSON/json.hpp"
 #include "GameFramework/World.h"
-#include "GameFramework/PrimitiveActors.h"
 #include "Component/SceneComponent.h"
 #include "Component/ActorComponent.h"
 #include "Component/Movement/MovementComponent.h"
-#include "Component/TextRenderComponent.h"
 #include "Object/Object.h"
 #include "Object/ActorIterator.h"
 #include "Object/ObjectFactory.h"
 #include "Core/PropertyTypes.h"
 #include "Object/FName.h"
-#include "Math/Matrix.h"
 #include "Math/Vector.h"
-#include "Render/Resource/Material.h"
-#include "Core/ResourceManager.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonWriter.h"
 

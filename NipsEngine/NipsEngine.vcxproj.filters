@@ -868,6 +868,9 @@
     <ClCompile Include="ThirdParty\Lua\lzio.c">
       <Filter>ThirdParty\Lua</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Component\Script\ScriptComponent.cpp" />
+    <ClCompile Include="Source\Engine\Scripting\LuaScriptEngine.cpp" />
+    <ClCompile Include="Source\Engine\Scripting\LuaBinder.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -1629,5 +1632,8 @@
     <ClInclude Include="ThirdParty\Lua\lzio.h">
       <Filter>ThirdParty\Lua</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Component\Script\ScriptComponent.h" />
+    <ClInclude Include="Source\Engine\Scripting\LuaScriptEngine.h" />
+    <ClInclude Include="Source\Engine\Scripting\LuaBinder.h" />
   </ItemGroup>
 </Project>

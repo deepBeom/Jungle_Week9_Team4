@@ -1,17 +1,10 @@
 ﻿#include "Misc/ObjViewer/ObjViewerEngine.h"
 #include "Misc/ObjViewer/ObjViewerRenderPipeline.h"
 
-#include "Component/CameraComponent.h"
-#include "Core/Logging/Stats.h"
 #include "Core/ResourceManager.h"
 #include "Engine/Component/StaticMeshComponent.h"
-#include "Engine/GameFramework/PrimitiveActors.h"
-#include "Engine/GameFramework/World.h"
 #include "Engine/Runtime/WindowsWindow.h"
-#include "Engine/Serialization/SceneSaveManager.h"
 #include "GameFramework/World.h"
-#include "ImGui/imgui.h"
-#include "Viewport/ViewportCamera.h"
 
 #include <shellapi.h>
 

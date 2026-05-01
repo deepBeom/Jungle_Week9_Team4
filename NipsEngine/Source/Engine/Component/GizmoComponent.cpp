@@ -6,7 +6,6 @@
 DEFINE_CLASS(UGizmoComponent, UPrimitiveComponent)
 REGISTER_FACTORY(UGizmoComponent)
 
-#include <cfloat>
 #include <cmath>
 
 UGizmoComponent::UGizmoComponent()

@@ -1,6 +1,5 @@
-#include "DepthLessRenderPass.h"
+﻿#include "DepthLessRenderPass.h"
 #include "Render/Scene/RenderBus.h"
-#include "Render/Resource/RenderResources.h"
 #include "Render/Resource/Material.h"
 
 bool FDepthLessRenderPass::Initialize()

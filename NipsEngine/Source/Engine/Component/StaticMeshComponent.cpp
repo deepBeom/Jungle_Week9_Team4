@@ -1,7 +1,6 @@
 ﻿#include "StaticMeshComponent.h"
 
 #include <algorithm>
-#include <cfloat>
 #include <cstring>
 
 #include "Core/ResourceManager.h"

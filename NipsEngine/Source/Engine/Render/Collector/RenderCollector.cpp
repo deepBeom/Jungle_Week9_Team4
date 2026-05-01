@@ -1,35 +1,18 @@
 ﻿#include "RenderCollector.h"
 
 #include "Render/LineBatcher.h"
-#include "Render/Renderer/RenderFlow/ShadowAtlasManager.h"
 #include "GameFramework/World.h"
 #include "GameFramework/AActor.h"
 #include "Object/ActorIterator.h"
 #include "Component/BillboardComponent.h"
 #include "Component/PrimitiveComponent.h"
-#include "Component/StaticMeshComponent.h"
-#include "Component/GizmoComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/SubUVComponent.h"
-#include "Component/DecalComponent.h"
-#include "Component/HeightFogComponent.h"
-#include "Component/SkyAtmosphereComponent.h"
-#include "Component/Light/AmbientLightComponent.h"
 #include "Component/Light/DirectionalLightComponent.h"
 #include "Component/Light/LightComponent.h"
 #include "Component/Light/PointLightComponent.h"
 #include "Component/Light/SpotLightComponent.h"
-#include "Core/ResourceManager.h"
 #include "Engine/Geometry/Frustum.h"
-#include "Engine/Asset/StaticMesh.h"
-#include "Engine/GameFramework/PrimitiveActors.h"
-#include "Render/Resource/Material.h"
-#include "Math/Utils.h"
-#include "Object/ObjectIterator.h"
-#include "Runtime/Stats/ScopeCycleCounter.h"
-#include <algorithm>
-#include <cctype>
-#include <cmath>
 #include <unordered_set>
 
 namespace

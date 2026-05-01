@@ -1,6 +1,5 @@
 ﻿#include "Editor/UI/EditorSceneWidget.h"
 
-#include "Component/GizmoComponent.h"
 #include "Core/Paths.h"
 #include "Core/ResourceManager.h"
 #include "Editor/EditorEngine.h"

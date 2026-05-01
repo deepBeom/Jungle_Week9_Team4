@@ -1,7 +1,6 @@
 ﻿#include "GameFramework/AActor.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/ActorComponent.h"
-#include "Component/Light/LightComponent.h"
 #include "Component/Movement/MovementComponent.h"
 #include "GameFramework/World.h"
 

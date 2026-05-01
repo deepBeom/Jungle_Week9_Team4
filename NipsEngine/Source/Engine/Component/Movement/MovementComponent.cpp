@@ -1,12 +1,6 @@
 ﻿#include "MovementComponent.h"
 
 #include "Component/SceneComponent.h"
-#include "Object/ObjectFactory.h"
-#include "GameFramework/AActor.h"
-#include "GameFramework/World.h"
-#include "Spatial/WorldSpatialIndex.h"
-#include "Engine/Geometry/Ray.h"
-#include "Math/Utils.h"
 
 DEFINE_CLASS(UMovementComponent, UActorComponent)
 

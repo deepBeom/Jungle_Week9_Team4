@@ -2,14 +2,9 @@
 
 #include "Editor/EditorEngine.h"
 #include "Editor/Viewport/ViewportCamera.h"
-#include "Core/Logging/Timer.h"
 
 #include "ImGui/imgui.h"
 #include "Component/GizmoComponent.h"
-#include "Component/SubUVComponent.h"
-#include "Component/TextRenderComponent.h"
-#include "Component/StaticMeshComponent.h"
-#include "Core/ResourceManager.h"
 
 #include "GameFramework/PrimitiveActors.h"
 

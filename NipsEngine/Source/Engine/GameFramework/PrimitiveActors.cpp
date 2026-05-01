@@ -7,14 +7,11 @@
 #include "Component/Light/DirectionalLightComponent.h"
 #include "Component/Light/PointLightComponent.h"
 #include "Component/Light/SpotLightComponent.h"
-#include "Component/Movement/RotatingMovementComponent.h"
 #include "Component/SkyAtmosphereComponent.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
-#include "Core/ResourceManager.h"
 
-#include <format>
 
 DEFINE_CLASS(ASceneActor, AActor)
 REGISTER_FACTORY(ASceneActor)

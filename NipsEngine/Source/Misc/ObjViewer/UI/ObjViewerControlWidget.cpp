@@ -3,7 +3,6 @@
 #include "Misc/ObjViewer/Viewport/ObjViewerViewportClient.h"
 #include "Misc/ObjViewer/Settings/ObjViewerSettings.h"
 #include "Viewport/ViewportCamera.h"
-#include "Engine/Geometry/Transform.h"
 #include "ImGui/imgui.h"
 
 void FObjViewerControlWidget::Render(float DeltaTime)

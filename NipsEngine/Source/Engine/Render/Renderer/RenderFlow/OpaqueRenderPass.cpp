@@ -1,5 +1,4 @@
 ﻿#include "OpaqueRenderPass.h"
-#include "LightCullingPass.h"
 #include "Render/Device/D3DDevice.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/RenderResources.h"

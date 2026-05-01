@@ -10,12 +10,9 @@
 #include "Component/StaticMeshComponent.h"
 
 #include "Serialization/SceneSaveManager.h"
-#include "Math/Rotator.h"
 
 #include "ImGui/imgui.h"
-#include <windows.h>
 #include <commdlg.h>
-#include <filesystem>
 
 void FObjViewerMenuBarWidget::Render(float DeltaTime)
 {

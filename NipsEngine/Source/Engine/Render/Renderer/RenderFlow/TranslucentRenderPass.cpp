@@ -1,6 +1,5 @@
-#include "TranslucentRenderPass.h"
+﻿#include "TranslucentRenderPass.h"
 #include "Render/Scene/RenderBus.h"
-#include "Render/Resource/RenderResources.h"
 #include "Render/Resource/Material.h"
 
 namespace

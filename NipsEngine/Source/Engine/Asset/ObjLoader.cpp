@@ -4,10 +4,8 @@
 #include "Math/Utils.h"
 #include "UI/EditorConsoleWidget.h"
 #include "Core/PlatformTime.h"
-#include "Core/ResourceManager.h"
 
 #include <algorithm>
-#include <cfloat>
 
 namespace
 {

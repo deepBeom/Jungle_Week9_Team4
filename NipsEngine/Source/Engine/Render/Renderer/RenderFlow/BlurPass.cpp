@@ -1,9 +1,7 @@
 ﻿#include "BlurPass.h"
 
 #include "Core/Paths.h"
-#include "Core/ResourceManager.h"
 #include "UI/EditorConsoleWidget.h"
-#include "ShadowPass.h"
 #include "ShadowAtlasManager.h"
 
 bool FBlurPass::Initialize()

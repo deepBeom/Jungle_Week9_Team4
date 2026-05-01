@@ -2,7 +2,6 @@
 
 #include "Editor/EditorEngine.h"
 #include "ImGui/imgui.h"
-#include "GameFramework/PrimitiveActors.h"
 #include "Core/PropertyTypes.h"
 #include "Math/Color.h"
 #include "Core/ResourceManager.h"

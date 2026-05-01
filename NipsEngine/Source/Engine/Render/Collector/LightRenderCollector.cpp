@@ -1,6 +1,5 @@
 ﻿#include "LightRenderCollector.h"
 
-#include "Component/Light/AmbientLightComponent.h"
 #include "Component/Light/DirectionalLightComponent.h"
 #include "Component/Light/PointLightComponent.h"
 #include "Component/Light/SpotLightComponent.h"

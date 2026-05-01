@@ -10,7 +10,6 @@
 #include "Math/Utils.h"
 
 #include <cmath>
-#include <windows.h>
 
 void FEditorWorldController::SetCamera(FViewportCamera* InCamera)
 {

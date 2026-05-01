@@ -9,6 +9,9 @@
 class AActor;
 class UPrimitiveComponent;
 class UWorld;
+struct FRay;
+struct FFrustum;
+struct FOBB;
 
 /**
  * @brief World-level owner for primitive-to-index mappings, AABB snapshots, and a BVH.

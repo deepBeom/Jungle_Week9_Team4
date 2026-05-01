@@ -18,7 +18,6 @@
 #include "Render/Resource/Material.h"
 #include "Render/Resource/MeshBufferManager.h"
 #include "Runtime/Stats/ScopeCycleCounter.h"
-#include <algorithm>
 #include <cmath>
 
 namespace

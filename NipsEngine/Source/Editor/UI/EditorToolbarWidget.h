@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Editor/UI/EditorWidget.h"
+#include "Core/Containers/String.h"
 
 class FEditorViewportOverlayWidget;
 class FEditorSceneWidget;

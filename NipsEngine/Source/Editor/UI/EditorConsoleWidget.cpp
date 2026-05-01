@@ -5,7 +5,6 @@
 #include "Editor/EditorEngine.h"
 #include "Editor/Settings/EditorSettings.h"
 #include "Editor/Viewport/ViewportLayout.h"
-#include "Engine/Object/FName.h"
 
 // 콘솔 초기화 시점에 입력될 명령어를 등록한다.
 FEditorConsoleWidget::FEditorConsoleWidget() 

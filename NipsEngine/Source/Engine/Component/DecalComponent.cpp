@@ -3,7 +3,6 @@
 #include "GameFramework/AActor.h"
 #include "GameFramework/World.h"
 #include "Core/ResourceManager.h"
-#include "Editor/UI/EditorConsoleWidget.h"
 #include "Object/ObjectFactory.h"
 
 DEFINE_CLASS(UDecalComponent, UPrimitiveComponent)

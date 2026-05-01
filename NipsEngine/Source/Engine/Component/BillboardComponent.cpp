@@ -1,9 +1,8 @@
-#include "BillboardComponent.h"
+﻿#include "BillboardComponent.h"
 #include <cmath>
 #include <cstring>
 #include "GameFramework/World.h"
 #include "Editor/Viewport/ViewportCamera.h"
-#include "Engine/Render/Resource/Texture.h"
 #include "Core/ResourceManager.h"
 
 DEFINE_CLASS(UBillboardComponent, UPrimitiveComponent)
@@ -131,7 +130,7 @@ void UBillboardComponent::UpdateWorldAABB() const
     }
     else
     {
-        // 카메라를 찾을 수 없는 로드 초기 시점 등에서는 기본 축을 사용합니다.
+        // 移대찓?쇰? 李얠쓣 ???녿뒗 濡쒕뱶 珥덇린 ?쒖젏 ?깆뿉?쒕뒗 湲곕낯 異뺤쓣 ?ъ슜?⑸땲??
         CachedWorldMatrix = MakeBillboardWorldMatrix(GetWorldLocation(),
             GetWorldScale(),
             FVector(1.0f, 0.0f, 0.0f),

@@ -1,7 +1,6 @@
 ﻿#include "Core/Logging/GPUProfiler.h"
 
 #include <algorithm>
-#include <cfloat>
 #include <d3d11.h>
 
 void FGPUProfiler::Initialize(ID3D11Device* InDevice, ID3D11DeviceContext* InContext)

@@ -4,9 +4,7 @@
 #include <DbgHelp.h>
 #include <filesystem>
 #include <fstream>
-#include <iomanip>
 #include <ctime>
-#include <cstdio>
 
 #pragma comment(lib, "DbgHelp.lib")
 

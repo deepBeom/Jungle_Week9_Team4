@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Editor/UI/EditorWidget.h"
+#include "Core/CoreTypes.h"
 
 struct ImVec2;
 struct FEditorViewportState;

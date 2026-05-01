@@ -1,6 +1,5 @@
 ﻿#include "StaticMesh.h"
 
-#include "UI/EditorConsoleWidget.h"
 
 DEFINE_CLASS(UStaticMesh, UObject)
 

@@ -3,6 +3,9 @@
 #include "Core/EngineTypes.h"
 #include "Core/Containers/String.h"
 #include "Core/Containers/Array.h"
+#include "Math/Vector2.h"
+#include "Math/Vector4.h"
+#include "Math/Matrix.h"
 #include "Object/FName.h"
 
 struct FArchive

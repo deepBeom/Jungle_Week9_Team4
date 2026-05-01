@@ -1,16 +1,14 @@
 ﻿#include "Misc/ObjViewer/Viewport/ObjViewerViewportClient.h"
 
 #include "Misc/ObjViewer/Settings/ObjViewerSettings.h"
-#include "Editor/UI/EditorConsoleWidget.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Runtime/WindowsWindow.h"
 
-#include "Component/GizmoComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Editor/Selection/SelectionManager.h"
 #include "GameFramework/World.h"
-#include "Object/Object.h"
 #include "Viewport/ViewportCamera.h"
+#include "ImGui/imgui.h"
 
 namespace
 {
