@@ -130,6 +130,8 @@ void FEditorViewportOverlayWidget::Render(float DeltaTime)
 // 뷰포트 설정(표시 플래그, 그리드, 카메라 감도, BVH 관리 정책 등)을 조작하는 창을 렌더링합니다.
 void FEditorViewportOverlayWidget::RenderViewportSettings(float DeltaTime)
 {
+	(void)DeltaTime;
+
 	FEditorSettings& Settings = FEditorSettings::Get();
 
 	if (!ImGui::Begin("Viewport Settings"))
@@ -138,82 +140,114 @@ void FEditorViewportOverlayWidget::RenderViewportSettings(float DeltaTime)
 		return;
 	}
 
-	// 위젯 너비를 현재 창 콘텐츠 영역의 50%로 설정하는 람다 또는 변수
 	float ItemWidth = ImGui::GetContentRegionAvail().x * 0.5f;
-
-	// Show Flags
-	ImGui::Text("Show");
-	ImGui::Checkbox("Primitives", &Settings.ShowFlags.bPrimitives);
-	ImGui::Checkbox("BillboardText", &Settings.ShowFlags.bBillboardText);
-	ImGui::Checkbox("Axis", &Settings.ShowFlags.bAxis);
-	ImGui::Checkbox("Grid", &Settings.ShowFlags.bGrid);
-	ImGui::Checkbox("Gizmo", &Settings.ShowFlags.bGizmo);
-	ImGui::Checkbox("Bounding Volume", &Settings.ShowFlags.bBoundingVolume);
-	if (Settings.ShowFlags.bBoundingVolume)
+	auto SetControlWidth = [ItemWidth]()
 	{
-		ImGui::Indent();
-		ImGui::Checkbox("BVH Bounding Volume", &Settings.ShowFlags.bBVHBoundingVolume);
-		ImGui::Unindent();
+		ImGui::SetNextItemWidth(ItemWidth);
+	};
+	auto BeginSettingsSection = [](const char* Label, bool bDefaultOpen)
+	{
+		ImGui::SetNextItemOpen(bDefaultOpen, ImGuiCond_FirstUseEver);
+		return ImGui::CollapsingHeader(Label);
+	};
+
+	if (BeginSettingsSection("Show Flags", true))
+	{
+		ImGui::Checkbox("Primitives", &Settings.ShowFlags.bPrimitives);
+		ImGui::Checkbox("BillboardText", &Settings.ShowFlags.bBillboardText);
+		ImGui::Checkbox("Axis", &Settings.ShowFlags.bAxis);
+		ImGui::Checkbox("Grid", &Settings.ShowFlags.bGrid);
+		ImGui::Checkbox("Gizmo", &Settings.ShowFlags.bGizmo);
+		ImGui::Checkbox("Bounding Volume", &Settings.ShowFlags.bBoundingVolume);
+		if (Settings.ShowFlags.bBoundingVolume)
+		{
+			ImGui::Indent();
+			ImGui::Checkbox("BVH Bounding Volume", &Settings.ShowFlags.bBVHBoundingVolume);
+			ImGui::Unindent();
+		}
+		ImGui::Checkbox("Enable LOD", &Settings.ShowFlags.bEnableLOD);
+		ImGui::Checkbox("Decals", &Settings.ShowFlags.bDecals);
+		ImGui::Checkbox("Fog", &Settings.ShowFlags.bFog);
 	}
-	ImGui::Checkbox("Enable LOD", &Settings.ShowFlags.bEnableLOD);
-	ImGui::Checkbox("Decals", &Settings.ShowFlags.bDecals);
-	ImGui::Checkbox("Fog", &Settings.ShowFlags.bFog);
+
+	ImGui::TextUnformatted("Shadow Settings");
 	ImGui::Checkbox("Shadow", &Settings.ShowFlags.bShadow);
 
-	ImGui::Separator();
-
-	// Grid Settings
-	ImGui::Text("Grid");
-	ImGui::SetNextItemWidth(ItemWidth);
-	ImGui::SliderFloat("Spacing", &Settings.GridSpacing, 0.1f, 10.0f, "%.1f");
-	
-	ImGui::SetNextItemWidth(ItemWidth);
-	ImGui::SliderInt("Half Line Count", &Settings.GridHalfLineCount, 10, 500);
-
-	ImGui::Separator();
-	ImGui::Text("Post Process");
-	ImGui::Checkbox("Enable FXAA", &Settings.bEnableFXAA);
-
-	ImGui::Separator();
-
-	// Camera Sensitivity
-	ImGui::Text("Camera");
-
-	ImGui::SetNextItemWidth(ItemWidth);
-	ImGui::SliderFloat("Move Sensitivity", &Settings.CameraMoveSensitivity, 0.05f, 5.0f, "%.1f");
-	
-	ImGui::SetNextItemWidth(ItemWidth);
-	ImGui::SliderFloat("Rotate Sensitivity", &Settings.CameraRotateSensitivity, 0.05f, 5.0f, "%.1f");
-
-	if (EditorEngine)
+	if (BeginSettingsSection("Grid / Axis Settings", false))
 	{
-		FEditorViewportLayout& Layout = EditorEngine->GetViewportLayout();
-		const int32 FocusedIdx = Layout.GetLastFocusedViewportIndex();
-		FEditorViewportClient* FocusedClient = Layout.GetViewportClient(FocusedIdx);
+		SetControlWidth();
+		ImGui::SliderFloat("Spacing", &Settings.GridSpacing, 0.1f, 10.0f, "%.1f");
 
-		ImGui::SetNextItemWidth(ItemWidth);
-		ImGui::SliderFloat("Zoom Speed", &Settings.CameraZoomSpeed, 0.1f, 100.0f, "%.1f");
+		SetControlWidth();
+		ImGui::SliderInt("Half Line Count", &Settings.GridHalfLineCount, 10, 500);
+
+		SetControlWidth();
+		ImGui::SliderFloat("Line Thickness", &Settings.GridRenderSettings.LineThickness, 0.0f, 4.0f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Major Line Thickness", &Settings.GridRenderSettings.MajorLineThickness, 0.0f, 6.0f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderInt("Major Line Interval", &Settings.GridRenderSettings.MajorLineInterval, 1, 50);
+
+		SetControlWidth();
+		ImGui::SliderFloat("Minor Intensity", &Settings.GridRenderSettings.MinorIntensity, 0.0f, 1.5f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Major Intensity", &Settings.GridRenderSettings.MajorIntensity, 0.0f, 1.5f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Axis Thickness", &Settings.GridRenderSettings.AxisThickness, 0.0f, 8.0f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Axis Intensity", &Settings.GridRenderSettings.AxisIntensity, 0.0f, 1.5f, "%.2f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Axis Length Scale", &Settings.GridRenderSettings.AxisLengthScale, 0.25f, 4.0f, "%.2f");
 	}
 
-	if (Settings.ShowFlags.bBoundingVolume && Settings.ShowFlags.bBVHBoundingVolume)
+	if (BeginSettingsSection("Post Process", false))
 	{
-		ImGui::Separator();
-		ImGui::Text("BVH Maintenance");
+		ImGui::Checkbox("Enable FXAA", &Settings.bEnableFXAA);
+	}
+
+	if (BeginSettingsSection("Camera Settings", true))
+	{
+		SetControlWidth();
+		ImGui::SliderFloat("Move Sensitivity", &Settings.CameraMoveSensitivity, 0.05f, 5.0f, "%.1f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Rotate Sensitivity", &Settings.CameraRotateSensitivity, 0.05f, 5.0f, "%.1f");
+
+		if (EditorEngine)
+		{
+			FEditorViewportLayout& Layout = EditorEngine->GetViewportLayout();
+			const int32 FocusedIdx = Layout.GetLastFocusedViewportIndex();
+			FEditorViewportClient* FocusedClient = Layout.GetViewportClient(FocusedIdx);
+			(void)FocusedClient;
+
+			SetControlWidth();
+			ImGui::SliderFloat("Zoom Speed", &Settings.CameraZoomSpeed, 0.1f, 100.0f, "%.1f");
+		}
+	}
+
+	if (Settings.ShowFlags.bBoundingVolume && Settings.ShowFlags.bBVHBoundingVolume && BeginSettingsSection("BVH Settings", false))
+	{
 		bool bPolicyChanged = false;
 
-		ImGui::SetNextItemWidth(ItemWidth);
+		SetControlWidth();
 		bPolicyChanged |= ImGui::SliderInt("Batch Refit Min Dirty", &Settings.SpatialBatchRefitMinDirtyCount, 1, 256);
 
-		ImGui::SetNextItemWidth(ItemWidth);
+		SetControlWidth();
 		bPolicyChanged |= ImGui::SliderInt("Batch Refit Dirty %", &Settings.SpatialBatchRefitDirtyPercentThreshold, 1, 100);
 
-		ImGui::SetNextItemWidth(ItemWidth);
+		SetControlWidth();
 		bPolicyChanged |= ImGui::SliderInt("Rotation Structural Changes", &Settings.SpatialRotationStructuralChangeThreshold, 1, 256);
 
-		ImGui::SetNextItemWidth(ItemWidth);
+		SetControlWidth();
 		bPolicyChanged |= ImGui::SliderInt("Rotation Dirty Count", &Settings.SpatialRotationDirtyCountThreshold, 1, 512);
 
-		ImGui::SetNextItemWidth(ItemWidth);
+		SetControlWidth();
 		bPolicyChanged |= ImGui::SliderInt("Rotation Dirty %", &Settings.SpatialRotationDirtyPercentThreshold, 1, 100);
 
 		if (bPolicyChanged && EditorEngine)

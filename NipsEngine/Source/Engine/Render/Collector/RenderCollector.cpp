@@ -173,9 +173,14 @@ void FRenderCollector::CollectSelection(const TArray<AActor*>& SelectedActors, c
 	OverlayRenderCollector.CollectSelection(SelectedActors, ShowFlags, ViewMode, RenderBus, LineBatcher);
 }
 
-void FRenderCollector::CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus, bool bOrthographic)
+void FRenderCollector::CollectGrid(
+	float GridSpacing,
+	int32 GridHalfLineCount,
+	FRenderBus& RenderBus,
+	bool bOrthographic,
+	const FGridRenderSettings& GridRenderSettings)
 {
-	OverlayRenderCollector.CollectGrid(GridSpacing, GridHalfLineCount, RenderBus, bOrthographic);
+	OverlayRenderCollector.CollectGrid(GridSpacing, GridHalfLineCount, RenderBus, bOrthographic, GridRenderSettings);
 }
 
 void FRenderCollector::CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus, bool bIsActiveOperation)
