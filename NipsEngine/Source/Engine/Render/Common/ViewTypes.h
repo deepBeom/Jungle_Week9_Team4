@@ -44,6 +44,7 @@ struct FShowFlags
 	bool bDecals = true;
 	bool bFog = true;
 	bool bShadow = true;
+	bool bShowLightHitmapOverlay = false;
 };
 
 struct FGridRenderSettings

@@ -11,6 +11,13 @@
 
 namespace SceneLightBinding
 {
+	constexpr uint32 PointLightBufferRegister = 8;
+	constexpr uint32 SpotLightBufferRegister = 9;
+	constexpr uint32 TilePointLightGridRegister = 19;
+	constexpr uint32 TilePointLightIndexRegister = 20;
+	constexpr uint32 TileSpotLightGridRegister = 21;
+	constexpr uint32 TileSpotLightIndexRegister = 22;
+
 	constexpr uint32 SpotShadowInfoRegister = 6;
 	constexpr uint32 DirectionalShadowInfoRegister = 7;
     constexpr uint32 PointShadowInfoRegister = 8;	
@@ -29,9 +36,11 @@ namespace SceneLightBinding
 		uint32 TileCountX = 0;
 		uint32 TileCountY = 0;
 		uint32 TileSize = 0;
-		uint32 MaxLightsPerTile = 0;
-		uint32 LightCount = 0;
-		float Padding[3] = { 0.0f, 0.0f, 0.0f };
+		uint32 MaxPointLightsPerTile = 0;
+		uint32 MaxSpotLightsPerTile = 0;
+		uint32 PointLightCount = 0;
+		uint32 SpotLightCount = 0;
+		float Padding = 0.0f;
 	};
 
 	struct FSpotShadowInfoConstants
@@ -486,8 +495,10 @@ namespace SceneLightBinding
 		Constants.TileCountX = Outputs.TileCountX;
 		Constants.TileCountY = Outputs.TileCountY;
 		Constants.TileSize = Outputs.TileSize;
-		Constants.MaxLightsPerTile = Outputs.MaxLightsPerTile;
-		Constants.LightCount = Outputs.LightCount;
+		Constants.MaxPointLightsPerTile = Outputs.MaxPointLightsPerTile;
+		Constants.MaxSpotLightsPerTile = Outputs.MaxSpotLightsPerTile;
+		Constants.PointLightCount = Outputs.PointLightCount;
+		Constants.SpotLightCount = Outputs.SpotLightCount;
 
 		D3D11_MAPPED_SUBRESOURCE Mapped = {};
 		if (SUCCEEDED(Context->DeviceContext->Map(VisibleLightConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped)))
@@ -496,18 +507,26 @@ namespace SceneLightBinding
 			Context->DeviceContext->Unmap(VisibleLightConstantBuffer.Get(), 0);
 		}
 
-		ID3D11ShaderResourceView* SRVs[3] =
+		ID3D11ShaderResourceView* LocalLightSRVs[2] =
 		{
-			Outputs.LightBufferSRV,
-			Outputs.TileLightCountSRV,
-			Outputs.TileLightIndexSRV
+			Outputs.PointLightBufferSRV,
+			Outputs.SpotLightBufferSRV
 		};
-		
-		Context->DeviceContext->PSSetShaderResources(8, 3, SRVs);
+		ID3D11ShaderResourceView* TileLightSRVs[4] =
+		{
+			Outputs.TilePointLightGridSRV,
+			Outputs.TilePointLightIndexSRV,
+			Outputs.TileSpotLightGridSRV,
+			Outputs.TileSpotLightIndexSRV
+		};
+
+		Context->DeviceContext->PSSetShaderResources(PointLightBufferRegister, 2, LocalLightSRVs);
+		Context->DeviceContext->PSSetShaderResources(TilePointLightGridRegister, 4, TileLightSRVs);
 		ID3D11Buffer* CBuffer = VisibleLightConstantBuffer.Get();
 		Context->DeviceContext->PSSetConstantBuffers(4, 1, &CBuffer);
 
-		Context->DeviceContext->VSSetShaderResources(8, 3, SRVs);
+		Context->DeviceContext->VSSetShaderResources(PointLightBufferRegister, 2, LocalLightSRVs);
+		Context->DeviceContext->VSSetShaderResources(TilePointLightGridRegister, 4, TileLightSRVs);
         Context->DeviceContext->VSSetConstantBuffers(4, 1, &CBuffer);
 	}
 
@@ -537,9 +556,15 @@ namespace SceneLightBinding
 			return;
 		}
 
-		ID3D11ShaderResourceView* NullSRVs[6] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
-		DeviceContext->PSSetShaderResources(8, 6, NullSRVs);
-		DeviceContext->VSSetShaderResources(8, 6, NullSRVs);
+		ID3D11ShaderResourceView* NullLocalLightSRVs[2] = { nullptr, nullptr };
+		ID3D11ShaderResourceView* NullTileLightSRVs[4] = { nullptr, nullptr, nullptr, nullptr };
+		ID3D11ShaderResourceView* NullShadowSRVs[8] = { nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr };
+		DeviceContext->PSSetShaderResources(PointLightBufferRegister, 2, NullLocalLightSRVs);
+		DeviceContext->VSSetShaderResources(PointLightBufferRegister, 2, NullLocalLightSRVs);
+		DeviceContext->PSSetShaderResources(TilePointLightGridRegister, 4, NullTileLightSRVs);
+		DeviceContext->VSSetShaderResources(TilePointLightGridRegister, 4, NullTileLightSRVs);
+		DeviceContext->PSSetShaderResources(SpotShadowConstantsRegister, 8, NullShadowSRVs);
+		DeviceContext->VSSetShaderResources(SpotShadowConstantsRegister, 8, NullShadowSRVs);
 
 		ID3D11Buffer* NullCB = nullptr;
 		DeviceContext->PSSetConstantBuffers(4, 1, &NullCB);

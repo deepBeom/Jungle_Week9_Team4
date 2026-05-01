@@ -34,6 +34,61 @@
 
 namespace
 {
+	void AddDebugLightShape(const ULightComponent* LightComponent, FLineBatcher* LineBatcher)
+	{
+		if (LightComponent == nullptr || LineBatcher == nullptr || !LightComponent->IsDebugDrawEnabled() || !LightComponent->IsVisible())
+		{
+			return;
+		}
+
+		switch (LightComponent->GetLightType())
+		{
+		case ELightType::LightType_Directional:
+		{
+			const UDirectionalLightComponent* Light = Cast<UDirectionalLightComponent>(LightComponent);
+			if (Light != nullptr)
+			{
+				LineBatcher->AddDirectionalLight(
+					Light->GetWorldLocation(),
+					Light->GetForwardVector(),
+					Light->GetRightVector(),
+					Light->GetLightColor().ToVector4());
+			}
+			break;
+		}
+		case ELightType::LightType_Point:
+		{
+			const UPointLightComponent* Light = Cast<UPointLightComponent>(LightComponent);
+			if (Light != nullptr)
+			{
+				LineBatcher->AddPointLight(
+					Light->GetWorldLocation(),
+					Light->GetAttenuationRadius(),
+					Light->GetRightVector(),
+					Light->GetUpVector());
+			}
+			break;
+		}
+		case ELightType::LightType_Spot:
+		{
+			const USpotLightComponent* Light = Cast<USpotLightComponent>(LightComponent);
+			if (Light != nullptr)
+			{
+				LineBatcher->AddSpotLight(
+					Light->GetWorldLocation(),
+					Light->GetUpVector() * -1.0f,
+					Light->GetRightVector() * -1.0f,
+					Light->GetAttenuationRadius(),
+					Light->GetInnerConeAngle(),
+					Light->GetOuterConeAngle());
+			}
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
 	// ─────────────────── Billboard, SubUV ───────────────────
 	FMatrix MakeViewSubUVSelectionMatrix(const USubUVComponent* SubUVComp, const FRenderBus& RenderBus);
 
@@ -85,7 +140,7 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 	if (!World)
 		return;
 
-	CollectLight(World, RenderBus, ViewFrustum);
+	CollectLight(World, ShowFlags, RenderBus, ViewFrustum);
 	if (ShowFlags.bShadow)
 	{
 		CollectShadowCasters(World, RenderBus);
@@ -158,9 +213,26 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 // ─────────────────── Sub Collects ────────────────────────────────────────────────────────────
 
 // Frustum Culling을 통해 Light Collect와 Shadow Collect를 동시에 수행해줍니다.
-void FRenderCollector::CollectLight(UWorld* World, FRenderBus& RenderBus, const FFrustum* ViewFrustum)
+void FRenderCollector::CollectLight(UWorld* World, const FShowFlags& ShowFlags, FRenderBus& RenderBus, const FFrustum* ViewFrustum)
 {
+	(void)ShowFlags;
 	LightRenderCollector.CollectLight(World, RenderBus, LastStats, ViewFrustum);
+
+	if (World == nullptr || LineBatcher == nullptr)
+	{
+		return;
+	}
+
+	for (const FLightSlot& Slot : World->GetWorldLightSlots())
+	{
+		const ULightComponent* LightComponent = Cast<ULightComponent>(Slot.LightData);
+		if (!Slot.bAlive || LightComponent == nullptr)
+		{
+			continue;
+		}
+
+		AddDebugLightShape(LightComponent, LineBatcher);
+	}
 }
 
 void FRenderCollector::CollectShadowCasters(UWorld* World, FRenderBus& RenderBus)

@@ -58,6 +58,7 @@ struct FFrameConstants
 	FMatrix View;          
 	FMatrix Projection;    
 	FMatrix InverseViewProjection;
+	FMatrix InverseProjection;
 	FVector CameraPosition;
 	float Padding0;
 	float bIsWireframe = 0.0f;

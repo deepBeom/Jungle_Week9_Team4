@@ -309,46 +309,6 @@ bool FOverlayRenderCollector::CollectFromSelectedActor(
 		CollectBVHInternalNodeAABBs(primitiveComponent, ShowFlags, RenderBus, LineBatcher, SeenBVHNodeIndices);
 	}
 
-	for (UActorComponent* Component : Actor->GetComponents())
-	{
-		const ULightComponent* LightComponent = Cast<ULightComponent>(Component);
-		if (LightComponent == nullptr || !LightComponent->IsVisible() || LineBatcher == nullptr)
-		{
-			continue;
-		}
-
-		switch (LightComponent->GetLightType())
-		{
-		case ELightType::LightType_Directional:
-		{
-			const UDirectionalLightComponent* Light = Cast<UDirectionalLightComponent>(LightComponent);
-			LineBatcher->AddDirectionalLight(Light->GetWorldLocation(), Light->GetForwardVector(), Light->GetRightVector(), Light->GetLightColor().ToVector4());
-			break;
-		}
-		case ELightType::LightType_AmbientLight:
-			break;
-		case ELightType::LightType_Point:
-		{
-			const UPointLightComponent* Light = Cast<UPointLightComponent>(LightComponent);
-			LineBatcher->AddPointLight(Light->GetWorldLocation(), Light->GetAttenuationRadius(), Light->GetRightVector(), Light->GetUpVector());
-			break;
-		}
-		case ELightType::LightType_Spot:
-		{
-			const USpotLightComponent* Light = Cast<USpotLightComponent>(LightComponent);
-			LineBatcher->AddSpotLight(
-				Light->GetWorldLocation(),
-				Light->GetUpVector() * -1.0f,
-				Light->GetRightVector() * -1.0f,
-				Light->GetAttenuationRadius(),
-				Light->GetInnerConeAngle(),
-				Light->GetOuterConeAngle()
-			);
-			break;
-		}
-		}
-	}
-
 	return bHasSelectionMask;
 }
 

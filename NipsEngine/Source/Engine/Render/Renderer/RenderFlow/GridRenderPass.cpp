@@ -219,9 +219,13 @@ bool FGridRenderPass::Release()
 
 bool FGridRenderPass::Begin(const FRenderPassContext* Context)
 {
-	ID3D11RenderTargetView* RTV = PrevPassRTV;
-	ID3D11DepthStencilView* DSV = Context->RenderTargets->DepthStencilView;
-	Context->DeviceContext->OMSetRenderTargets(1, &RTV, DSV);
+    ID3D11RenderTargetView* RTVs[3] = {
+        PrevPassRTV ? PrevPassRTV : Context->RenderTargets->SceneColorRTV,
+        Context->RenderTargets->SceneNormalRTV,
+        Context->RenderTargets->SceneWorldPosRTV
+    };
+    ID3D11DepthStencilView* DSV = Context->RenderTargets->DepthStencilView;
+    Context->DeviceContext->OMSetRenderTargets(ARRAYSIZE(RTVs), RTVs, DSV);
 
 	ID3D11DepthStencilState* DepthStencilState =
 		FResourceManager::Get().GetOrCreateDepthStencilState(EDepthStencilType::DepthReadOnly);

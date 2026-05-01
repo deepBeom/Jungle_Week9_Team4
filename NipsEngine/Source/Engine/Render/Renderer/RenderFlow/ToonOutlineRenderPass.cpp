@@ -31,7 +31,11 @@ bool FToonOutlineRenderPass::Begin(const FRenderPassContext* Context)
         return false;
 
     const FRenderTargetSet* RenderTargets = Context->RenderTargets;
-    ID3D11RenderTargetView* RTVs[1] = { RenderTargets->SceneColorRTV };
+    ID3D11RenderTargetView* RTVs[3] = {
+        RenderTargets->SceneColorRTV,
+        RenderTargets->SceneNormalRTV,
+        RenderTargets->SceneWorldPosRTV
+    };
     ID3D11DepthStencilView* DSV = RenderTargets->DepthStencilView;
     Context->DeviceContext->OMSetRenderTargets(ARRAYSIZE(RTVs), RTVs, DSV);
     OutSRV = RenderTargets->SceneColorSRV;

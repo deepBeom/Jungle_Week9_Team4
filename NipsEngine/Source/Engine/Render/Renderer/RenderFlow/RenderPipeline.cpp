@@ -15,9 +15,11 @@
 #include "GridRenderPass.h"
 #include "EditorRenderPass.h"
 #include "DepthLessRenderPass.h"
+#include "DepthPrepassRenderPass.h"
 #include "PostProcessOutlineRenderPass.h"
 #include "ShadowPass.h"
 #include "BlurPass.h"
+#include "HitMapRenderPass.h"
 #include "ToonOutlineRenderPass.h"
 #include "UI/EditorConsoleWidget.h"
 
@@ -60,6 +62,9 @@ bool FRenderPipeline::Initialize()
 	LightCullingPass = std::make_shared<FLightCullingPass>();
 	LightCullingPass->Initialize();
 
+	HitMapRenderPass = std::make_shared<FHitMapRenderPass>();
+	HitMapRenderPass->Initialize();
+
 	SkyRenderPass = std::make_shared<FSkyRenderPass>();
 	SkyRenderPass->Initialize();
 
@@ -68,6 +73,9 @@ bool FRenderPipeline::Initialize()
 
 	BlurPass = std::make_shared<FBlurPass>();
 	BlurPass->Initialize();
+
+	DepthPrepassRenderPass = std::make_shared<FDepthPrepassRenderPass>();
+	DepthPrepassRenderPass->Initialize();
 
 	OpaqueRenderPass = std::make_shared<FOpaqueRenderPass>();
 	OpaqueRenderPass->Initialize();
@@ -122,16 +130,18 @@ bool FRenderPipeline::Initialize()
 	 * 각 Render Pass 는 자신의 출력 SRV/RTV 를 다음 패스로 넘긴다.
 	 * 마지막 패스가 남긴 OutSRV/OutRTV 가 RenderTargets.FinalSRV/FinalRTV 가 된다.
 	 */
-	RenderPasses.push_back(LightCullingPass);
-	RenderPasses.push_back(SkyRenderPass);
 	RenderPasses.push_back(ShadowPass);
 	RenderPasses.push_back(BlurPass);
+	RenderPasses.push_back(DepthPrepassRenderPass);
+	RenderPasses.push_back(LightCullingPass);
+	RenderPasses.push_back(SkyRenderPass);
 	RenderPasses.push_back(ToonOutlineRenderPass);
 	RenderPasses.push_back(OpaqueRenderPass);
 
 	RenderPasses.push_back(DecalRenderPass);
 	// SceneColor를 만든 뒤 fog/fxaa 전에 덮어쓸 수 있는 view mode 확장 지점이다.
 	RenderPasses.push_back(BufferVisualizationRenderPass);
+	RenderPasses.push_back(HitMapRenderPass);
 
 	RenderPasses.push_back(FogRenderPass);
 	RenderPasses.push_back(FXAARenderPass); 
@@ -213,6 +223,12 @@ void FRenderPipeline::Release()
 		LightCullingPass.reset();
 	}
 
+	if (HitMapRenderPass)
+	{
+		HitMapRenderPass->Release();
+		HitMapRenderPass.reset();
+	}
+
 	if (SkyRenderPass)
 	{
 		SkyRenderPass->Release();
@@ -229,6 +245,12 @@ void FRenderPipeline::Release()
 	{
 		BlurPass->Release();
 		BlurPass.reset();
+	}
+
+	if (DepthPrepassRenderPass)
+	{
+		DepthPrepassRenderPass->Release();
+		DepthPrepassRenderPass.reset();
 	}
 
 	if (OpaqueRenderPass)

@@ -11,10 +11,12 @@
 #include "Engine/Asset/StaticMesh.h"
 #include "Engine/Asset/StaticMeshTypes.h"
 #include "Engine/Component/GizmoComponent.h"
+#include "Engine/Component/Light/LightComponent.h"
 #include "Engine/Object/FName.h"
 #include "Engine/Render/Renderer/RenderFlow/LightCullingPass.h"
 #include "Engine/Render/Renderer/RenderFlow/ShadowPass.h"
 #include "Engine/Render/Renderer/RenderFlow/ShadowAtlasManager.h"
+#include "Engine/GameFramework/World.h"
 #include "GameFramework/PrimitiveActors.h"
 
 #include "Slate/SSplitterV.h"
@@ -98,6 +100,104 @@ namespace
 		void (*Spawn)(UWorld*, FSelectionManager&, const FVector&);
 	};
 
+	struct FLightDebugListEntry
+	{
+		ULightComponentBase* LightComponent = nullptr;
+		FString OwnerName;
+		uint32 SlotIndex = 0;
+	};
+
+	const char* GetLightTypeLabel(ELightType Type)
+	{
+		switch (Type)
+		{
+		case ELightType::LightType_Directional:
+			return "Directional";
+		case ELightType::LightType_Point:
+			return "Point";
+		case ELightType::LightType_Spot:
+			return "Spot";
+		case ELightType::LightType_AmbientLight:
+			return "Ambient";
+		default:
+			return "Light";
+		}
+	}
+
+	void RenderLightDebugSection(const char* SectionLabel, const char* SectionId, const TArray<FLightDebugListEntry>& Entries)
+	{
+		const FString HeaderLabel = std::string(SectionLabel) + " (" + std::to_string(Entries.size()) + ")##" + SectionId;
+		const bool bOpen = ImGui::TreeNodeEx(HeaderLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+		ImGui::SameLine();
+
+		bool bAnyEnabled = false;
+		bool bAllEnabled = !Entries.empty();
+		for (const FLightDebugListEntry& Entry : Entries)
+		{
+			const bool bEnabled = Entry.LightComponent && Entry.LightComponent->IsDebugDrawEnabled();
+			bAnyEnabled |= bEnabled;
+			bAllEnabled &= bEnabled;
+		}
+
+		bool bToggleAll = bAllEnabled;
+
+		ImGui::PushID(SectionId);
+		if (Entries.empty())
+		{
+			ImGui::BeginDisabled();
+		}
+
+		if (ImGui::Checkbox("All Debug Lines", &bToggleAll))
+		{
+			for (const FLightDebugListEntry& Entry : Entries)
+			{
+				if (Entry.LightComponent)
+				{
+					Entry.LightComponent->SetDebugDrawEnabled(bToggleAll);
+				}
+			}
+		}
+
+		if (bAnyEnabled && !bAllEnabled)
+		{
+			ImGui::SameLine();
+			ImGui::TextDisabled("(mixed)");
+		}
+		if (Entries.empty())
+		{
+			ImGui::EndDisabled();
+		}
+		ImGui::PopID();
+
+		if (bOpen)
+		{
+			if (Entries.empty())
+			{
+				ImGui::TextDisabled("No %s lights in the focused world.", SectionLabel);
+			}
+			else
+			{
+				for (const FLightDebugListEntry& Entry : Entries)
+				{
+					if (Entry.LightComponent == nullptr)
+					{
+						continue;
+					}
+
+					const FString CheckboxLabel = Entry.OwnerName + "##LightDebug_" + std::to_string(Entry.SlotIndex);
+					bool bDebugDraw = Entry.LightComponent->IsDebugDrawEnabled();
+					if (ImGui::Checkbox(CheckboxLabel.c_str(), &bDebugDraw))
+					{
+						Entry.LightComponent->SetDebugDrawEnabled(bDebugDraw);
+					}
+				}
+			}
+
+			ImGui::TreePop();
+		}
+	}
+
 	// 꼭 모든 Actor Types가 저장될 필요는 없습니다. 우클릭으로 생성할 수 있는 액터만 관리합니다.
 	static const FPlacementActorEntry PlacementActorTypes[] = {
 		{ "Scene", SpawnActorAt<ASceneActor> },
@@ -170,8 +270,73 @@ void FEditorViewportOverlayWidget::RenderViewportSettings(float DeltaTime)
 		ImGui::Checkbox("Fog", &Settings.ShowFlags.bFog);
 	}
 
-	ImGui::TextUnformatted("Shadow Settings");
-	ImGui::Checkbox("Shadow", &Settings.ShowFlags.bShadow);
+	if (BeginSettingsSection("Shadow Settings", false))
+	{
+			ImGui::Checkbox("Shadow", &Settings.ShowFlags.bShadow);
+	}
+
+
+	if (BeginSettingsSection("Light Settings", false))
+	{
+		ImGui::Checkbox("Light HitMap Overlay", &Settings.ShowFlags.bShowLightHitmapOverlay);
+
+		UWorld* FocusedWorld = EditorEngine ? EditorEngine->GetFocusedWorld() : nullptr;
+		if (FocusedWorld == nullptr)
+		{
+			ImGui::TextDisabled("No focused world.");
+		}
+		else
+		{
+			const TArray<FLightSlot>& LightSlots = FocusedWorld->GetWorldLightSlots();
+			TArray<FLightDebugListEntry> DirectionalLights;
+			TArray<FLightDebugListEntry> SpotLights;
+			TArray<FLightDebugListEntry> PointLights;
+
+			for (uint32 SlotIndex = 0; SlotIndex < static_cast<uint32>(LightSlots.size()); ++SlotIndex)
+			{
+				const FLightSlot& Slot = LightSlots[SlotIndex];
+				if (!Slot.bAlive || Slot.LightData == nullptr)
+				{
+					continue;
+				}
+
+				ULightComponentBase* LightComponent = Slot.LightData;
+				AActor* Owner = LightComponent->GetOwner();
+				FLightDebugListEntry Entry;
+				Entry.LightComponent = LightComponent;
+				Entry.OwnerName = Owner ? Owner->GetFName().ToString() : "Unowned";
+				Entry.SlotIndex = SlotIndex;
+
+				if (const ULightComponent* TypedLight = Cast<ULightComponent>(LightComponent))
+				{
+					switch (TypedLight->GetLightType())
+					{
+					case ELightType::LightType_Directional:
+						DirectionalLights.push_back(Entry);
+						break;
+					case ELightType::LightType_Spot:
+						SpotLights.push_back(Entry);
+						break;
+					case ELightType::LightType_Point:
+						PointLights.push_back(Entry);
+						break;
+					}
+				}
+			}
+
+			if (DirectionalLights.empty() && SpotLights.empty() && PointLights.empty())
+			{
+				ImGui::TextDisabled("No lights in the focused world.");
+			}
+			else
+			{
+				RenderLightDebugSection("Directional", "DirectionalLights", DirectionalLights);
+				RenderLightDebugSection("Spot", "SpotLights", SpotLights);
+				RenderLightDebugSection("Point", "PointLights", PointLights);
+			}
+		}
+	}
+
 
 	if (BeginSettingsSection("Grid / Axis Settings", false))
 	{
