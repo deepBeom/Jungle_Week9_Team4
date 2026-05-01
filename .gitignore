@@ -464,5 +464,5 @@ NipsEngine/Asset/Mesh/I_*/
 NipsEngine/Asset/Mesh/Bin/**
 NipsEngine/Asset/Scene/**
 
-# 발제용 Scene
+# 발표 Scene
 !NipsEngine/Asset/Scene/Scene_*
