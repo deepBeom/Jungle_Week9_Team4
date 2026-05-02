@@ -501,7 +501,7 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
     TArray<UShapeComponent*> Shapes;
     CollectShapeComponents(World, Shapes);
 
-    std::unordered_set<FCollisionPair, FCollisionPairHash> CurrentOverlaps;
+    TSet<FCollisionPair, FCollisionPairHash> CurrentOverlaps;
 
     for (int32 i = 0; i < static_cast<int32>(Shapes.size()); ++i)
     {

@@ -79,6 +79,6 @@ private:
         HandlerType		Handler;
     };
 
-    std::vector<FEntry> Handlers;
+    TArray<FEntry> Handlers;
     uint64				NextID = { 1 };
 };

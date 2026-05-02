@@ -126,7 +126,7 @@ namespace
 
     void RenderLightDebugSection(const char* SectionLabel, const char* SectionId, const TArray<FLightDebugListEntry>& Entries)
     {
-        const FString HeaderLabel = std::string(SectionLabel) + " (" + std::to_string(Entries.size()) + ")##" + SectionId;
+        const FString HeaderLabel = FString(SectionLabel) + " (" + std::to_string(Entries.size()) + ")##" + SectionId;
         const bool bOpen = ImGui::TreeNodeEx(HeaderLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
 
         ImGui::SameLine();
@@ -685,7 +685,7 @@ void FEditorViewportOverlayWidget::RenderShortcutsWindow()
     ImGui::Separator();
     ImGui::Text("현재 코드상 실제로 동작하는 에디터 단축키만 정리했습니다.");
 
-    auto DrawShortcutTable = [](const char* Header, std::initializer_list<std::pair<const char*, const char*>> Rows)
+    auto DrawShortcutTable = [](const char* Header, std::initializer_list<TPair<const char*, const char*>> Rows)
     {
         if (!ImGui::CollapsingHeader(Header, ImGuiTreeNodeFlags_DefaultOpen))
         {

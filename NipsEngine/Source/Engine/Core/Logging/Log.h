@@ -8,14 +8,16 @@
 namespace NLogging
 {
 using FLogSink = std::function<void(const char* Message)>;
+// Message is valid only during the callback.
+// Sinks must copy Message if they need to keep it after returning.
 
-// Registers a runtime log sink and returns a handle used to unregister it.
+// Registers a sink and returns its handle. Returns 0 on invalid sink.
 uint32 RegisterLogSink(FLogSink Sink);
 
-// Unregisters a previously registered sink. Invalid handles are ignored.
+// Unregisters a sink by handle. Invalid handles are ignored.
 void UnregisterLogSink(uint32 SinkHandle);
 
-// Broadcasts a preformatted log message to all outputs.
+// Broadcasts a preformatted message to default outputs and sinks.
 void LogMessage(const char* Message);
 
 // Variadic helpers used by UE_LOG.

@@ -89,6 +89,6 @@ private:
     void LogCollisionEvent(const char* EventName, const FCollisionEvent& Event) const;
     
 private:
-    std::unordered_set<FCollisionPair, FCollisionPairHash> PreviousOverlaps;
+    TSet<FCollisionPair, FCollisionPairHash> PreviousOverlaps;
     TArray<FCollisionDebugContact> DebugContacts;
 };

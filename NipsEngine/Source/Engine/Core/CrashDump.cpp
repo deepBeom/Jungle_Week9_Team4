@@ -21,7 +21,7 @@ LONG WINAPI WriteCrashDump(EXCEPTION_POINTERS* ExceptionInfo)
         LocalTime.tm_year + 1900, LocalTime.tm_mon + 1, LocalTime.tm_mday,
         LocalTime.tm_hour, LocalTime.tm_min, LocalTime.tm_sec);
 
-    std::wstring DumpPath = FPaths::Combine(FPaths::DumpDir(), FileName);
+    FWString DumpPath = FPaths::Combine(FPaths::DumpDir(), FileName);
 
     HANDLE File = CreateFileW(DumpPath.c_str(), GENERIC_WRITE, 0, nullptr,
         CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);

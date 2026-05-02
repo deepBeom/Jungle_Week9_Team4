@@ -225,7 +225,7 @@ bool UScriptComponent::ReloadScript()
     return true;
 }
 
-void UScriptComponent::SetScriptPath(const std::string& InPath)
+void UScriptComponent::SetScriptPath(const FString& InPath)
 {
     ScriptPath = FPaths::Normalize(InPath);
 }

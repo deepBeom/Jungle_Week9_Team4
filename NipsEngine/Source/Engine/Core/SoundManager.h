@@ -36,5 +36,5 @@ private:
 	FMOD::ChannelGroup* SFXGroup   = nullptr;
 	FMOD::Channel*      BGMChannel = nullptr;
 
-	std::unordered_map<FString, FMOD::Sound*> Sounds;
+	TMap<FString, FMOD::Sound*> Sounds;
 };

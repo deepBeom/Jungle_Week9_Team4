@@ -57,14 +57,39 @@ void FEditorConsoleWidget::AddLogMessage(const char* Message)
         return;
     }
 
-    std::lock_guard<std::mutex> Lock(MessageMutex);
-    Messages.push_back(_strdup(Message));
-    if (AutoScroll) ScrollToBottom = true;
+    // Sink callbacks may come from worker threads.
+    // Queue first, then flush into the visible log on the main render thread.
+    std::lock_guard<std::mutex> Lock(PendingMessageMutex);
+    PendingMessages.emplace_back(Message);
+}
+
+void FEditorConsoleWidget::DrainPendingLogs()
+{
+    TArray<FString> LocalQueue;
+    {
+        std::lock_guard<std::mutex> PendingLock(PendingMessageMutex);
+        if (PendingMessages.empty())
+        {
+            return;
+        }
+        LocalQueue.swap(PendingMessages);
+    }
+
+    std::lock_guard<std::mutex> MessageLock(MessageMutex);
+    for (const FString& Message : LocalQueue)
+    {
+        Messages.push_back(_strdup(Message.c_str()));
+    }
+    if (AutoScroll)
+    {
+        ScrollToBottom = true;
+    }
 }
 
 void FEditorConsoleWidget::Render(float DeltaTime)
 {
     (void)DeltaTime;
+    DrainPendingLogs();
 
     // 백틱(`) 키 → 콘솔 입력창 포커스
     // Begin() 전에 호출해야 SetNextWindowFocus 가 올바르게 동작합니다.
@@ -367,7 +392,9 @@ void FEditorConsoleWidget::CmdShadowFilter(const TArray<FString>& Args)
 ImVector<char*> FEditorConsoleWidget::Messages;
 ImVector<char*> FEditorConsoleWidget::History;
 std::mutex FEditorConsoleWidget::MessageMutex;
+std::mutex FEditorConsoleWidget::PendingMessageMutex;
 std::mutex FEditorConsoleWidget::HistoryMutex;
+TArray<FString> FEditorConsoleWidget::PendingMessages;
 uint32 FEditorConsoleWidget::LogSinkHandle = 0;
 int32 FEditorConsoleWidget::ActiveWidgetCount = 0;
 

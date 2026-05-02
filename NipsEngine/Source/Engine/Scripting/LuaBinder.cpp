@@ -26,15 +26,15 @@ namespace
         return Component && UObject::IsValid(Component);
     }
 
-    std::string SafeObjectName(UObject* Object)
+    FString SafeObjectName(UObject* Object)
     {
         return (Object && UObject::IsValid(Object))
-            ? static_cast<std::string>(Object->GetName())
-            : std::string();
+            ? static_cast<FString>(Object->GetName())
+            : FString();
     }
 
     // Type-name lookup used by both GetComponent and FindComponentByClass.
-    UActorComponent* FindActorComponentByType(AActor* Actor, const std::string& TypeName)
+    UActorComponent* FindActorComponentByType(AActor* Actor, const FString& TypeName)
     {
         if (!IsUsableActor(Actor))
         {
@@ -88,15 +88,15 @@ namespace
     {
         Lua.new_usertype<UActorComponent>(
             "Component",
-            "GetName", [](UActorComponent* Component) -> std::string
+            "GetName", [](UActorComponent* Component) -> FString
             {
                 return SafeObjectName(Component);
             },
-            "GetTypeName", [](UActorComponent* Component) -> std::string
+            "GetTypeName", [](UActorComponent* Component) -> FString
             {
                 return IsUsableComponent(Component)
                     ? Component->GetTypeInfo()->name
-                    : std::string();
+                    : FString();
             },
             "GetOwner", [](UActorComponent* Component) -> AActor*
             {
@@ -125,7 +125,7 @@ namespace
     {
         Lua.new_usertype<AActor>(
             "Actor",
-            "GetName", [](AActor* Actor) -> std::string
+            "GetName", [](AActor* Actor) -> FString
             {
                 return SafeObjectName(Actor);
             },
@@ -195,11 +195,11 @@ namespace
                     Actor->Destroy();
                 }
             },
-            "GetComponent", [](AActor* Actor, const std::string& TypeName) -> UActorComponent*
+            "GetComponent", [](AActor* Actor, const FString& TypeName) -> UActorComponent*
             {
                 return FindActorComponentByType(Actor, TypeName);
             },
-            "FindComponentByClass", [](AActor* Actor, const std::string& TypeName) -> UActorComponent*
+            "FindComponentByClass", [](AActor* Actor, const FString& TypeName) -> UActorComponent*
             {
                 return FindActorComponentByType(Actor, TypeName);
             },
@@ -224,17 +224,17 @@ void LuaBinder::BindEngineTypes(sol::state& Lua)
 
 void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 {
-    Lua.set_function("Log", [](const std::string& Message)
+    Lua.set_function("Log", [](const FString& Message)
     {
         printf("[Lua] %s\n", Message.c_str());
     });
 
-    Lua.set_function("Warning", [](const std::string& Message)
+    Lua.set_function("Warning", [](const FString& Message)
     {
         printf("[Lua Warning] %s\n", Message.c_str());
     });
 
-    Lua.set_function("Error", [](const std::string& Message)
+    Lua.set_function("Error", [](const FString& Message)
     {
         printf("[Lua Error] %s\n", Message.c_str());
     });

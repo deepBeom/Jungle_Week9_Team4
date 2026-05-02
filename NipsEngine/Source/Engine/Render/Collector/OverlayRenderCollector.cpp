@@ -210,7 +210,7 @@ bool FOverlayRenderCollector::CollectFromSelectedActor(
     if (MeshBufferManager == nullptr) return false;
 
     bool bHasSelectionMask = false;
-    std::unordered_set<int32> SeenBVHNodeIndices;
+    TSet<int32> SeenBVHNodeIndices;
 
     for (UPrimitiveComponent* primitiveComponent : Actor->GetPrimitiveComponents())
     {
@@ -311,7 +311,7 @@ void FOverlayRenderCollector::CollectBVHInternalNodeAABBs(
     const FShowFlags& ShowFlags,
     FRenderBus& RenderBus,
     FLineBatcher* LineBatcher,
-    std::unordered_set<int32>& SeenNodeIndices)
+    TSet<int32>& SeenNodeIndices)
 {
     if (!ShowFlags.bBoundingVolume || !ShowFlags.bBVHBoundingVolume || PrimitiveComponent == nullptr || LineBatcher == nullptr)
     {

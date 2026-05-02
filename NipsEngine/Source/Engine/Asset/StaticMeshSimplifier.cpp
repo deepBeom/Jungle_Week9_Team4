@@ -95,7 +95,7 @@ void FStaticMeshSimplifier::BuildTopologicalVertices()
         return (ux << 42) | (uy << 21) | uz;
     };
 
-    std::unordered_map<uint64, TArray<int32>> CellMap;
+    TMap<uint64, TArray<int32>> CellMap;
     CellMap.reserve(Vertices.size());
 
     for (int32 i = 0; i < static_cast<int32>(Vertices.size()); ++i)

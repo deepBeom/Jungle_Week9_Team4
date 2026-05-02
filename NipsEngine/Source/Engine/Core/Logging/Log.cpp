@@ -6,10 +6,13 @@
 #include <cstdio>
 #include <cstring>
 #include <mutex>
+#include <utility>
 #include <vector>
 
 namespace
 {
+// ---------- Shared state ----------
+
 struct FLogSinkEntry
 {
     uint32 Id = 0;
@@ -17,8 +20,61 @@ struct FLogSinkEntry
 };
 
 std::mutex GLogMutex;
-std::vector<FLogSinkEntry> GLogSinks;
+TArray<FLogSinkEntry> GLogSinks;
 uint32 GNextSinkId = 1;
+
+struct FThreadLocalLogState
+{
+    TArray<TArray<char>> ScratchBuffers;
+    size_t ScratchDepth = 0;
+    bool bIsDispatchingSink = false;
+};
+
+thread_local FThreadLocalLogState GTlsLogState;
+
+// ---------- RAII guards ----------
+
+class FThreadLocalScratchScope
+{
+public:
+    FThreadLocalScratchScope()
+        : DepthIndex(GTlsLogState.ScratchDepth++)
+    {
+        if (GTlsLogState.ScratchBuffers.size() <= DepthIndex)
+        {
+            GTlsLogState.ScratchBuffers.emplace_back();
+        }
+    }
+
+    ~FThreadLocalScratchScope()
+    {
+        --GTlsLogState.ScratchDepth;
+    }
+
+    TArray<char>& GetBuffer()
+    {
+        return GTlsLogState.ScratchBuffers[DepthIndex];
+    }
+
+private:
+    size_t DepthIndex = 0;
+};
+
+class FSinkDispatchGuard
+{
+public:
+    FSinkDispatchGuard()
+    {
+        GTlsLogState.bIsDispatchingSink = true;
+    }
+
+    ~FSinkDispatchGuard()
+    {
+        GTlsLogState.bIsDispatchingSink = false;
+    }
+};
+
+// ---------- Output helpers ----------
 
 bool EndsWithNewLine(const char* Message)
 {
@@ -30,7 +86,8 @@ bool EndsWithNewLine(const char* Message)
     const size_t Length = std::strlen(Message);
     if (Length == 0)
     {
-        return true;
+        // Treat empty message as no trailing newline so UE_LOG("") prints a blank line.
+        return false;
     }
 
     const char Tail = Message[Length - 1];
@@ -44,15 +101,17 @@ void WriteToDefaultOutputs(const char* Message)
         return;
     }
 
+    const bool bHasTrailingNewLine = EndsWithNewLine(Message);
+
     std::fputs(Message, stdout);
-    if (!EndsWithNewLine(Message))
+    if (!bHasTrailingNewLine)
     {
         std::fputc('\n', stdout);
     }
     std::fflush(stdout);
 
     OutputDebugStringA(Message);
-    if (!EndsWithNewLine(Message))
+    if (!bHasTrailingNewLine)
     {
         OutputDebugStringA("\n");
     }
@@ -102,7 +161,7 @@ void LogMessage(const char* Message)
         return;
     }
 
-    std::vector<FLogSinkEntry> SinksSnapshot;
+    TArray<FLogSinkEntry> SinksSnapshot;
     {
         std::lock_guard<std::mutex> Lock(GLogMutex);
         SinksSnapshot = GLogSinks;
@@ -110,6 +169,13 @@ void LogMessage(const char* Message)
 
     WriteToDefaultOutputs(Message);
 
+    // Prevent sink recursion loops: sink -> UE_LOG -> sink -> ...
+    if (GTlsLogState.bIsDispatchingSink)
+    {
+        return;
+    }
+
+    FSinkDispatchGuard SinkDispatchGuard;
     for (const FLogSinkEntry& Entry : SinksSnapshot)
     {
         if (Entry.Sink)
@@ -126,19 +192,28 @@ void LogV(const char* Format, va_list Args)
         return;
     }
 
-    va_list Copy;
-    va_copy(Copy, Args);
-    const int32 Required = std::vsnprintf(nullptr, 0, Format, Copy);
-    va_end(Copy);
+    va_list ArgsCopy;
+    va_copy(ArgsCopy, Args);
+    const int32 Required = std::vsnprintf(nullptr, 0, Format, ArgsCopy);
+    va_end(ArgsCopy);
 
-    if (Required <= 0)
+    if (Required < 0)
     {
         return;
     }
 
-    std::vector<char> Buffer(static_cast<size_t>(Required) + 1u, '\0');
-    std::vsnprintf(Buffer.data(), Buffer.size(), Format, Args);
+    // Reuse thread-local scratch memory.
+    // Depth-indexed slots avoid corruption under nested logging.
+    FThreadLocalScratchScope ScratchScope;
+    TArray<char>& Buffer = ScratchScope.GetBuffer();
 
+    const size_t RequiredBufferSize = static_cast<size_t>(Required) + 1u;
+    if (Buffer.size() < RequiredBufferSize)
+    {
+        Buffer.resize(RequiredBufferSize);
+    }
+
+    std::vsnprintf(Buffer.data(), Buffer.size(), Format, Args);
     LogMessage(Buffer.data());
 }
 

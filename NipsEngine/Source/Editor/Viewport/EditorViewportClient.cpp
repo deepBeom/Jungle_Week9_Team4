@@ -517,7 +517,7 @@ void FEditorViewportClient::HandleBoxSelection()
     TArray<UPrimitiveComponent*> CandidatePrimitives;
     World->GetSpatialIndex().FrustumQueryPrimitives(Camera.GetFrustum(), CandidatePrimitives, FrustumQueryScratch);
 
-    std::unordered_set<AActor*> SeenActors;
+    TSet<AActor*> SeenActors;
     SeenActors.reserve(CandidatePrimitives.size());
 
     for (UPrimitiveComponent* Primitive : CandidatePrimitives)

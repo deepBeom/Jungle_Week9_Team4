@@ -8,6 +8,8 @@
 #include <functional>
 #include <mutex>
 #include <sstream>
+#include <string>
+#include <vector>
 
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
@@ -28,9 +30,12 @@ public:
 
     void Clear()
     {
-        std::lock_guard<std::mutex> Lock(MessageMutex);
+        std::lock_guard<std::mutex> MessageLock(MessageMutex);
         for (int32 i = 0; i < Messages.Size; i++) free(Messages[i]);
         Messages.clear();
+
+        std::lock_guard<std::mutex> PendingLock(PendingMessageMutex);
+        PendingMessages.clear();
     }
     static void ClearHistory()
     {
@@ -44,7 +49,9 @@ private:
     static ImVector<char*> Messages;
     static ImVector<char*> History;
     static std::mutex MessageMutex;
+    static std::mutex PendingMessageMutex;
     static std::mutex HistoryMutex;
+    static TArray<FString> PendingMessages;
     static uint32 LogSinkHandle;
     static int32 ActiveWidgetCount;
     int32 HistoryPos = -1;
@@ -61,6 +68,7 @@ private:
 
     void RegisterCommand(const FString& Name, CommandFn Fn);
     void ExecCommand(const char* CommandLine);
+    static void DrainPendingLogs();
     static int32 TextEditCallback(ImGuiInputTextCallbackData* Data);
 
 private:

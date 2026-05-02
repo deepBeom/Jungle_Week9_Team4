@@ -58,7 +58,7 @@ static const char* WorldTypeToString(EWorldType Type)
     }
 }
 
-static EWorldType StringToWorldType(const string& Str)
+static EWorldType StringToWorldType(const FString& Str)
 {
     if (Str == "Game") return EWorldType::Game;
     if (Str == "PIE")  return EWorldType::PIE;
@@ -69,14 +69,14 @@ static EWorldType StringToWorldType(const string& Str)
 // Save
 // ============================================================
 
-void FSceneSaveManager::SaveSceneAsJSON(const string& InSceneName, FWorldContext& WorldContext,
+void FSceneSaveManager::SaveSceneAsJSON(const FString& InSceneName, FWorldContext& WorldContext,
                                         const FEditorCameraState* CameraState)
 {
     using namespace json;
     if (!WorldContext.World) return;
 
     string FinalName = InSceneName.empty() ? "Save_" + GetCurrentTimeStamp() : InSceneName;
-    std::wstring SceneDir = GetSceneDirectory();
+    FWString SceneDir = GetSceneDirectory();
     std::filesystem::path FileDestination = std::filesystem::path(SceneDir) / (FPaths::ToWide(FinalName) + SceneExtension);
     std::filesystem::create_directories(SceneDir);
 
@@ -347,16 +347,16 @@ json::JSON FSceneSaveManager::SerializeCameraState(const FEditorCameraState* Cam
 // Load
 // ============================================================
 
-void FSceneSaveManager::LoadSceneFromJSON(const string& filepath, FWorldContext& OutWorldContext, FEditorCameraState* OutCameraState)
+void FSceneSaveManager::LoadSceneFromJSON(const FString& filepath, FWorldContext& OutWorldContext, FEditorCameraState* OutCameraState)
 {
     using json::JSON;
     std::ifstream File(std::filesystem::path(FPaths::ToWide(filepath)));
     if (!File.is_open()) return;
 
-    string FileContent((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
+    FString FileContent((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
     JSON root = JSON::Load(FileContent);
 
-    string ClassName = root.hasKey(SceneKeys::ClassName) ? root[SceneKeys::ClassName].ToString() : "UWorld";
+    FString ClassName = root.hasKey(SceneKeys::ClassName) ? root[SceneKeys::ClassName].ToString() : "UWorld";
     UObject* WorldObj = FObjectFactory::Get().Create(ClassName);
     if (!WorldObj || !WorldObj->IsA<UWorld>()) return;
 
@@ -382,8 +382,8 @@ void FSceneSaveManager::Save(const FString& FilePath, FWorldContext& WorldContex
     json::JSON Root = json::Object();
     FJsonWriter Writer(Root);
 
-    string FinalName = FilePath.empty() ? "Save_" + GetCurrentTimeStamp() : FilePath;
-    std::wstring SceneDir = GetSceneDirectory();
+    FString FinalName = FilePath.empty() ? "Save_" + GetCurrentTimeStamp() : FilePath;
+    FWString SceneDir = GetSceneDirectory();
     std::filesystem::path FileDestination = std::filesystem::path(SceneDir) / (FPaths::ToWide(FinalName) + SceneExtension);
     std::filesystem::create_directories(SceneDir);
 
@@ -449,11 +449,11 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
     std::ifstream File(std::filesystem::path(FPaths::ToWide(FilePath)));
     if (!File.is_open()) return;
 
-    string FileContent((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
+    FString FileContent((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
     json::JSON Root = json::JSON::Load(FileContent);
     FJsonReader Reader(Root);
 
-    string ClassName = Root.hasKey(SceneKeys::ClassName) ? Root[SceneKeys::ClassName].ToString() : "UWorld";
+    FString ClassName = Root.hasKey(SceneKeys::ClassName) ? Root[SceneKeys::ClassName].ToString() : "UWorld";
     UObject* WorldObj = FObjectFactory::Get().Create(ClassName);
     if (!WorldObj || !WorldObj->IsA<UWorld>()) return;
 
@@ -511,12 +511,12 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
         return Type;
     };
 
-    auto InferActorClass = [](const string& CompType) -> string
+    auto InferActorClass = [](const FString& CompType) -> FString
     {
         if (CompType == "StaticMeshComp" || CompType == "UStaticMeshComponent") return "AStaticMeshActor";
         if (CompType.length() > 10 && CompType.substr(CompType.size() - 9) == "Component")
         {
-            string BaseName = CompType.substr(0, CompType.size() - 9);
+            FString BaseName = CompType.substr(0, CompType.size() - 9);
             if (BaseName[0] == 'U') BaseName = BaseName.substr(1);
             return "A" + BaseName + "Actor";
         }
@@ -692,10 +692,10 @@ void FSceneSaveManager::DeserializePrimitivesToWorld(json::JSON& PrimitivesNode,
     // 1단계: 씬/비씬 노드 분류
     // OwnerRootUUID 키가 있으면 비씬 ActorComponent, 없으면 SceneComponent
     // ---------------------------------------------------------------
-    std::unordered_map<uint32, json::JSON*> SceneNodeMap;
-    std::unordered_map<uint32, json::JSON*> NonSceneNodeMap;
-    std::unordered_map<uint32, std::vector<uint32>> ChildrenMap;
-    std::vector<uint32> RootUUIDs;
+    TMap<uint32, json::JSON*> SceneNodeMap;
+    TMap<uint32, json::JSON*> NonSceneNodeMap;
+    TMap<uint32, TArray<uint32>> ChildrenMap;
+    TArray<uint32> RootUUIDs;
 
     for (auto& Pair : PrimitivesNode.ObjectRange())
     {
@@ -722,7 +722,7 @@ void FSceneSaveManager::DeserializePrimitivesToWorld(json::JSON& PrimitivesNode,
     }
 
     // 타입 문자열로 Actor 클래스 이름 추론
-    auto InferActorClass = [](const string& CompType) -> string
+    auto InferActorClass = [](const FString& CompType) -> FString
     {
         if (CompType.front() == 'U' && CompType.size() > 10 &&
             CompType.substr(CompType.size() - 9) == "Component")
@@ -733,9 +733,9 @@ void FSceneSaveManager::DeserializePrimitivesToWorld(json::JSON& PrimitivesNode,
     };
 
     // UUID → SceneComponent* 맵: SceneComponentRef 역직렬화에 사용
-    std::unordered_map<uint32, USceneComponent*> UUIDToSceneComp;
+    TMap<uint32, USceneComponent*> UUIDToSceneComp;
     // 루트SceneComponent UUID → Actor* 맵: 비씬 컴포넌트 귀속에 사용
-    std::unordered_map<uint32, AActor*> RootUUIDToActor;
+    TMap<uint32, AActor*> RootUUIDToActor;
 
     // ---------------------------------------------------------------
     // 2단계: SceneComponent 트리 복원 (기존 로직 + UUID 맵 구축)
@@ -749,7 +749,7 @@ void FSceneSaveManager::DeserializePrimitivesToWorld(json::JSON& PrimitivesNode,
         json::JSON& PrimJSON = *NodeIt->second;
         if (!PrimJSON.hasKey(SceneKeys::Type)) return;
 
-        string CompType = PrimJSON[SceneKeys::Type].ToString();
+        FString CompType = PrimJSON[SceneKeys::Type].ToString();
         if (CompType == "StaticMeshComp") CompType = "UStaticMeshComponent";
 
         USceneComponent* Comp = nullptr;
@@ -819,7 +819,7 @@ void FSceneSaveManager::DeserializePrimitivesToWorld(json::JSON& PrimitivesNode,
         if (ActorIt == RootUUIDToActor.end()) continue;
 
         AActor* OwnerActor = ActorIt->second;
-        string CompType = CompJSON[SceneKeys::Type].ToString();
+        FString CompType = CompJSON[SceneKeys::Type].ToString();
 
         UObject* Obj = FObjectFactory::Get().Create(CompType);
         if (!Obj || !Obj->IsA<UActorComponent>()) continue;
@@ -839,7 +839,7 @@ void FSceneSaveManager::DeserializePrimitivesToWorld(json::JSON& PrimitivesNode,
 /* @brief 현재 사용하지 않는 함수, 추후 Actor-Component 단위로 계층화를 시켜야 한다면 이쪽을 사용 */
 USceneComponent* FSceneSaveManager::DeserializeSceneComponentTree(json::JSON& Node, AActor* Owner)
 {
-    string ClassName = Node[SceneKeys::ClassName].ToString();
+    FString ClassName = Node[SceneKeys::ClassName].ToString();
     UObject* Obj = FObjectFactory::Get().Create(ClassName);
     if (!Obj || !Obj->IsA<USceneComponent>()) return nullptr;
 
@@ -867,7 +867,7 @@ USceneComponent* FSceneSaveManager::DeserializeSceneComponentTree(json::JSON& No
 }
 
 void FSceneSaveManager::DeserializeProperties(UActorComponent* Comp, json::JSON& PropsJSON,
-                                              const std::unordered_map<uint32, USceneComponent*>* UUIDToSceneComp)
+                                              const TMap<uint32, USceneComponent*>* UUIDToSceneComp)
 {
     TArray<FPropertyDescriptor> Descriptors;
     Comp->GetEditableProperties(Descriptors);
@@ -885,7 +885,7 @@ void FSceneSaveManager::DeserializeProperties(UActorComponent* Comp, json::JSON&
 }
 
 void FSceneSaveManager::DeserializePropertyValue(FPropertyDescriptor& Prop, json::JSON& Value,
-                                                 const std::unordered_map<uint32, USceneComponent*>* UUIDToSceneComp)
+                                                 const TMap<uint32, USceneComponent*>* UUIDToSceneComp)
 {
     switch (Prop.Type) {
     case EPropertyType::Bool:
@@ -1011,7 +1011,7 @@ void FSceneSaveManager::DeserializeCameraState(json::JSON& root, FEditorCameraSt
 // Utility
 // ============================================================
 
-string FSceneSaveManager::GetCurrentTimeStamp()
+FString FSceneSaveManager::GetCurrentTimeStamp()
 {
     std::time_t t = std::time(nullptr);
     std::tm tm{};
@@ -1025,7 +1025,7 @@ string FSceneSaveManager::GetCurrentTimeStamp()
 TArray<FString> FSceneSaveManager::GetSceneFileList()
 {
     TArray<FString> Result;
-    std::wstring SceneDir = GetSceneDirectory();
+    FWString SceneDir = GetSceneDirectory();
     if (!std::filesystem::exists(SceneDir))
     {
         return Result;
