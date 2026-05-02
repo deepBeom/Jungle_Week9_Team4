@@ -201,18 +201,19 @@ void FEditorPropertyWidget::RenderSingleSelectionHeader(AActor* PrimaryActor)
 	if (SelectedComponent == nullptr)
 		SelectedComponent = PrimaryActor->GetRootComponent();
 
-	ImGui::Text("Actor: %s", PrimaryActor->GetFName().ToString().c_str());
-	ImGui::Text("Component: %s", SelectedComponent ? SelectedComponent->GetTypeInfo()->name : "None");
-
-	if (bActorSelected)
+	const bool bWasActorSelected = bActorSelected;
+	if (bWasActorSelected)
 		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.8f, 0.2f, 1.0f));
+	ImGui::Text("Actor: %s", PrimaryActor->GetFName().ToString().c_str());
 	if (ImGui::IsItemClicked())
 	{
 		bActorSelected = true;
 		SelectedComponent = nullptr;
 	}
-	if (bActorSelected)
+	if (bWasActorSelected)
 		ImGui::PopStyleColor();
+
+	ImGui::Text("Component: %s", SelectedComponent ? SelectedComponent->GetTypeInfo()->name : "None");
 
 	ImGui::SameLine();
 	if (ImGui::SmallButton("Remove"))

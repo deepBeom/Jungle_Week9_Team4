@@ -234,7 +234,7 @@ void UObjectTypeComponent::ApplyDefaultCollisionForObjectType()
     }
 
     ShapeComponent->SetGenerateOverlapEvents(Binding->bGenerateOverlapEvents);
-    ShapeComponent->SetBlockComponent(Binding->bBlockComponent);
+    ShapeComponent->SetBlockComponent(Binding->bBlock);
 
     if (USceneComponent* Root = OwnerActor->GetRootComponent())
     {
