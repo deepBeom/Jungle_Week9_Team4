@@ -92,6 +92,7 @@ void UWorld::Tick(float DeltaTime)
         PersistentLevel->TickGame(DeltaTime);
 
     CollisionSystem.Tick(this, DeltaTime);
+    FlushPendingDestroyActors();
     SyncSpatialIndex();
 }
 
