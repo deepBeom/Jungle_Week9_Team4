@@ -188,6 +188,23 @@ namespace
                     Actor->SetActive(bEnabled);
                 }
             },
+            "GetTag", [](AActor* Actor) -> std::string
+            {
+                return IsUsableActor(Actor)
+                    ? Actor->GetTag()
+                    : std::string();
+            },
+            "SetTag", [](AActor* Actor, const std::string& Tag)
+            {
+                if (IsUsableActor(Actor))
+                {
+                    Actor->SetTag(Tag);
+                }
+            },
+            "CompareTag", [](AActor* Actor, const std::string& Tag)
+            {
+                return IsUsableActor(Actor) && Actor->CompareTag(Tag);
+            },
             "Destroy", [](AActor* Actor)
             {
                 if (IsUsableActor(Actor))

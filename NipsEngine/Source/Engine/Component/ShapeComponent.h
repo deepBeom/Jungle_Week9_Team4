@@ -1,12 +1,13 @@
 ﻿#pragma once
 #include <functional>
 
-#include "Core/GameObjectTypes.h"
+#include "Core/Containers/String.h"
 #include "PrimitiveComponent.h"
 #include "Engine/Core/Delegate/DelegateMacros.h"
 
 class AActor;
 class UShapeComponent;
+class UStaticMeshComponent;
 
 struct FOverlapInfo
 {
@@ -26,12 +27,8 @@ struct FCollisionEvent
     UShapeComponent* OtherComponent = nullptr;
     AActor* OtherActor = nullptr;
 
-    EObjectType SelfObjectType = EObjectType::None;
-    EObjectType OtherObjectType = EObjectType::None;
-    uint32 SelfGameplayTags = GT_None;
-    uint32 OtherGameplayTags = GT_None;
-    const char* SelfScriptPath = "";
-    const char* OtherScriptPath = "";
+    FString SelfTag = "Untagged";
+    FString OtherTag = "Untagged";
 
     FVector Location = FVector::ZeroVector;
     FVector Normal = FVector::ZeroVector;
@@ -39,14 +36,14 @@ struct FCollisionEvent
     bool bHasOverlapBounds = false;
     bool bBlockingHit = false;
 
-    bool SelfHasTag(EGameplayTagBits Tag) const
+    bool SelfHasTag(const FString& Tag) const
     {
-        return (SelfGameplayTags & static_cast<uint32>(Tag)) != 0;
+        return SelfTag == Tag;
     }
 
-    bool OtherHasTag(EGameplayTagBits Tag) const
+    bool OtherHasTag(const FString& Tag) const
     {
-        return (OtherGameplayTags & static_cast<uint32>(Tag)) != 0;
+        return OtherTag == Tag;
     }
 };
 
@@ -63,6 +60,8 @@ public:
     void Serialize(FArchive& Ar) override;
     void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
     void PostEditProperty(const char* PropertyName) override;
+
+    bool FitToStaticMesh(UStaticMeshComponent* StaticMeshComponent);
 
     EPrimitiveType GetPrimitiveType() const override
     {
@@ -81,6 +80,9 @@ public:
     
     bool GetBlockComponent() const {return bBlockComponent;}
     void SetBlockComponent(bool bInBlock) {bBlockComponent = bInBlock;}
+
+    const FColor& GetShapeColor() const { return ShapeColor; }
+    void SetShapeColor(const FColor& InColor) { ShapeColor = InColor; }
     
     const TArray<FOverlapInfo>& GetOverlapInfos() const { return OverlapInfos; } 
     
@@ -103,7 +105,6 @@ protected:
     bool bBlockComponent = false;
     
     FColor ShapeColor = FColor::Green();
-    bool bDrawOnlyIfSelected = true;
     
     TArray<FOverlapInfo> OverlapInfos;
 };
@@ -129,7 +130,7 @@ public:;
     }
     
 private:
-    FVector BoxExtent = FVector{50.0f, 50.0f, 50.0f};
+    FVector BoxExtent = FVector{1.0f, 1.0f, 1.0f};
 };
 
 class USphereComponent : public UShapeComponent
@@ -151,7 +152,7 @@ public:;
     }
     
 private:
-    float SphereRadius = 50.0f;
+    float SphereRadius = 1.0f;
 };
 
 class UCapsuleComponent : public UShapeComponent
@@ -178,6 +179,6 @@ public:;
     }
     
 private:
-    float CapsuleHalfHeight = 88.0f;
-    float CapsuleRadius = 34.0f;
+    float CapsuleHalfHeight = 1.0f;
+    float CapsuleRadius = 0.5f;
 };

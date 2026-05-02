@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cmath>
 
+#include "Asset/StaticMesh.h"
 #include "GameFramework/Actor.h"
+#include "StaticMeshComponent.h"
 
 DEFINE_CLASS(UShapeComponent, UPrimitiveComponent)
 
@@ -33,9 +35,71 @@ namespace
         return std::fabs(Scale.Z);
     }
 
-    FVector AbsVector(const FVector& V)
+    float CapsuleSegmentHalfHeight(float HalfHeight, float Radius)
     {
-        return FVector(std::fabs(V.X), std::fabs(V.Y), std::fabs(V.Z));
+        return std::max(0.0f, HalfHeight - Radius);
+    }
+
+    bool IsNearlyEqual(float A, float B, float Tolerance = 1.e-4f)
+    {
+        return std::fabs(A - B) <= Tolerance;
+    }
+
+    float ClampExtent(float Value)
+    {
+        return std::max(0.0f, Value);
+    }
+
+    float ComputeMeshBoundingSphereRadius(const UStaticMesh* StaticMesh, const FVector& Center, const FVector& FallbackExtent)
+    {
+        if (StaticMesh == nullptr || StaticMesh->GetVertices().empty())
+        {
+            return std::max({ FallbackExtent.X, FallbackExtent.Y, FallbackExtent.Z });
+        }
+
+        float RadiusSquared = 0.0f;
+        for (const FNormalVertex& Vertex : StaticMesh->GetVertices())
+        {
+            RadiusSquared = std::max(RadiusSquared, (Vertex.Position - Center).SizeSquared());
+        }
+
+        return std::sqrt(RadiusSquared);
+    }
+
+    float ComputeCapsuleRadiusForAxis(const UStaticMesh* StaticMesh, const FVector& Center, const FVector& FallbackExtent, int32 Axis)
+    {
+        if (StaticMesh == nullptr || StaticMesh->GetVertices().empty())
+        {
+            if (Axis == 0)
+            {
+                return std::max(FallbackExtent.Y, FallbackExtent.Z);
+            }
+            if (Axis == 1)
+            {
+                return std::max(FallbackExtent.X, FallbackExtent.Z);
+            }
+            return std::max(FallbackExtent.X, FallbackExtent.Y);
+        }
+
+        float RadiusSquared = 0.0f;
+        for (const FNormalVertex& Vertex : StaticMesh->GetVertices())
+        {
+            const FVector Delta = Vertex.Position - Center;
+            if (Axis == 0)
+            {
+                RadiusSquared = std::max(RadiusSquared, Delta.Y * Delta.Y + Delta.Z * Delta.Z);
+            }
+            else if (Axis == 1)
+            {
+                RadiusSquared = std::max(RadiusSquared, Delta.X * Delta.X + Delta.Z * Delta.Z);
+            }
+            else
+            {
+                RadiusSquared = std::max(RadiusSquared, Delta.X * Delta.X + Delta.Y * Delta.Y);
+            }
+        }
+
+        return std::sqrt(RadiusSquared);
     }
 }
 
@@ -46,7 +110,6 @@ void UShapeComponent::Serialize(FArchive& Ar)
     Ar << "GenerateOverlapEvents" << bGenerateOverlapEvents;
     Ar << "BlockComponent" << bBlockComponent;
     Ar << "ShapeColor" << ShapeColor;
-    Ar << "DrawOnlyIfSelected" << bDrawOnlyIfSelected;
 }
 
 void UShapeComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
@@ -56,13 +119,82 @@ void UShapeComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProp
     OutProps.push_back({ "Generate Overlap Events", EPropertyType::Bool, &bGenerateOverlapEvents });
     OutProps.push_back({ "Block Component", EPropertyType::Bool, &bBlockComponent });
     OutProps.push_back({ "Shape Color", EPropertyType::Color, &ShapeColor });
-    OutProps.push_back({ "Draw Only If Selected", EPropertyType::Bool, &bDrawOnlyIfSelected });
 }
 
 void UShapeComponent::PostEditProperty(const char* PropertyName)
 {
     UPrimitiveComponent::PostEditProperty(PropertyName);
     NotifySpatialIndexDirty();
+}
+
+bool UShapeComponent::FitToStaticMesh(UStaticMeshComponent* StaticMeshComponent)
+{
+    if (StaticMeshComponent == nullptr || !StaticMeshComponent->HasValidMesh())
+    {
+        return false;
+    }
+
+    UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+    if (StaticMesh == nullptr)
+    {
+        return false;
+    }
+
+    const FAABB& LocalBounds = StaticMesh->GetLocalBounds();
+    if (!LocalBounds.IsValid())
+    {
+        return false;
+    }
+
+    const FVector Center = LocalBounds.GetCenter();
+    const FVector Extent(
+        ClampExtent(LocalBounds.GetExtent().X),
+        ClampExtent(LocalBounds.GetExtent().Y),
+        ClampExtent(LocalBounds.GetExtent().Z));
+
+    SetRelativeLocation(Center);
+    SetRelativeScale(FVector::OneVector);
+
+    if (UBoxComponent* Box = Cast<UBoxComponent>(this))
+    {
+        SetRelativeRotation(FVector::ZeroVector);
+        Box->SetBoxExtent(Extent);
+        return true;
+    }
+
+    if (USphereComponent* Sphere = Cast<USphereComponent>(this))
+    {
+        SetRelativeRotation(FVector::ZeroVector);
+        Sphere->SetSphereRadius(ComputeMeshBoundingSphereRadius(StaticMesh, Center, Extent));
+        return true;
+    }
+
+    if (UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(this))
+    {
+        int32 HeightAxis = 2;
+        float HalfHeight = Extent.Z;
+        FVector CapsuleRotation = FVector::ZeroVector;
+
+        if (Extent.X >= Extent.Y && Extent.X >= Extent.Z)
+        {
+            HeightAxis = 0;
+            HalfHeight = Extent.X;
+            CapsuleRotation = FVector(0.0f, 90.0f, 0.0f);
+        }
+        else if (Extent.Y >= Extent.X && Extent.Y >= Extent.Z)
+        {
+            HeightAxis = 1;
+            HalfHeight = Extent.Y;
+            CapsuleRotation = FVector(-90.0f, 0.0f, 0.0f);
+        }
+
+        const float Radius = ComputeCapsuleRadiusForAxis(StaticMesh, Center, Extent, HeightAxis);
+        Capsule->SetRelativeRotation(CapsuleRotation);
+        Capsule->SetCapsuleSize(Radius, std::max(HalfHeight, Radius));
+        return true;
+    }
+
+    return false;
 }
 
 bool UShapeComponent::IsOverlappingActor(const AActor* Other) const
@@ -151,6 +283,14 @@ void UBoxComponent::Serialize(FArchive& Ar)
 {
     UShapeComponent::Serialize(Ar);
     Ar << "BoxExtent" << BoxExtent;
+
+    if (Ar.IsLoading() &&
+        IsNearlyEqual(BoxExtent.X, 50.0f) &&
+        IsNearlyEqual(BoxExtent.Y, 50.0f) &&
+        IsNearlyEqual(BoxExtent.Z, 50.0f))
+    {
+        BoxExtent = FVector(1.0f, 1.0f, 1.0f);
+    }
 }
 
 void UBoxComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
@@ -176,6 +316,11 @@ void USphereComponent::Serialize(FArchive& Ar)
 {
     UShapeComponent::Serialize(Ar);
     Ar << "SphereRadius" << SphereRadius;
+
+    if (Ar.IsLoading() && IsNearlyEqual(SphereRadius, 50.0f))
+    {
+        SphereRadius = 1.0f;
+    }
 }
 
 void USphereComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
@@ -207,7 +352,7 @@ void USphereComponent::PostEditProperty(const char* PropertyName)
 void USphereComponent::UpdateWorldAABB() const
 {
     const FVector Center = GetWorldLocation();
-    const float WorldRadius = SphereRadius * MaxAbs3(GetWorldScale());
+    const float WorldRadius = SphereRadius * MaxAbs3(GetWorldAxisScale());
     const FVector Extent(WorldRadius, WorldRadius, WorldRadius);
     
     WorldAABB = FAABB(Center - Extent, Center + Extent);
@@ -219,6 +364,14 @@ void UCapsuleComponent::Serialize(FArchive& Ar)
     UShapeComponent::Serialize(Ar);
     Ar << "CapsuleHalfHeight" << CapsuleHalfHeight;
     Ar << "CapsuleRadius" << CapsuleRadius;
+
+    if (Ar.IsLoading() &&
+        IsNearlyEqual(CapsuleHalfHeight, 88.0f) &&
+        IsNearlyEqual(CapsuleRadius, 34.0f))
+    {
+        CapsuleHalfHeight = 1.0f;
+        CapsuleRadius = 0.5f;
+    }
 }
 
 void UCapsuleComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
@@ -263,20 +416,23 @@ void UCapsuleComponent::PostEditProperty(const char* PropertyName)
 
 void UCapsuleComponent::UpdateWorldAABB() const
 {
-    const FVector WorldScale = GetWorldScale();
+    const FVector WorldScale = GetWorldAxisScale();
     const float WorldRadius = CapsuleRadius * CapsuleRadiusScale(WorldScale);
     const float WorldHalfHeight = std::max(CapsuleHalfHeight * CapsuleHeightScale(WorldScale), WorldRadius);
-    const float SegmentHalfHeight = std::max(0.0f, WorldHalfHeight - WorldRadius);
-
+    const float SegmentHalfHeight = CapsuleSegmentHalfHeight(WorldHalfHeight, WorldRadius);
     const FVector Center = GetWorldLocation();
-    const FVector Forward = GetForwardVector();
-    const FVector Right = GetRightVector();
     const FVector Up = GetUpVector();
+    const FVector SegmentStart = Center - Up * SegmentHalfHeight;
+    const FVector SegmentEnd = Center + Up * SegmentHalfHeight;
+    const FVector RadiusExtent(WorldRadius, WorldRadius, WorldRadius);
 
-    const FVector Extent =
-        AbsVector(Forward) * WorldRadius +
-        AbsVector(Right) * WorldRadius +
-        AbsVector(Up) * (SegmentHalfHeight + WorldRadius);
-
-    WorldAABB = FAABB(Center - Extent, Center + Extent);
+    WorldAABB = FAABB(
+        FVector(
+            std::min(SegmentStart.X, SegmentEnd.X),
+            std::min(SegmentStart.Y, SegmentEnd.Y),
+            std::min(SegmentStart.Z, SegmentEnd.Z)) - RadiusExtent,
+        FVector(
+            std::max(SegmentStart.X, SegmentEnd.X),
+            std::max(SegmentStart.Y, SegmentEnd.Y),
+            std::max(SegmentStart.Z, SegmentEnd.Z)) + RadiusExtent);
 }

@@ -195,7 +195,7 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
             CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
         }
     }
-    if (World->GetWorldType() == EWorldType::Editor && ShowFlags.bCollisionDebug && LineBatcher != nullptr)
+    if (ShowFlags.bCollisionDebug && LineBatcher != nullptr)
 	{
 		for (const FCollisionDebugContact& Contact : World->GetCollisionSystem().GetDebugContacts())
 		{

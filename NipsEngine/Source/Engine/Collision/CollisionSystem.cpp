@@ -4,7 +4,6 @@
 #include <cmath>
 #include <utility>
 
-#include "Component/ObjectTypeComponent.h"
 #include "Component/Movement/MovementComponent.h"
 #include "UI/EditorConsoleWidget.h"
 #include "GameFramework/Actor.h"
@@ -28,30 +27,6 @@ namespace
         float HalfHeight = 0.0f;
         float SegmentHalfHeight = 0.0f;
     };
-
-    const UObjectTypeComponent* FindObjectTypeComponent(const AActor* Actor)
-    {
-        if (!Actor)
-        {
-            return nullptr;
-        }
-
-        for (UActorComponent* Component : Actor->GetComponents())
-        {
-            if (const UObjectTypeComponent* ObjectType = Cast<UObjectTypeComponent>(Component))
-            {
-                return ObjectType;
-            }
-        }
-
-        return nullptr;
-    }
-
-    const char* FindScriptPath(EObjectType Type)
-    {
-        const FObjectTypeBinding* Binding = FindObjectTypeBinding(Type);
-        return Binding ? Binding->LuePath : "";
-    }
 
     bool HasMovementComponent(const AActor* Actor)
     {
@@ -130,7 +105,7 @@ namespace
     FOrientedBoxData BuildOrientedBoxData(const UBoxComponent* Box)
     {
         FOrientedBoxData Data;
-        const FVector Scale = Box->GetWorldScale();
+        const FVector Scale = Box->GetWorldAxisScale();
         const FVector Extent = Box->GetBoxExtent();
 
         Data.Center = Box->GetWorldLocation();
@@ -310,7 +285,7 @@ namespace
     FCapsuleData BuildCapsuleData(const UCapsuleComponent* Capsule)
     {
         FCapsuleData Data;
-        const FVector WorldScale = Capsule->GetWorldScale();
+        const FVector WorldScale = Capsule->GetWorldAxisScale();
 
         Data.Radius = Capsule->GetCapsuleRadius() * CapsuleRadiusScale(WorldScale);
         Data.HalfHeight = Capsule->GetCapsuleHalfHeight() * CapsuleHeightScale(WorldScale);
@@ -658,8 +633,8 @@ bool FCollisionSystem::SphereSphere(UShapeComponent* A, UShapeComponent* B) cons
     USphereComponent* SphereA = Cast<USphereComponent>(A);
     USphereComponent* SphereB = Cast<USphereComponent>(B);
 
-    const float RadiusA = SphereA->GetSphereRadius() * MaxAbs3(SphereA->GetWorldScale());
-    const float RadiusB = SphereB->GetSphereRadius() * MaxAbs3(SphereB->GetWorldScale());
+    const float RadiusA = SphereA->GetSphereRadius() * MaxAbs3(SphereA->GetWorldAxisScale());
+    const float RadiusB = SphereB->GetSphereRadius() * MaxAbs3(SphereB->GetWorldAxisScale());
 
     const float RadiusSum = RadiusA + RadiusB;
     const float DistSq = FVector::DistSquared(SphereA->GetWorldLocation(), SphereB->GetWorldLocation());
@@ -678,7 +653,7 @@ bool FCollisionSystem::SphereBox(UShapeComponent* Sphere, UShapeComponent* Box) 
     }
 
     const FVector SphereCenter = SphereComp->GetWorldLocation();
-    const float SphereRadius = SphereComp->GetSphereRadius() * MaxAbs3(SphereComp->GetWorldScale());
+    const float SphereRadius = SphereComp->GetSphereRadius() * MaxAbs3(SphereComp->GetWorldAxisScale());
 
     const FVector Closest = ClosestPointOnOrientedBox(SphereCenter, BuildOrientedBoxData(BoxComp));
     const float DistSq = FVector::DistSquared(SphereCenter, Closest);
@@ -729,7 +704,7 @@ bool FCollisionSystem::SphereCapsule(UShapeComponent* Sphere, UShapeComponent* C
 
     const FCapsuleData CapsuleData = BuildCapsuleData(CapsuleComp);
 
-    const float SphereRadius = SphereComp->GetSphereRadius() * MaxAbs3(SphereComp->GetWorldScale());
+    const float SphereRadius = SphereComp->GetSphereRadius() * MaxAbs3(SphereComp->GetWorldAxisScale());
     const FVector Closest = ClosestPointOnSegment(
         SphereComp->GetWorldLocation(),
         CapsuleData.SegmentStart,
@@ -770,9 +745,7 @@ void FCollisionSystem::HandleBeginOverlap(UShapeComponent* A, UShapeComponent* B
     {
         const FCollisionEvent Event = MakeCollisionEvent(A, B, false);
         LogCollisionEvent("BeginOverlap", Event);
-        A->OnHit.Broadcast(Event);
-
-        //A->DispatchBeginOverlap(Event);
+        A->DispatchBeginOverlap(Event);
     }
 
     if (B->GetGenerateOverlapEvents())
@@ -907,8 +880,8 @@ FVector FCollisionSystem::ComputeDebugContactLocation(UShapeComponent* A, UShape
                 return (CenterA + CenterB) * 0.5f;
             }
 
-            const float RadiusA = SphereA->GetSphereRadius() * MaxAbs3(SphereA->GetWorldScale());
-            const float RadiusB = SphereB->GetSphereRadius() * MaxAbs3(SphereB->GetWorldScale());
+            const float RadiusA = SphereA->GetSphereRadius() * MaxAbs3(SphereA->GetWorldAxisScale());
+            const float RadiusB = SphereB->GetSphereRadius() * MaxAbs3(SphereB->GetWorldAxisScale());
 
             const FVector PointA = CenterA + Dir * RadiusA;
             const FVector PointB = CenterB - Dir * RadiusB;
@@ -951,18 +924,14 @@ FCollisionEvent FCollisionSystem::MakeCollisionEvent(UShapeComponent* Self, USha
     Event.OtherActor = Other ? Other->GetOwner() : nullptr;
     Event.bBlockingHit = bBlockingHit;
 
-    if (const UObjectTypeComponent* SelfObjectType = FindObjectTypeComponent(Event.SelfActor))
+    if (Event.SelfActor)
     {
-        Event.SelfObjectType = SelfObjectType->GetObjectType();
-        Event.SelfGameplayTags = SelfObjectType->GetGameplayTagMask();
-        Event.SelfScriptPath = FindScriptPath(Event.SelfObjectType);
+        Event.SelfTag = Event.SelfActor->GetTag();
     }
 
-    if (const UObjectTypeComponent* OtherObjectType = FindObjectTypeComponent(Event.OtherActor))
+    if (Event.OtherActor)
     {
-        Event.OtherObjectType = OtherObjectType->GetObjectType();
-        Event.OtherGameplayTags = OtherObjectType->GetGameplayTagMask();
-        Event.OtherScriptPath = FindScriptPath(Event.OtherObjectType);
+        Event.OtherTag = Event.OtherActor->GetTag();
     }
 
     if (!Self || !Other)
@@ -983,16 +952,12 @@ void FCollisionSystem::LogCollisionEvent(const char* EventName, const FCollision
     const FString OtherActorName = Event.OtherActor ? Event.OtherActor->GetName() : FString("None");
 
     UE_LOG(
-        "[Collision] %s | Self=%s(%s tags=0x%X script=%s) Other=%s(%s tags=0x%X script=%s) Location=(%.2f, %.2f, %.2f) Normal=(%.2f, %.2f, %.2f) Blocking=%s",
+        "[Collision] %s | Self=%s(tag=%s) Other=%s(tag=%s) Location=(%.2f, %.2f, %.2f) Normal=(%.2f, %.2f, %.2f) Blocking=%s",
         EventName ? EventName : "Unknown",
         SelfActorName.c_str(),
-        ToString(Event.SelfObjectType),
-        Event.SelfGameplayTags,
-        Event.SelfScriptPath ? Event.SelfScriptPath : "",
+        Event.SelfTag.c_str(),
         OtherActorName.c_str(),
-        ToString(Event.OtherObjectType),
-        Event.OtherGameplayTags,
-        Event.OtherScriptPath ? Event.OtherScriptPath : "",
+        Event.OtherTag.c_str(),
         Event.Location.X,
         Event.Location.Y,
         Event.Location.Z,

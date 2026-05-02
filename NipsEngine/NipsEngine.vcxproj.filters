@@ -1073,6 +1073,9 @@
     <ClInclude Include="Source\Engine\Core\Debug.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Core\ActorTags.h">
+      <Filter>Source\Engine\Core</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Core\EngineTypes.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
