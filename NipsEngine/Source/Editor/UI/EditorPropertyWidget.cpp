@@ -558,6 +558,10 @@ void FEditorPropertyWidget::RenderComponentProperties()
 		{
 			ScriptComp->ReloadScript();
 		}
+		if (ImGui::Button("Refresh Script List", ImVec2(-1, 0)))
+		{
+			EditorEngine->GetLuaScriptSubsystem().RefreshAvailableScriptPaths();
+		}
 		ImGui::TextDisabled("Loaded: %s", ScriptComp->IsScriptLoaded() ? "Yes" : "No");
 	}
 
@@ -691,6 +695,8 @@ bool FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 			Options = FResourceManager::Get().GetTextureFilePath();
 		else if (strcmp(Prop.Name, "StaticMesh") == 0)
 			Options = FResourceManager::Get().GetStaticMeshPaths();
+		else if (strcmp(Prop.Name, "Script Path") == 0)
+			Options = EditorEngine->GetLuaScriptSubsystem().GetAvailableScriptPaths();
 		bChanged = EditorUIUtils::RenderStringComboOrInput(Prop.Name, *Val, Options);
 		break;
 	}

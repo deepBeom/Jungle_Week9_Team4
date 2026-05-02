@@ -270,6 +270,26 @@ void FEditorViewportOverlayWidget::RenderViewportSettings(float DeltaTime)
 		ImGui::Checkbox("Fog", &Settings.ShowFlags.bFog);
 	}
 
+	if (BeginSettingsSection("Camera Settings", true))
+	{
+		SetControlWidth();
+		ImGui::SliderFloat("Move Sensitivity", &Settings.CameraMoveSensitivity, 0.05f, 5.0f, "%.1f");
+
+		SetControlWidth();
+		ImGui::SliderFloat("Rotate Sensitivity", &Settings.CameraRotateSensitivity, 0.05f, 5.0f, "%.1f");
+
+		if (EditorEngine)
+		{
+			FEditorViewportLayout& Layout = EditorEngine->GetViewportLayout();
+			const int32 FocusedIdx = Layout.GetLastFocusedViewportIndex();
+			FEditorViewportClient* FocusedClient = Layout.GetViewportClient(FocusedIdx);
+			(void)FocusedClient;
+
+			SetControlWidth();
+			ImGui::SliderFloat("Zoom Speed", &Settings.CameraZoomSpeed, 0.1f, 100.0f, "%.1f");
+		}
+	}
+
 	if (BeginSettingsSection("Shadow Settings", false))
 	{
 			ImGui::Checkbox("Shadow", &Settings.ShowFlags.bShadow);
@@ -376,27 +396,7 @@ void FEditorViewportOverlayWidget::RenderViewportSettings(float DeltaTime)
 		ImGui::Checkbox("Enable FXAA", &Settings.bEnableFXAA);
 	}
 
-	if (BeginSettingsSection("Camera Settings", true))
-	{
-		SetControlWidth();
-		ImGui::SliderFloat("Move Sensitivity", &Settings.CameraMoveSensitivity, 0.05f, 5.0f, "%.1f");
-
-		SetControlWidth();
-		ImGui::SliderFloat("Rotate Sensitivity", &Settings.CameraRotateSensitivity, 0.05f, 5.0f, "%.1f");
-
-		if (EditorEngine)
-		{
-			FEditorViewportLayout& Layout = EditorEngine->GetViewportLayout();
-			const int32 FocusedIdx = Layout.GetLastFocusedViewportIndex();
-			FEditorViewportClient* FocusedClient = Layout.GetViewportClient(FocusedIdx);
-			(void)FocusedClient;
-
-			SetControlWidth();
-			ImGui::SliderFloat("Zoom Speed", &Settings.CameraZoomSpeed, 0.1f, 100.0f, "%.1f");
-		}
-	}
-
-	if (Settings.ShowFlags.bBoundingVolume && Settings.ShowFlags.bBVHBoundingVolume && BeginSettingsSection("BVH Settings", false))
+	if (BeginSettingsSection("BVH Settings", false))
 	{
 		bool bPolicyChanged = false;
 

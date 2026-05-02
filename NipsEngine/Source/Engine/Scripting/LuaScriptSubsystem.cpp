@@ -1,13 +1,32 @@
 #include "Core/EnginePCH.h"
 #include "Scripting/LuaScriptSubsystem.h"
 
-#include "Engine/Component/ActorComponent.h"
+#include "Engine/Scripting/LuaBinder.h"
 #include "Engine/Component/Script/ScriptComponent.h"
-#include "Engine/Core/CollisionTypes.h"
-#include "Engine/Core/Logging/Timer.h"
 #include "Engine/Core/Paths.h"
 #include "Engine/GameFramework/Actor.h"
-#include "Engine/Runtime/Engine.h"
+#include <algorithm>
+#include <cwctype>
+#include <filesystem>
+
+namespace
+{
+    // Rebuild all environment globals used by script callbacks.
+    void ConfigureInstanceEnvironment(FLuaScriptInstance& Instance, sol::state& Lua, AActor* Owner, UScriptComponent* OwnerComponent)
+    {
+        Instance.Env = sol::environment(Lua, sol::create, Lua.globals());
+        Instance.Env["Self"] = Owner;
+        Instance.Env["Owner"] = Owner;
+        Instance.Env["Component"] = OwnerComponent;
+        Instance.Env["DestroySelf"] = [Owner]()
+        {
+            if (Owner && UObject::IsValid(Owner))
+            {
+                Owner->Destroy();
+            }
+        };
+    }
+}
 
 void FLuaScriptSubsystem::LogFunctionError(const std::string& FunctionName, const FString& ScriptPath, const char* ErrorMessage) const
 {
@@ -19,6 +38,7 @@ void FLuaScriptSubsystem::LogFunctionError(const std::string& FunctionName, cons
 
 void FLuaScriptSubsystem::Initialize()
 {
+    // Shared VM boot. Per-actor isolation is handled by per-instance environments.
     Lua.open_libraries(
         sol::lib::base,
         sol::lib::package,
@@ -29,11 +49,14 @@ void FLuaScriptSubsystem::Initialize()
 
     BindEngineTypes();
     BindGlobalFunctions();
+    RebuildScriptPathCache();
 }
 
 void FLuaScriptSubsystem::Shutdown()
 {
+    // Drop runtime references owned by subsystem.
     ScriptInstances.clear();
+    AvailableScriptPaths.clear();
 }
 
 bool FLuaScriptSubsystem::CanInvoke(const std::shared_ptr<FLuaScriptInstance>& Instance) const
@@ -63,231 +86,12 @@ FString FLuaScriptSubsystem::ResolveScriptPath(const FString& ScriptPath) const
 
 void FLuaScriptSubsystem::BindEngineTypes()
 {
-    Lua.new_usertype<FVector>(
-        "Vec3",
-        sol::constructors<FVector(), FVector(float, float, float)>(),
-        "X", &FVector::X,
-        "Y", &FVector::Y,
-        "Z", &FVector::Z);
-
-    Lua.new_usertype<FHitResult>(
-        "HitInfo",
-        "Distance", &FHitResult::Distance,
-        "Location", &FHitResult::Location,
-        "Normal", &FHitResult::Normal,
-        "FaceIndex", &FHitResult::FaceIndex,
-        "IsValid", [](const FHitResult* Hit)
-        {
-            return Hit && Hit->IsValid();
-        });
-
-    Lua.new_usertype<UActorComponent>(
-        "Component",
-        "GetName", [](UActorComponent* Component) -> std::string
-        {
-            return (Component && UObject::IsValid(Component))
-                ? static_cast<std::string>(Component->GetName())
-                : std::string();
-        },
-        "GetTypeName", [](UActorComponent* Component) -> std::string
-        {
-            return (Component && UObject::IsValid(Component))
-                ? Component->GetTypeInfo()->name
-                : std::string();
-        },
-        "GetOwner", [](UActorComponent* Component) -> AActor*
-        {
-            if (!Component || !UObject::IsValid(Component))
-            {
-                return nullptr;
-            }
-
-            AActor* Owner = Component->GetOwner();
-            if (!Owner || !UObject::IsValid(Owner) || Owner->IsPendingDestroy())
-            {
-                return nullptr;
-            }
-
-            return Owner;
-        },
-        "SetActive", [](UActorComponent* Component, bool bEnabled)
-        {
-            if (Component && UObject::IsValid(Component))
-            {
-                Component->SetActive(bEnabled);
-            }
-        },
-        "IsActive", [](UActorComponent* Component)
-        {
-            return Component && UObject::IsValid(Component) && Component->IsActive();
-        });
-
-    Lua.new_usertype<AActor>(
-        "Actor",
-        "GetName", [](AActor* Actor) -> std::string
-        {
-            return (Actor && UObject::IsValid(Actor))
-                ? static_cast<std::string>(Actor->GetName())
-                : std::string();
-        },
-        "GetPosition", [](AActor* Actor)
-        {
-            return (Actor && UObject::IsValid(Actor) && !Actor->IsPendingDestroy())
-                ? Actor->GetActorLocation()
-                : FVector::ZeroVector;
-        },
-        "SetPosition", [](AActor* Actor, float X, float Y, float Z)
-        {
-            if (Actor && UObject::IsValid(Actor) && !Actor->IsPendingDestroy())
-            {
-                Actor->SetActorLocation(FVector(X, Y, Z));
-            }
-        },
-        "AddPosition", [](AActor* Actor, float X, float Y, float Z)
-        {
-            if (Actor && UObject::IsValid(Actor) && !Actor->IsPendingDestroy())
-            {
-                Actor->AddActorWorldOffset(FVector(X, Y, Z));
-            }
-        },
-        "GetRotation", [](AActor* Actor)
-        {
-            return (Actor && UObject::IsValid(Actor) && !Actor->IsPendingDestroy())
-                ? Actor->GetActorRotation()
-                : FVector::ZeroVector;
-        },
-        "SetRotation", [](AActor* Actor, float X, float Y, float Z)
-        {
-            if (Actor && UObject::IsValid(Actor) && !Actor->IsPendingDestroy())
-            {
-                Actor->SetActorRotation(FVector(X, Y, Z));
-            }
-        },
-        "GetScale", [](AActor* Actor)
-        {
-            return (Actor && UObject::IsValid(Actor) && !Actor->IsPendingDestroy())
-                ? Actor->GetActorScale()
-                : FVector(1.0f, 1.0f, 1.0f);
-        },
-        "SetScale", [](AActor* Actor, float X, float Y, float Z)
-        {
-            if (Actor && UObject::IsValid(Actor) && !Actor->IsPendingDestroy())
-            {
-                Actor->SetActorScale(FVector(X, Y, Z));
-            }
-        },
-        "GetForwardVector", [](AActor* Actor)
-        {
-            return (Actor && UObject::IsValid(Actor) && !Actor->IsPendingDestroy())
-                ? Actor->GetActorForward()
-                : FVector(0.0f, 0.0f, 1.0f);
-        },
-        "SetActive", [](AActor* Actor, bool bEnabled)
-        {
-            if (Actor && UObject::IsValid(Actor) && !Actor->IsPendingDestroy())
-            {
-                Actor->SetActive(bEnabled);
-            }
-        },
-        "Destroy", [](AActor* Actor)
-        {
-            if (Actor && UObject::IsValid(Actor))
-            {
-                Actor->Destroy();
-            }
-        },
-        "GetComponent", [](AActor* Actor, const std::string& TypeName) -> UActorComponent*
-        {
-            if (!Actor || !UObject::IsValid(Actor) || Actor->IsPendingDestroy())
-            {
-                return nullptr;
-            }
-
-            const FString RequestedType = TypeName;
-            const FString PrefixedType = RequestedType.rfind("U", 0) == 0
-                ? RequestedType
-                : ("U" + RequestedType);
-
-            for (UActorComponent* Component : Actor->GetComponents())
-            {
-                if (!Component || !UObject::IsValid(Component))
-                {
-                    continue;
-                }
-
-                const FString ComponentType = Component->GetTypeInfo()->name;
-                if (ComponentType == RequestedType || ComponentType == PrefixedType)
-                {
-                    return Component;
-                }
-            }
-
-            return nullptr;
-        },
-        "FindComponentByClass", [](AActor* Actor, const std::string& TypeName) -> UActorComponent*
-        {
-            if (!Actor || !UObject::IsValid(Actor) || Actor->IsPendingDestroy())
-            {
-                return nullptr;
-            }
-
-            const FString RequestedType = TypeName;
-            const FString PrefixedType = RequestedType.rfind("U", 0) == 0
-                ? RequestedType
-                : ("U" + RequestedType);
-
-            for (UActorComponent* Component : Actor->GetComponents())
-            {
-                if (!Component || !UObject::IsValid(Component))
-                {
-                    continue;
-                }
-
-                const FString ComponentType = Component->GetTypeInfo()->name;
-                if (ComponentType == RequestedType || ComponentType == PrefixedType)
-                {
-                    return Component;
-                }
-            }
-
-            return nullptr;
-        },
-        "IsPendingDestroy", [](AActor* Actor)
-        {
-            return Actor && UObject::IsValid(Actor) && Actor->IsPendingDestroy();
-        },
-        "IsValid", [](AActor* Actor)
-        {
-            return Actor && UObject::IsValid(Actor) && !Actor->IsPendingDestroy();
-        });
+    LuaBinder::BindEngineTypes(Lua);
 }
 
 void FLuaScriptSubsystem::BindGlobalFunctions()
 {
-    Lua.set_function("Log", [](const std::string& Message)
-    {
-        printf("[Lua] %s\n", Message.c_str());
-    });
-
-    Lua.set_function("Warning", [](const std::string& Message)
-    {
-        printf("[Lua Warning] %s\n", Message.c_str());
-    });
-
-    Lua.set_function("Error", [](const std::string& Message)
-    {
-        printf("[Lua Error] %s\n", Message.c_str());
-    });
-
-    Lua.set_function("GetTimeSeconds", []() -> double
-    {
-        return (GEngine && GEngine->GetTimer()) ? GEngine->GetTimer()->GetTotalTime() : 0.0;
-    });
-
-    Lua.set_function("GetFrameCount", []() -> uint64
-    {
-        return GEngine ? GEngine->GetFrameCount() : 0;
-    });
+    LuaBinder::BindGlobalFunctions(Lua);
 }
 
 std::shared_ptr<FLuaScriptInstance> FLuaScriptSubsystem::CreateScriptInstance(
@@ -295,22 +99,14 @@ std::shared_ptr<FLuaScriptInstance> FLuaScriptSubsystem::CreateScriptInstance(
     UScriptComponent* OwnerComponent,
     const FString& ScriptPath)
 {
+    // One component owns one environment; globals are isolated between actors.
     auto Instance = std::make_shared<FLuaScriptInstance>(Lua);
 
     Instance->Owner = Owner;
     Instance->OwnerComponent = OwnerComponent;
     Instance->ScriptPath = ScriptPath;
 
-    Instance->Env["Self"] = Owner;
-    Instance->Env["Owner"] = Owner;
-    Instance->Env["Component"] = OwnerComponent;
-    Instance->Env["DestroySelf"] = [Owner]()
-    {
-        if (Owner && UObject::IsValid(Owner))
-        {
-            Owner->Destroy();
-        }
-    };
+    ConfigureInstanceEnvironment(*Instance, Lua, Owner, OwnerComponent);
 
     ScriptInstances.push_back(Instance);
     LoadScript(Instance);
@@ -326,6 +122,7 @@ bool FLuaScriptSubsystem::LoadScript(std::shared_ptr<FLuaScriptInstance> Instanc
 
     Instance->bLoaded = false;
 
+    // Resolve to absolute path to avoid working-directory sensitivity.
     const FString ResolvedScriptPath = ResolveScriptPath(Instance->ScriptPath);
     sol::load_result LoadedScript = Lua.load_file(ResolvedScriptPath);
 
@@ -363,17 +160,8 @@ bool FLuaScriptSubsystem::ReloadScript(std::shared_ptr<FLuaScriptInstance> Insta
     UScriptComponent* OwnerComponent = Instance->OwnerComponent;
     FString ScriptPath = Instance->ScriptPath;
 
-    Instance->Env = sol::environment(Lua, sol::create, Lua.globals());
-    Instance->Env["Self"] = Owner;
-    Instance->Env["Owner"] = Owner;
-    Instance->Env["Component"] = OwnerComponent;
-    Instance->Env["DestroySelf"] = [Owner]()
-    {
-        if (Owner && UObject::IsValid(Owner))
-        {
-            Owner->Destroy();
-        }
-    };
+    // Recreate the environment completely so stale Lua globals/upvalues do not survive reload.
+    ConfigureInstanceEnvironment(*Instance, Lua, Owner, OwnerComponent);
 
     Instance->ScriptPath = ScriptPath;
     Instance->bLoaded = false;
@@ -397,6 +185,59 @@ void FLuaScriptSubsystem::ReloadAllScripts()
 
         ReloadScript(Instance);
     }
+}
+
+const TArray<FString>& FLuaScriptSubsystem::GetAvailableScriptPaths(bool bForceRefresh)
+{
+    if (bForceRefresh || AvailableScriptPaths.empty())
+    {
+        RebuildScriptPathCache();
+    }
+
+    return AvailableScriptPaths;
+}
+
+void FLuaScriptSubsystem::RefreshAvailableScriptPaths()
+{
+    RebuildScriptPathCache();
+}
+
+void FLuaScriptSubsystem::RebuildScriptPathCache()
+{
+    AvailableScriptPaths.clear();
+
+    const std::filesystem::path ScriptRoot = std::filesystem::path(FPaths::AssetDirectoryPath()) / L"Scripts";
+    std::error_code Ec;
+    if (!std::filesystem::exists(ScriptRoot, Ec))
+    {
+        return;
+    }
+
+    // Editor dropdown cache: keep normalized relative paths under Asset/Scripts.
+    for (auto It = std::filesystem::recursive_directory_iterator(ScriptRoot, Ec);
+        !Ec && It != std::filesystem::recursive_directory_iterator();
+        It.increment(Ec))
+    {
+        if (!It->is_regular_file(Ec))
+        {
+            continue;
+        }
+
+        std::wstring Extension = It->path().extension().wstring();
+        std::transform(Extension.begin(), Extension.end(), Extension.begin(), towlower);
+        if (Extension != L".lua")
+        {
+            continue;
+        }
+
+        const FString RelativePath = FPaths::ToRelativeString(It->path().generic_wstring());
+        AvailableScriptPaths.push_back(FPaths::Normalize(RelativePath));
+    }
+
+    std::sort(AvailableScriptPaths.begin(), AvailableScriptPaths.end());
+    AvailableScriptPaths.erase(
+        std::unique(AvailableScriptPaths.begin(), AvailableScriptPaths.end()),
+        AvailableScriptPaths.end());
 }
 
 bool FLuaScriptSubsystem::HasFunction(std::shared_ptr<FLuaScriptInstance> Instance, const std::string& FunctionName) const

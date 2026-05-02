@@ -6,14 +6,20 @@
 #include "Engine/Runtime/Engine.h"
 #include "Engine/Scripting/LuaScriptSubsystem.h"
 
+namespace
+{
+    // Fail-safe threshold for consecutive callback runtime failures.
+    constexpr int32 MaxConsecutiveRuntimeFailures = 3;
+}
+
 DEFINE_CLASS(UScriptComponent, UActorComponent)
 REGISTER_FACTORY(UScriptComponent)
 
 void UScriptComponent::BeginPlay()
 {
     bHasBegunPlay = true;
-    bDestroyNotified = false;
-    bEnableNotified = false;
+    // Reset runtime phase for every play session / PIE entry.
+    RuntimeState = EScriptRuntimeState::Idle;
     ConsecutiveRuntimeErrorCount = 0;
 
     if (!EnsureScriptInstance())
@@ -42,14 +48,14 @@ void UScriptComponent::EndPlay()
     }
 
     bHasBegunPlay = false;
-    bStarted = false;
-    bEnableNotified = false;
+    RuntimeState = EScriptRuntimeState::Idle;
     ConsecutiveRuntimeErrorCount = 0;
 }
 
 void UScriptComponent::TickComponent(float DeltaTime)
 {
-    if (!bHasBegunPlay || !IsActive() || !ScriptInstance || !ScriptInstance->bLoaded)
+    // World lifecycle gate + activation gate.
+    if (!CanDispatchCallbacks())
     {
         return;
     }
@@ -60,13 +66,9 @@ void UScriptComponent::TickComponent(float DeltaTime)
         return;
     }
 
-    FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
-    const bool bHasUpdateCallback = LuaSubsystem.HasFunction(ScriptInstance, "OnUpdate")
-        || LuaSubsystem.HasFunction(ScriptInstance, "Tick");
-    const bool bResult = LuaSubsystem.HasFunction(ScriptInstance, "OnUpdate")
-        ? LuaSubsystem.CallFunction(ScriptInstance, "OnUpdate", GetOwner(), DeltaTime)
-        : TryCallPreferredFloat({ "Tick" }, DeltaTime);
-    HandleRuntimeCallbackResult(bResult, bHasUpdateCallback);
+    bool bHadCallback = false;
+    const bool bResult = TryCallPreferred({ "OnUpdate", "Tick" }, &bHadCallback, DeltaTime);
+    ApplyRuntimeFailurePolicy(bHadCallback, bResult, "OnUpdate/Tick");
 }
 
 void UScriptComponent::Activate()
@@ -154,11 +156,9 @@ void UScriptComponent::OnOverlapBegin(AActor* OtherActor)
         return;
     }
 
-    FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
-    const bool bHasCallback = LuaSubsystem.HasFunction(ScriptInstance, "OnOverlapBegin")
-        || LuaSubsystem.HasFunction(ScriptInstance, "OnOverlap");
-    const bool bResult = TryCallPreferredActor({ "OnOverlapBegin", "OnOverlap" }, OtherActor);
-    HandleRuntimeCallbackResult(bResult, bHasCallback);
+    bool bHadCallback = false;
+    const bool bResult = TryCallPreferred({ "OnOverlapBegin", "OnOverlap" }, &bHadCallback, OtherActor);
+    ApplyRuntimeFailurePolicy(bHadCallback, bResult, "OnOverlapBegin/OnOverlap");
 }
 
 void UScriptComponent::OnOverlapEnd(AActor* OtherActor)
@@ -168,10 +168,9 @@ void UScriptComponent::OnOverlapEnd(AActor* OtherActor)
         return;
     }
 
-    FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
-    const bool bHasCallback = LuaSubsystem.HasFunction(ScriptInstance, "OnOverlapEnd");
-    const bool bResult = TryCallPreferredActor({ "OnOverlapEnd" }, OtherActor);
-    HandleRuntimeCallbackResult(bResult, bHasCallback);
+    bool bHadCallback = false;
+    const bool bResult = TryCallPreferred({ "OnOverlapEnd" }, &bHadCallback, OtherActor);
+    ApplyRuntimeFailurePolicy(bHadCallback, bResult, "OnOverlapEnd");
 }
 
 void UScriptComponent::OnHit(AActor* OtherActor)
@@ -187,10 +186,9 @@ void UScriptComponent::OnHit(AActor* OtherActor, const FHitResult& HitInfo)
         return;
     }
 
-    FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
-    const bool bHasCallback = LuaSubsystem.HasFunction(ScriptInstance, "OnHit");
-    const bool bResult = TryCallPreferredHit({ "OnHit" }, OtherActor, HitInfo);
-    HandleRuntimeCallbackResult(bResult, bHasCallback);
+    bool bHadCallback = false;
+    const bool bResult = TryCallPreferred({ "OnHit" }, &bHadCallback, OtherActor, HitInfo);
+    ApplyRuntimeFailurePolicy(bHadCallback, bResult, "OnHit");
 }
 
 bool UScriptComponent::ReloadScript()
@@ -203,9 +201,7 @@ bool UScriptComponent::ReloadScript()
     NotifyScriptDestroyed();
 
     const bool bReloaded = GEngine->GetLuaScriptSubsystem().ReloadScript(ScriptInstance);
-    bStarted = false;
-    bEnableNotified = false;
-    bDestroyNotified = false;
+    RuntimeState = EScriptRuntimeState::Idle;
     ConsecutiveRuntimeErrorCount = 0;
 
     if (!bReloaded)
@@ -236,6 +232,11 @@ bool UScriptComponent::IsScriptLoaded() const
     return ScriptInstance && ScriptInstance->bLoaded;
 }
 
+bool UScriptComponent::CanDispatchCallbacks() const
+{
+    return bHasBegunPlay && bIsActive && ScriptInstance && ScriptInstance->bLoaded;
+}
+
 bool UScriptComponent::EnsureScriptInstance()
 {
     if (ScriptPath.empty())
@@ -248,6 +249,7 @@ bool UScriptComponent::EnsureScriptInstance()
         return ScriptInstance->bLoaded;
     }
 
+    // One ScriptComponent owns one instance; same lua file on different actors stays isolated.
     ScriptInstance = GEngine->GetLuaScriptSubsystem().CreateScriptInstance(GetOwner(), this, ScriptPath);
     if (!ScriptInstance || !ScriptInstance->bLoaded)
     {
@@ -260,95 +262,110 @@ bool UScriptComponent::EnsureScriptInstance()
 
 void UScriptComponent::StartScriptIfNeeded()
 {
-    if (bStarted || !ScriptInstance || !ScriptInstance->bLoaded)
+    // Start callback is one-shot per runtime cycle.
+    if (RuntimeState != EScriptRuntimeState::Idle || !ScriptInstance || !ScriptInstance->bLoaded)
     {
         return;
     }
 
-    FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
-    const bool bHasStartCallback = LuaSubsystem.HasFunction(ScriptInstance, "OnStart")
-        || LuaSubsystem.HasFunction(ScriptInstance, "BeginPlay");
-    const bool bResult = TryCallPreferred({ "OnStart", "BeginPlay" });
-    if (!bResult && bHasStartCallback)
+    bool bHadCallback = false;
+    const bool bResult = TryCallPreferred({ "OnStart", "BeginPlay" }, &bHadCallback);
+    if (!bResult && bHadCallback)
     {
         DisableScriptAfterFatalError();
         return;
     }
 
-    bStarted = true;
+    RuntimeState = EScriptRuntimeState::Started;
 }
 
 void UScriptComponent::NotifyScriptEnabled()
 {
-    if (bEnableNotified || !ScriptInstance || !ScriptInstance->bLoaded)
+    // Failed/Destroyed are terminal states for this runtime cycle.
+    if (RuntimeState == EScriptRuntimeState::Enabled
+        || RuntimeState == EScriptRuntimeState::Failed
+        || RuntimeState == EScriptRuntimeState::Destroyed
+        || !ScriptInstance
+        || !ScriptInstance->bLoaded)
     {
         return;
     }
 
-    FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
-    const bool bHasEnableCallback = LuaSubsystem.HasFunction(ScriptInstance, "OnEnable");
-    const bool bResult = TryCallPreferred({ "OnEnable" });
-    if (!bResult && bHasEnableCallback)
+    bool bHadCallback = false;
+    const bool bResult = TryCallPreferred({ "OnEnable" }, &bHadCallback);
+    if (!bResult && bHadCallback)
     {
-        HandleRuntimeCallbackResult(false, true);
+        ApplyRuntimeFailurePolicy(true, false, "OnEnable");
         return;
     }
 
-    HandleRuntimeCallbackResult(true, bHasEnableCallback);
-    bEnableNotified = true;
+    ApplyRuntimeFailurePolicy(bHadCallback, true, "OnEnable");
+    RuntimeState = EScriptRuntimeState::Enabled;
 }
 
 void UScriptComponent::NotifyScriptDisabled()
 {
-    if (!bEnableNotified || !ScriptInstance || !ScriptInstance->bLoaded)
+    if (RuntimeState != EScriptRuntimeState::Enabled || !ScriptInstance || !ScriptInstance->bLoaded)
     {
-        bEnableNotified = false;
         return;
     }
 
-    FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
-    const bool bHasDisableCallback = LuaSubsystem.HasFunction(ScriptInstance, "OnDisable");
-    const bool bResult = TryCallPreferred({ "OnDisable" });
-    if (!bResult && bHasDisableCallback)
+    bool bHadCallback = false;
+    const bool bResult = TryCallPreferred({ "OnDisable" }, &bHadCallback);
+    if (!bResult && bHadCallback)
     {
-        HandleRuntimeCallbackResult(false, true);
+        ApplyRuntimeFailurePolicy(true, false, "OnDisable");
         return;
     }
 
-    HandleRuntimeCallbackResult(true, bHasDisableCallback);
-    bEnableNotified = false;
+    ApplyRuntimeFailurePolicy(bHadCallback, true, "OnDisable");
+    RuntimeState = EScriptRuntimeState::Started;
 }
 
 void UScriptComponent::NotifyScriptDestroyed()
 {
-    if (bDestroyNotified || !ScriptInstance || !ScriptInstance->bLoaded)
+    // Destroy callback is delivered once, and disable notification is sent first when needed.
+    if (RuntimeState == EScriptRuntimeState::Destroyed || !ScriptInstance || !ScriptInstance->bLoaded)
     {
         return;
     }
 
     NotifyScriptDisabled();
 
-    FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
-    const bool bHasDestroyCallback = LuaSubsystem.HasFunction(ScriptInstance, "OnDestroy");
-    const bool bResult = TryCallPreferred({ "OnDestroy" });
-    if (!bResult && bHasDestroyCallback)
+    bool bHadCallback = false;
+    const bool bResult = TryCallPreferred({ "OnDestroy" }, &bHadCallback);
+    if (!bResult && bHadCallback)
     {
-        HandleRuntimeCallbackResult(false, true);
+        ApplyRuntimeFailurePolicy(true, false, "OnDestroy");
         return;
     }
 
-    HandleRuntimeCallbackResult(true, bHasDestroyCallback);
-    bDestroyNotified = true;
+    ApplyRuntimeFailurePolicy(bHadCallback, true, "OnDestroy");
+    RuntimeState = EScriptRuntimeState::Destroyed;
 }
 
-bool UScriptComponent::TryCallPreferred(const std::initializer_list<const char*>& CallbackNames)
+template<typename... Args>
+bool UScriptComponent::TryCallPreferred(
+    const std::initializer_list<const char*>& CallbackNames,
+    bool* bOutHadCallback,
+    Args&&... args)
 {
     if (!ScriptInstance || !ScriptInstance->bLoaded)
     {
+        if (bOutHadCallback)
+        {
+            *bOutHadCallback = false;
+        }
         return false;
     }
 
+    if (bOutHadCallback)
+    {
+        *bOutHadCallback = false;
+    }
+
     FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
+    // Choose first callback that exists. Missing callback is an allowed no-op.
     for (const char* CallbackName : CallbackNames)
     {
         if (!LuaSubsystem.HasFunction(ScriptInstance, CallbackName))
@@ -356,70 +373,11 @@ bool UScriptComponent::TryCallPreferred(const std::initializer_list<const char*>
             continue;
         }
 
-        return LuaSubsystem.CallFunction(ScriptInstance, CallbackName, GetOwner());
-    }
-
-    return true;
-}
-
-bool UScriptComponent::TryCallPreferredActor(const std::initializer_list<const char*>& CallbackNames, AActor* OtherActor)
-{
-    if (!ScriptInstance || !ScriptInstance->bLoaded)
-    {
-        return false;
-    }
-
-    FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
-    for (const char* CallbackName : CallbackNames)
-    {
-        if (!LuaSubsystem.HasFunction(ScriptInstance, CallbackName))
+        if (bOutHadCallback)
         {
-            continue;
+            *bOutHadCallback = true;
         }
-
-        return LuaSubsystem.CallFunction(ScriptInstance, CallbackName, GetOwner(), OtherActor);
-    }
-
-    return true;
-}
-
-bool UScriptComponent::TryCallPreferredFloat(const std::initializer_list<const char*>& CallbackNames, float Value)
-{
-    if (!ScriptInstance || !ScriptInstance->bLoaded)
-    {
-        return false;
-    }
-
-    FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
-    for (const char* CallbackName : CallbackNames)
-    {
-        if (!LuaSubsystem.HasFunction(ScriptInstance, CallbackName))
-        {
-            continue;
-        }
-
-        return LuaSubsystem.CallFunction(ScriptInstance, CallbackName, GetOwner(), Value);
-    }
-
-    return true;
-}
-
-bool UScriptComponent::TryCallPreferredHit(const std::initializer_list<const char*>& CallbackNames, AActor* OtherActor, const FHitResult& HitInfo)
-{
-    if (!ScriptInstance || !ScriptInstance->bLoaded)
-    {
-        return false;
-    }
-
-    FLuaScriptSubsystem& LuaSubsystem = GEngine->GetLuaScriptSubsystem();
-    for (const char* CallbackName : CallbackNames)
-    {
-        if (!LuaSubsystem.HasFunction(ScriptInstance, CallbackName))
-        {
-            continue;
-        }
-
-        return LuaSubsystem.CallFunction(ScriptInstance, CallbackName, GetOwner(), OtherActor, HitInfo);
+        return LuaSubsystem.CallFunction(ScriptInstance, CallbackName, GetOwner(), std::forward<Args>(args)...);
     }
 
     return true;
@@ -430,28 +388,38 @@ void UScriptComponent::DisableScriptAfterFatalError()
     bIsActive = false;
     bSerializedEnabled = false;
     bCanEverTick = false;
-    bEnableNotified = false;
+    RuntimeState = EScriptRuntimeState::Failed;
 }
 
-void UScriptComponent::HandleRuntimeCallbackResult(bool bSucceeded, bool bHadCallback)
+void UScriptComponent::ApplyRuntimeFailurePolicy(bool bHadCallback, bool bSucceeded, const char* CallbackContext)
 {
+    if (ShouldDisableAfterRuntimeFailure(bHadCallback, bSucceeded))
+    {
+        printf("[Lua] Disabling script after %d consecutive callback failures: %s\n",
+            ConsecutiveRuntimeErrorCount,
+            ScriptPath.c_str());
+        if (CallbackContext && CallbackContext[0] != '\0')
+        {
+            printf("[Lua] Last failed callback context: %s\n", CallbackContext);
+        }
+        DisableScriptAfterFatalError();
+    }
+}
+
+bool UScriptComponent::ShouldDisableAfterRuntimeFailure(bool bHadCallback, bool bSucceeded)
+{
+    // Optional callbacks should not be treated as failures when absent.
     if (!bHadCallback)
     {
-        return;
+        return false;
     }
 
     if (bSucceeded)
     {
         ConsecutiveRuntimeErrorCount = 0;
-        return;
+        return false;
     }
 
     ++ConsecutiveRuntimeErrorCount;
-    if (ConsecutiveRuntimeErrorCount >= 3)
-    {
-        printf("[Lua] Disabling script after %d consecutive callback failures: %s\n",
-            ConsecutiveRuntimeErrorCount,
-            ScriptPath.c_str());
-        DisableScriptAfterFatalError();
-    }
+    return ConsecutiveRuntimeErrorCount >= MaxConsecutiveRuntimeFailures;
 }
