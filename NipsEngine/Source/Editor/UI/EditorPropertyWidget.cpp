@@ -26,6 +26,13 @@
 namespace
 {
     constexpr float ShadowPreviewSize = 256.0f;
+    constexpr uint32 InvalidPropertyNameId = 0u;
+
+    constexpr uint32 PropIdTexturePath = PropertyNameIdConstexpr("Texture Path");
+    constexpr uint32 PropIdStaticMesh = PropertyNameIdConstexpr("StaticMesh");
+    constexpr uint32 PropIdScriptPath = PropertyNameIdConstexpr("Script Path");
+    constexpr uint32 PropIdFont = PropertyNameIdConstexpr("Font");
+    constexpr uint32 PropIdParticle = PropertyNameIdConstexpr("Particle");
 
     const ImU32 ColorGridLine = IM_COL32(255, 255, 255, 35);
     const ImU32 ColorEmptyBg = IM_COL32(0, 0, 0, 150);
@@ -43,6 +50,34 @@ namespace
 
     // ─────────────────── Helper ───────────────────────────
     int32 ExtractActorID(const AActor* Actor);
+
+    TArray<FString> GetStringPropertyOptions(uint32 PropNameId, UEditorEngine* EditorEngine)
+    {
+        switch (PropNameId)
+        {
+        case PropIdTexturePath:
+            return FResourceManager::Get().GetTextureFilePath();
+        case PropIdStaticMesh:
+            return FResourceManager::Get().GetStaticMeshPaths();
+        case PropIdScriptPath:
+            return EditorEngine ? EditorEngine->GetLuaScriptSubsystem().GetAvailableScriptPaths() : TArray<FString>{};
+        default:
+            return {};
+        }
+    }
+
+    TArray<FString> GetNamePropertyOptions(uint32 PropNameId)
+    {
+        switch (PropNameId)
+        {
+        case PropIdFont:
+            return FResourceManager::Get().GetFontNames();
+        case PropIdParticle:
+            return FResourceManager::Get().GetParticleNames();
+        default:
+            return {};
+        }
+    }
 }
 
 void FEditorPropertyWidget::Initialize(UEditorEngine* InEditorEngine)
@@ -239,13 +274,14 @@ void FEditorPropertyWidget::RenderAddComponentPopup(AActor* PrimaryActor)
 
     if (ImGui::BeginPopup("AddComponentPopup"))
     {
-        const char* CurrentCategory = nullptr;
+        uint32 CurrentCategoryId = InvalidPropertyNameId;
         for (const FComponentMenuEntry& Entry : FEditorComponentFactory::GetMenuRegistry())
         {
-            if (CurrentCategory == nullptr || strcmp(CurrentCategory, Entry.Category) != 0)
+            const uint32 EntryCategoryId = PropertyNameId(Entry.Category);
+            if (CurrentCategoryId != EntryCategoryId)
             {
-                CurrentCategory = Entry.Category;
-                ImGui::SeparatorText(CurrentCategory);
+                CurrentCategoryId = EntryCategoryId;
+                ImGui::SeparatorText(Entry.Category);
             }
 
             if (ImGui::Selectable(Entry.DisplayName))
@@ -645,6 +681,7 @@ void FEditorPropertyWidget::RenderSceneComponentRefWidget(FPropertyDescriptor& P
 bool FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 {
     bool bChanged = false;
+    const uint32 PropNameId = PropertyNameId(Prop.Name);
 
     switch (Prop.Type)
     {
@@ -690,13 +727,7 @@ bool FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
     case EPropertyType::String:
     {
         FString* Val = static_cast<FString*>(Prop.ValuePtr);
-        TArray<FString> Options;
-        if (strcmp(Prop.Name, "Texture Path") == 0)
-            Options = FResourceManager::Get().GetTextureFilePath();
-        else if (strcmp(Prop.Name, "StaticMesh") == 0)
-            Options = FResourceManager::Get().GetStaticMeshPaths();
-        else if (strcmp(Prop.Name, "Script Path") == 0)
-            Options = EditorEngine->GetLuaScriptSubsystem().GetAvailableScriptPaths();
+        TArray<FString> Options = GetStringPropertyOptions(PropNameId, EditorEngine);
         bChanged = EditorUIUtils::RenderStringComboOrInput(Prop.Name, *Val, Options);
         break;
     }
@@ -704,11 +735,7 @@ bool FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
     {
         FName* Val = static_cast<FName*>(Prop.ValuePtr);
         FString Current = Val->ToString();
-        TArray<FString> Options;
-        if (strcmp(Prop.Name, "Font") == 0)
-            Options = FResourceManager::Get().GetFontNames();
-        else if (strcmp(Prop.Name, "Particle") == 0)
-            Options = FResourceManager::Get().GetParticleNames();
+        TArray<FString> Options = GetNamePropertyOptions(PropNameId);
         if (EditorUIUtils::RenderStringComboOrInput(Prop.Name, Current, Options))
         {
             *Val = FName(Current);
