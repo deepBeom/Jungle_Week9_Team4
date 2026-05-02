@@ -23,7 +23,6 @@ public:
     // 주요 파일 경로
     static FWString ShaderFilePath(); // Shaders/ShaderW0.hlsl
     static FWString SettingsFilePath();  // Settings/Editor.ini
-    static FWString ViewerSettingsFilePath(); // Settings/ObjViewer.ini
     static FWString AssetDirectoryPath();  // Settings/Resource.ini
     static FWString ResourceDefaultMaterialTexture(); // Asset/Mesh/Default.png
     static FWString ToRelative(const FWString& AbsolutePath);

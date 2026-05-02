@@ -48,6 +48,7 @@ void FRenderer::Create(HWND hWindow)
     FResourceManager::Get().LoadShader("Shaders/Multipass/SkyPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/FogPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/FXAAPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
+    FResourceManager::Get().LoadShader("Shaders/Multipass/PresentPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderFont.hlsl", "VS", "PS", TextureVertexInputLayout, ARRAYSIZE(TextureVertexInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderLine.hlsl", "mainVS", "mainPS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderGrid.hlsl", "GridVS", "GridPS", nullptr, 0, nullptr);
@@ -83,6 +84,10 @@ void FRenderer::CreateResources()
     FGPUProfiler::Get().Initialize(Device.GetDevice(), Device.GetDeviceContext());
 
     RenderPipeline.Initialize();
+    if (UShader* PresentShader = FResourceManager::Get().GetShader("Shaders/Multipass/PresentPass.hlsl"))
+    {
+        PresentShaderBinding = PresentShader->CreateBindingInstance(Device.GetDevice());
+    }
     RenderPassContext = std::make_shared<FRenderPassContext>();
 }
 
@@ -93,6 +98,7 @@ void FRenderer::Release()
     InvalidateSceneFinalTargets();
 
     RenderPipeline.Release();
+    PresentShaderBinding.reset();
     RenderPassContext.reset();
 
     FGPUProfiler::Get().Shutdown();
@@ -186,6 +192,43 @@ void FRenderer::UseBackBufferRenderTargets()
             static_cast<int32>(CurrentRenderTargets->Width),
             static_cast<int32>(CurrentRenderTargets->Height));
     }
+}
+
+void FRenderer::PresentToBackBuffer(const ID3D11ShaderResourceView* FinalSRV)
+{
+    // TODO: assert 정리
+    assert(FinalSRV && "PresentToBackBuffer requires a final scene SRV.");
+    assert(PresentShaderBinding && "PresentToBackBuffer requires a valid present shader binding.");
+    FRenderTargetSet* BackBufferRenderTargets = Device.GetBackBufferRenderTargets();
+    assert(BackBufferRenderTargets && "PresentToBackBuffer requires back buffer render targets.");
+    ID3D11DeviceContext* DeviceContext = Device.GetDeviceContext();
+    assert(DeviceContext && "PresentToBackBuffer requires a valid device context.");
+
+    ID3D11BlendState* OpaqueBlend = FResourceManager::Get().GetOrCreateBlendState(EBlendType::Opaque);
+    DeviceContext->OMSetBlendState(OpaqueBlend, nullptr, 0xFFFFFFFF);
+
+    ID3D11RenderTargetView* BackBufferRTV = BackBufferRenderTargets->SceneColorRTV;
+    DeviceContext->OMSetRenderTargets(1, &BackBufferRTV, nullptr);
+
+    PresentShaderBinding->SetSRV("SceneFinalColor", const_cast<ID3D11ShaderResourceView*>(FinalSRV));
+    PresentShaderBinding->SetAllSamplers(FResourceManager::Get().GetOrCreateSamplerState(ESamplerType::EST_Linear));
+
+    Device.SetSubViewport(0, 0, static_cast<int32>(BackBufferRenderTargets->Width), static_cast<int32>(BackBufferRenderTargets->Height));
+
+    DeviceContext->IASetInputLayout(nullptr);
+    DeviceContext->IASetVertexBuffers(0, 0, nullptr, nullptr, nullptr);
+    DeviceContext->IASetIndexBuffer(nullptr, DXGI_FORMAT_UNKNOWN, 0);
+    DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+    PresentShaderBinding->Bind(DeviceContext);
+    DeviceContext->Draw(3, 0);
+
+    ID3D11ShaderResourceView* NullSRV = nullptr;
+    DeviceContext->PSSetShaderResources(0, 1, &NullSRV);
+
+    SceneFinalRTV = BackBufferRTV;
+    SceneFinalSRV.Reset();
+    CurrentRenderTargets = BackBufferRenderTargets;
 }
 
 void FRenderer::UseViewportRenderTargets(FRenderTargetSet* InRenderTargetSet)
@@ -291,7 +334,7 @@ void FRenderer::Render(const FRenderBus& InRenderBus)
     SceneFinalSRV = RenderPipeline.GetOutSRV();
 }
 
-FViewportRenderResource& FRenderer::AcquireViewportResource(FSceneViewport* VP, uint32 Width, uint32 Height, int32 Index)
+FViewportRenderResource& FRenderer::AcquireViewportResource(uint32 Width, uint32 Height, int32 Index)
 {
     assert(Index < 4 && "Index Out of Bound");
 
@@ -299,7 +342,7 @@ FViewportRenderResource& FRenderer::AcquireViewportResource(FSceneViewport* VP, 
 
     if (Device.GetDevice() == nullptr || Width == 0 || Height == 0)
     {
-        ReleaseViewportResource(VP, Index);
+        ReleaseViewportResource(Index);
         return Res;
     }
 
@@ -318,13 +361,13 @@ FViewportRenderResource& FRenderer::AcquireViewportResource(FSceneViewport* VP, 
     }
 
     // 재생성
-    ReleaseViewportResource(VP, Index);
-    InitializeViewportResource(VP, Width, Height, Index);
+    ReleaseViewportResource(Index);
+    InitializeViewportResource(Width, Height, Index);
 
     return Res;
 }
 
-void FRenderer::InitializeViewportResource(FSceneViewport* VP, uint32 Width, uint32 Height, int32 Index)
+void FRenderer::InitializeViewportResource(uint32 Width, uint32 Height, int32 Index)
 {
     FViewportRenderResource& Res = ViewportResources[Index];
 
@@ -377,7 +420,7 @@ void FRenderer::InitializeViewportResource(FSceneViewport* VP, uint32 Width, uin
     Res.DepthStencilSRV = DSR.SRV;
 }
 
-void FRenderer::ReleaseViewportResource(FSceneViewport* VP, int32 Index)
+void FRenderer::ReleaseViewportResource(int32 Index)
 {
     assert(Index < 4 && "Index Out of Bound");
 

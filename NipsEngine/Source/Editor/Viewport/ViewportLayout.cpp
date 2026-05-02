@@ -245,7 +245,7 @@ void FEditorViewportLayout::BuildViewportLayout(int32 Width, int32 Height)
             VC->SetState(&ViewportWidgets[i].GetSceneViewport().GetState());
         }
 
-        FViewportRenderResource RenderResource = Editor->GetRenderer().AcquireViewportResource(&VP, VP.GetRect().Width, VP.GetRect().Height, i);
+        FViewportRenderResource RenderResource = Editor->GetRenderer().AcquireViewportResource(VP.GetRect().Width, VP.GetRect().Height, i);
         VP.SetRenderTargetSet(&RenderResource.GetView());
         ViewportWidgets[i].SetViewportInterface(&VP);
     }
@@ -409,7 +409,7 @@ void FEditorViewportLayout::DestroyViewportLayout()
         }
 
         FSceneViewport& VP = ViewportWidgets[i].GetSceneViewport();
-        Editor->GetRenderer().ReleaseViewportResource(&VP, i);
+        Editor->GetRenderer().ReleaseViewportResource(i);
         VP.SetClient(nullptr);
 
     }

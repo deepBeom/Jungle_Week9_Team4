@@ -18,7 +18,6 @@ FWString FPaths::RootDir()
         else
         {
             // 2. 개발 환경: 빌드 깊이에 무관하게 exe 상위를 루트까지 순회하며 탐색
-            //    (Bin/ObjViewer/, x64/Release/, Bin/Debug/x64/ 등 깊이가 달라도 대응)
             bool bFound = false;
             std::filesystem::path SearchDir = ExeDir;
 
@@ -58,7 +57,6 @@ FWString FPaths::DumpDir() { return RootDir() + L"Saves/Dump/"; }
 FWString FPaths::SettingsDir() { return RootDir() + L"Settings/"; }
 FWString FPaths::ShaderFilePath() { return RootDir() + L"Shaders/ShaderW0.hlsl"; }
 FWString FPaths::SettingsFilePath() { return RootDir() + L"Settings/Editor.ini"; }
-FWString FPaths::ViewerSettingsFilePath() { return RootDir() + L"Settings/ObjViewer.ini"; }
 FWString FPaths::AssetDirectoryPath() { return RootDir() + L"Asset"; }
 FWString FPaths::ResourceDefaultMaterialTexture() { return RootDir() + L"Asset/Mesh/Default.png"; }
 
