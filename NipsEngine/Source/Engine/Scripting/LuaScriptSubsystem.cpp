@@ -28,7 +28,7 @@ namespace
     }
 }
 
-void FLuaScriptSubsystem::LogFunctionError(const std::string& FunctionName, const FString& ScriptPath, const char* ErrorMessage) const
+void FLuaScriptSubsystem::LogFunctionError(const FString& FunctionName, const FString& ScriptPath, const char* ErrorMessage) const
 {
     printf("[Lua Function Error] %s (%s) : %s\n",
         FunctionName.c_str(),
@@ -223,7 +223,7 @@ void FLuaScriptSubsystem::RebuildScriptPathCache()
             continue;
         }
 
-        std::wstring Extension = It->path().extension().wstring();
+        FWString Extension = It->path().extension().wstring();
         std::transform(Extension.begin(), Extension.end(), Extension.begin(), towlower);
         if (Extension != L".lua")
         {
@@ -240,7 +240,7 @@ void FLuaScriptSubsystem::RebuildScriptPathCache()
         AvailableScriptPaths.end());
 }
 
-bool FLuaScriptSubsystem::HasFunction(std::shared_ptr<FLuaScriptInstance> Instance, const std::string& FunctionName) const
+bool FLuaScriptSubsystem::HasFunction(std::shared_ptr<FLuaScriptInstance> Instance, const FString& FunctionName) const
 {
     if (!CanInvoke(Instance))
     {

@@ -22,7 +22,7 @@
 #include "Render/Renderer/RenderFlow/RenderPipeline.h"
 
 class FSceneViewport;
-
+class FShaderBindingInstance;
 /**
  * Renderer 가 Viewport 별로 소유하는 데이터를 나타내는 구조체
  */
@@ -121,7 +121,8 @@ public:
     void Render(const FRenderBus& InRenderBus);
     void EndFrame();
     void UseBackBufferRenderTargets();
-    
+    void PresentToBackBuffer(const ID3D11ShaderResourceView* FinalSRV);
+
     void UseViewportRenderTargets(FRenderTargetSet* InRenderTargetSet);
     void InvalidateSceneFinalTargets();
 
@@ -134,9 +135,9 @@ public:
 
     // 현재는 Resource 를 Handle 이 아니라, 고정된 4개의 Viewport 에 대한 Index 를 통해 관리
     // 추가로 VP 를 받아서 원래 해당하는 Resource 를 찾아야하는데 현재는 Index 로 찾는 중
-    FViewportRenderResource& AcquireViewportResource(FSceneViewport* VP, uint32 W, uint32 H, int32 Index);
-    void InitializeViewportResource(FSceneViewport* VP, uint32 Width, uint32 Height, int32 Index);
-    void ReleaseViewportResource(FSceneViewport* VP, int32 Index);
+    FViewportRenderResource& AcquireViewportResource(uint32 W, uint32 H, int32 Index);
+    void InitializeViewportResource(uint32 Width, uint32 Height, int32 Index);
+    void ReleaseViewportResource(int32 Index);
 
 private:
     void InitializePassBatchers();
@@ -156,6 +157,7 @@ private:
     /** 모든 Render Pass 를 관리할 객체 */
     FRenderPipeline RenderPipeline;
     std::shared_ptr<FRenderPassContext> RenderPassContext;
+    std::shared_ptr<FShaderBindingInstance> PresentShaderBinding;
 
     // 패스별 커맨드 정렬이 필요한 경우 정렬된 복사본 반환, 아니면 원본 참조
     const TArray<FRenderCommand>& GetAlignedCommands(ERenderPass Pass, const TArray<FRenderCommand>& Commands);

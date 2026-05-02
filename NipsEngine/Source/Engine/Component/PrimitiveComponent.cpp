@@ -21,8 +21,7 @@ void UPrimitiveComponent::PostEditProperty(const char* PropertyName)
 void UPrimitiveComponent::Serialize(FArchive& Ar)
 {
     USceneComponent::Serialize(Ar);
-    Ar << "Visible" << bIsVisible;
-    Ar << "Enable Cull" << bEnableCull;
+    SerializeVisibilityState(Ar);
 }
 
 void UPrimitiveComponent::SetVisibility(bool bVisible)
@@ -111,39 +110,29 @@ void UPrimitiveComponent::OnTransformDirty()
     NotifySpatialIndexDirty();
 }
 
-void UPrimitiveComponent::OnRegister()
-{
-    if (!Owner || bRegistered) { return; }
-    UWorld* World = Owner->GetFocusedWorld();
-    if (!World) { return; }
-
-    World->GetSpatialIndex().RegisterPrimitive(this);
-    bRegistered = true;
-}
-
-void UPrimitiveComponent::OnUnregister()
-{
-    if (!Owner || !bRegistered) { return; }
-    UWorld* World = Owner->GetFocusedWorld();
-    if (!World) { return; }
-
-    World->GetSpatialIndex().UnregisterPrimitive(this);
-    bRegistered = false;
-}
-
 void UPrimitiveComponent::NotifySpatialIndexDirty() const
 {
-    AActor* Owner = GetOwner();
-    if (Owner == nullptr)
-    {
-        return;
-    }
-
-    UWorld* World = Owner->GetFocusedWorld();
-    if (World == nullptr)
+    UWorld* World = nullptr;
+    if (!TryGetOwnerWorld(World))
     {
         return;
     }
 
     World->GetSpatialIndex().MarkPrimitiveDirty(const_cast<UPrimitiveComponent*>(this));
+}
+
+void UPrimitiveComponent::SerializeVisibilityState(FArchive& Ar)
+{
+    Ar << "Visible" << bIsVisible;
+    Ar << "Enable Cull" << bEnableCull;
+}
+
+void UPrimitiveComponent::RegisterComponentWithWorld(UWorld& World)
+{
+    World.GetSpatialIndex().RegisterPrimitive(this);
+}
+
+void UPrimitiveComponent::UnregisterComponentFromWorld(UWorld& World)
+{
+    World.GetSpatialIndex().UnregisterPrimitive(this);
 }

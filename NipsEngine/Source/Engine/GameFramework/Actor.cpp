@@ -9,6 +9,8 @@ REGISTER_FACTORY(AActor)
 
 AActor::~AActor()
 {
+    UnregisterOwnedComponents();
+
     if (OwningWorld != nullptr)
     {
         OwningWorld->GetSpatialIndex().UnregisterActor(this);
@@ -69,7 +71,9 @@ void AActor::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
 void AActor::PostDuplicate(UObject* Original)
 {
     AActor* OrigActor = static_cast<AActor*>(Original);
-    OwningWorld = OrigActor->OwningWorld;
+    OwningWorld = nullptr;
+    bHasBegunPlay = false;
+    bComponentsRegisteredToWorld = false;
     OwnedComponents.clear();
 
     // MovementComponent 등 일반 컴포넌트들의 참조를 복원하기 위한 맵을 선언합니다.
@@ -111,14 +115,7 @@ void AActor::PostDuplicate(UObject* Original)
         }
     }
 
-    // 복제된 액터가 월드에 있다면 모든 컴포넌트를 등록합니다.
-    if (OwningWorld)
-    {
-        for (UActorComponent* Comp : OwnedComponents)
-        {
-            if (Comp) Comp->OnRegister();
-        }
-    }
+    // 월드 연결/등록은 호출자가 SetWorld()를 통해 명시적으로 수행합니다.
 
     bPrimitiveCacheDirty = true;
 }
@@ -164,7 +161,11 @@ UActorComponent* AActor::AddComponentByClass(const FTypeInfo* Class)
     Comp->SetOwner(this);
     OwnedComponents.push_back(Comp);
     bPrimitiveCacheDirty = true;
-    Comp->OnRegister();
+    if (OwningWorld != nullptr)
+    {
+        Comp->OnRegister();
+        bComponentsRegisteredToWorld = true;
+    }
     return Comp;
 }
 
@@ -179,7 +180,11 @@ void AActor::RegisterComponent(UActorComponent* Comp)
         Comp->SetOwner(this);
         OwnedComponents.push_back(Comp);
         bPrimitiveCacheDirty = true;
-        Comp->OnRegister();
+        if (OwningWorld != nullptr)
+        {
+            Comp->OnRegister();
+            bComponentsRegisteredToWorld = true;
+        }
     }
 }
 
@@ -188,7 +193,10 @@ void AActor::RemoveComponent(UActorComponent* Component)
     if (!Component)
         return;
 
-    Component->OnUnregister();
+    if (bComponentsRegisteredToWorld)
+    {
+        Component->OnUnregister();
+    }
 
     // 다른 컴포넌트들이 삭제될 컴포넌트를 참조하고 있다면 nullptr로 밀어줍니다.
     for (UActorComponent* Comp : OwnedComponents)
@@ -246,6 +254,7 @@ void AActor::SetWorld(UWorld* World)
 
     if (OwningWorld != nullptr)
     {
+        UnregisterOwnedComponents();
         OwningWorld->GetSpatialIndex().UnregisterActor(this);
     }
 
@@ -254,6 +263,7 @@ void AActor::SetWorld(UWorld* World)
     if (OwningWorld != nullptr)
     {
         OwningWorld->GetSpatialIndex().RegisterActor(this);
+        RegisterOwnedComponents();
     }
 }
 
@@ -285,14 +295,13 @@ void AActor::SetActorLocation(const FVector& NewLocation)
 
 void AActor::BeginPlay()
 {
-    for (UActorComponent* Component : OwnedComponents)
+    if (bHasBegunPlay)
     {
-        if (Component)
-        {
-            Component->BeginPlay();
-            Component->OnRegister();
-        }
+        return;
     }
+
+    bHasBegunPlay = true;
+    BeginPlayOwnedComponents();
 }
 
 void AActor::Tick(float DeltaTime)
@@ -317,20 +326,79 @@ void AActor::Tick(float DeltaTime)
 
 void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-    const TArray<UActorComponent*>& Components = OwnedComponents;
+    if (!bHasBegunPlay)
+    {
+        return;
+    }
 
-    /**
-     *  TODO:
-     * Light 들의 경우 부모 -> 자식 순으로 AddComponent 되는 구조라 임시로 역순 Unregister 로 해결
-     * 실제론 Actor - Component 생애주기를 잘 관리해줘야함
-     */
-    for (int i = static_cast<int>(Components.size()) - 1; i >= 0; i--)
+    bHasBegunPlay = false;
+    EndPlayOwnedComponents();
+}
+
+void AActor::TeardownForDestroy(const EEndPlayReason::Type EndPlayReason)
+{
+    EndPlay(EndPlayReason);
+    UnregisterOwnedComponents();
+}
+
+void AActor::BeginPlayOwnedComponents()
+{
+    for (UActorComponent* Component : OwnedComponents)
+    {
+        if (Component)
+        {
+            Component->BeginPlay();
+        }
+    }
+}
+
+void AActor::EndPlayOwnedComponents()
+{
+    const TArray<UActorComponent*>& Components = OwnedComponents;
+    for (int32 i = static_cast<int32>(Components.size()) - 1; i >= 0; --i)
     {
         if (Components[i])
         {
             Components[i]->EndPlay();
         }
     }
+}
+
+void AActor::RegisterOwnedComponents()
+{
+    if (OwningWorld == nullptr || bComponentsRegisteredToWorld)
+    {
+        return;
+    }
+
+    for (UActorComponent* Component : OwnedComponents)
+    {
+        if (Component)
+        {
+            Component->OnRegister();
+        }
+    }
+
+    bComponentsRegisteredToWorld = true;
+}
+
+void AActor::UnregisterOwnedComponents()
+{
+    if (!bComponentsRegisteredToWorld)
+    {
+        return;
+    }
+
+    const TArray<UActorComponent*>& Components = OwnedComponents;
+    for (int32 i = static_cast<int32>(Components.size()) - 1; i >= 0; --i)
+    {
+        if (Components[i])
+        {
+            Components[i]->OnUnregister();
+        }
+    }
+
+    bComponentsRegisteredToWorld = false;
 }
 
 void AActor::Destroy()

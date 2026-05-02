@@ -2,7 +2,7 @@
 #include "Core/Paths.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Scene/RenderCommand.h"
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -850,3 +850,4 @@ void FLightCullingPass::EmitDebugStats(const FRenderPassContext* Context, uint32
         ? static_cast<float>(TotalVisibleLights) / static_cast<float>(TileCount)
         : 0.0f;
 }
+

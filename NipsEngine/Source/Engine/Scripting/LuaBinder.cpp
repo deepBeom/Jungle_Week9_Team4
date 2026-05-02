@@ -2,13 +2,9 @@
 #include "Engine/Scripting/LuaBinder.h"
 
 #include "Engine/Component/ActorComponent.h"
-#include "Engine/Component/MeshComponent.h"
-#include "Engine/Component/ShapeComponent.h"
-#include "Engine/Collision/CollisionSystem.h"
 #include "Engine/Core/CollisionTypes.h"
 #include "Engine/Core/Logging/Timer.h"
 #include "Engine/GameFramework/Actor.h"
-#include "Engine/GameFramework/World.h"
 #include "Engine/Runtime/Engine.h"
 
 namespace
@@ -30,15 +26,15 @@ namespace
         return Component && UObject::IsValid(Component);
     }
 
-    std::string SafeObjectName(UObject* Object)
+    FString SafeObjectName(UObject* Object)
     {
         return (Object && UObject::IsValid(Object))
-            ? static_cast<std::string>(Object->GetName())
-            : std::string();
+            ? static_cast<FString>(Object->GetName())
+            : FString();
     }
 
     // Type-name lookup used by both GetComponent and FindComponentByClass.
-    UActorComponent* FindActorComponentByType(AActor* Actor, const std::string& TypeName)
+    UActorComponent* FindActorComponentByType(AActor* Actor, const FString& TypeName)
     {
         if (!IsUsableActor(Actor))
         {
@@ -92,15 +88,15 @@ namespace
     {
         Lua.new_usertype<UActorComponent>(
             "Component",
-            "GetName", [](UActorComponent* Component) -> std::string
+            "GetName", [](UActorComponent* Component) -> FString
             {
                 return SafeObjectName(Component);
             },
-            "GetTypeName", [](UActorComponent* Component) -> std::string
+            "GetTypeName", [](UActorComponent* Component) -> FString
             {
                 return IsUsableComponent(Component)
                     ? Component->GetTypeInfo()->name
-                    : std::string();
+                    : FString();
             },
             "GetOwner", [](UActorComponent* Component) -> AActor*
             {
@@ -125,123 +121,11 @@ namespace
             });
     }
 
-    // --- Drift Salvage: Collision/Sphere/Mesh 헬퍼 바인딩 ---
-    //
-    // GetComponent("...")가 UActorComponent*를 반환하므로 다운캐스트는
-    // 전역 헬퍼(AsSphere/AsMesh)로 우회한다.
-    //
-    // 사용 예 (Lua):
-    //   local sphere = AsSphere(obj:GetComponent("SphereComponent"))
-    //   sphere:GrowRadius(dt)
-    //   local actors = sphere:GetActorsInRadius("Resource")
-    //   for _, a in ipairs(actors) do a:Destroy() end
-    //
-    //   local mesh = AsMesh(obj:GetComponent("StaticMeshComponent"))
-    //   mesh:SetHighlight(true)
-    //
-    //   local hit = LineTrace(obj, dx, dy, dz, 100, true)
-    //   if hit.bHit and hit.Actor then hit.Actor:AddPosition(dx*5, dy*5, dz*5) end
-    void BindCollisionHelpers(sol::state& Lua)
-    {
-        // ---- USphereComponent ----
-        Lua.new_usertype<USphereComponent>(
-            "SphereComponent",
-            "GetRadius",        &USphereComponent::GetSphereRadius,
-            "SetRadius",        &USphereComponent::SetSphereRadius,
-            "GrowRadius",       &USphereComponent::GrowRadius,
-            "ResetRadius",      &USphereComponent::ResetRadius,
-            "GetMinRadius",     &USphereComponent::GetMinRadius,
-            "GetMaxRadius",     &USphereComponent::GetMaxRadius,
-            "SetMinRadius",     &USphereComponent::SetMinRadius,
-            "SetMaxRadius",     &USphereComponent::SetMaxRadius,
-            "SetGrowthRate",    &USphereComponent::SetGrowthRate,
-            // 회수 가능 액터 수집. TagFilter 비우면 Sphere에 들어온 모든 액터 반환.
-            "GetActorsInRadius", [](USphereComponent* Self, const std::string& TagFilter, sol::this_state ts) -> sol::table
-            {
-                sol::state_view Lua(ts);
-                sol::table OutTable = Lua.create_table();
-                if (!Self) return OutTable;
-
-                TArray<AActor*> Actors;
-                Self->GetActorsInRadius(Actors, FString(TagFilter));
-                int32 Index = 1;  // Lua는 1-based
-                for (AActor* A : Actors)
-                {
-                    if (IsUsableActor(A))
-                    {
-                        OutTable[Index++] = A;
-                    }
-                }
-                return OutTable;
-            });
-
-        // ---- UMeshComponent ----
-        Lua.new_usertype<UMeshComponent>(
-            "MeshComponent",
-            "SetHighlight",   &UMeshComponent::SetHighlight,
-            "IsHighlighted",  &UMeshComponent::IsHighlighted);
-
-        // ---- 다운캐스트 헬퍼 ----
-        // GetComponent가 UActorComponent*를 주므로 sol2가 자동 dispatch 못 한다.
-        // 명시적 cast로 변환.
-        Lua.set_function("AsSphere", [](UActorComponent* Component) -> USphereComponent*
-        {
-            return IsUsableComponent(Component) ? Cast<USphereComponent>(Component) : nullptr;
-        });
-        Lua.set_function("AsMesh", [](UActorComponent* Component) -> UMeshComponent*
-        {
-            return IsUsableComponent(Component) ? Cast<UMeshComponent>(Component) : nullptr;
-        });
-
-        // ---- 전역 LineTrace ----
-        // Self의 위치에서 (DirX,DirY,DirZ) 방향으로 Length만큼 광선.
-        // Self의 Tag와 같은 액터는 무시 (자기 자신/같은 진영 컴포넌트 제외).
-        // bDrawDebug=true면 1프레임 시각화 라인이 추가됨.
-        // 반환: {bHit, Distance, Location, Normal, Actor}
-        Lua.set_function("LineTrace", [](
-            AActor* Self,
-            float DirX, float DirY, float DirZ,
-            float Length,
-            bool bDrawDebug,
-            sol::this_state ts) -> sol::table
-        {
-            sol::state_view Lua(ts);
-            sol::table Result = Lua.create_table();
-            Result["bHit"] = false;
-
-            if (!IsUsableActor(Self))
-            {
-                return Result;
-            }
-
-            UWorld* World = Self->GetFocusedWorld();
-            if (!World)
-            {
-                return Result;
-            }
-
-            const FVector Start = Self->GetActorLocation();
-            const FVector Dir = FVector(DirX, DirY, DirZ).GetSafeNormal();
-            const FVector End = Start + Dir * Length;
-
-            FHitResult Hit;
-            const bool bHit = World->GetCollisionSystem().LineTraceSingle(
-                World, Start, End, Hit, Self->GetTag(), bDrawDebug);
-
-            Result["bHit"]     = bHit;
-            Result["Distance"] = Hit.Distance;
-            Result["Location"] = Hit.Location;
-            Result["Normal"]   = Hit.Normal;
-            Result["Actor"]    = (bHit && Hit.HitComponent) ? Hit.HitComponent->GetOwner() : nullptr;
-            return Result;
-        });
-    }
-
     void BindActorType(sol::state& Lua)
     {
         Lua.new_usertype<AActor>(
             "Actor",
-            "GetName", [](AActor* Actor) -> std::string
+            "GetName", [](AActor* Actor) -> FString
             {
                 return SafeObjectName(Actor);
             },
@@ -304,23 +188,6 @@ namespace
                     Actor->SetActive(bEnabled);
                 }
             },
-            "GetTag", [](AActor* Actor) -> std::string
-            {
-                return IsUsableActor(Actor)
-                    ? Actor->GetTag()
-                    : std::string();
-            },
-            "SetTag", [](AActor* Actor, const std::string& Tag)
-            {
-                if (IsUsableActor(Actor))
-                {
-                    Actor->SetTag(Tag);
-                }
-            },
-            "CompareTag", [](AActor* Actor, const std::string& Tag)
-            {
-                return IsUsableActor(Actor) && Actor->CompareTag(Tag);
-            },
             "Destroy", [](AActor* Actor)
             {
                 if (IsUsableActor(Actor))
@@ -328,11 +195,11 @@ namespace
                     Actor->Destroy();
                 }
             },
-            "GetComponent", [](AActor* Actor, const std::string& TypeName) -> UActorComponent*
+            "GetComponent", [](AActor* Actor, const FString& TypeName) -> UActorComponent*
             {
                 return FindActorComponentByType(Actor, TypeName);
             },
-            "FindComponentByClass", [](AActor* Actor, const std::string& TypeName) -> UActorComponent*
+            "FindComponentByClass", [](AActor* Actor, const FString& TypeName) -> UActorComponent*
             {
                 return FindActorComponentByType(Actor, TypeName);
             },
@@ -353,22 +220,21 @@ void LuaBinder::BindEngineTypes(sol::state& Lua)
     BindMathTypes(Lua);
     BindComponentType(Lua);
     BindActorType(Lua);
-    BindCollisionHelpers(Lua);
 }
 
 void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 {
-    Lua.set_function("Log", [](const std::string& Message)
+    Lua.set_function("Log", [](const FString& Message)
     {
         printf("[Lua] %s\n", Message.c_str());
     });
 
-    Lua.set_function("Warning", [](const std::string& Message)
+    Lua.set_function("Warning", [](const FString& Message)
     {
         printf("[Lua Warning] %s\n", Message.c_str());
     });
 
-    Lua.set_function("Error", [](const std::string& Message)
+    Lua.set_function("Error", [](const FString& Message)
     {
         printf("[Lua Error] %s\n", Message.c_str());
     });

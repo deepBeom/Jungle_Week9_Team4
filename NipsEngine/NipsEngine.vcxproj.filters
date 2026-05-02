@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Shaders">
@@ -124,20 +124,8 @@
     <Filter Include="Source\Engine\Spatial">
       <UniqueIdentifier>{f8334c36-7f14-c751-7bba-2157775fd0eb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Misc">
-      <UniqueIdentifier>{80bb3fb1-78dd-ab3e-b9d5-e1cee5602ed0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Misc\ObjViewer">
-      <UniqueIdentifier>{00d409af-9f90-b6ea-7791-4069f50caa8d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Misc\ObjViewer\Settings">
-      <UniqueIdentifier>{c00cbebe-d7ae-beca-0474-aebd61a4b52f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Misc\ObjViewer\UI">
-      <UniqueIdentifier>{72266e28-9f63-7b46-8ace-2ce3ef8fcb5c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Misc\ObjViewer\Viewport">
-      <UniqueIdentifier>{a92070af-a018-ee07-ea50-1f65e812c419}</UniqueIdentifier>
+    <Filter Include="Source\Game">
+      <UniqueIdentifier>{66923485-3049-4823-9345-234983204932}</UniqueIdentifier>
     </Filter>
     <Filter Include="ThirdParty">
       <UniqueIdentifier>{1733db68-5028-c18d-f0ab-eeb42860f9f8}</UniqueIdentifier>
@@ -247,6 +235,9 @@
       <Filter>Shaders\Multipass</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Multipass\ToonOutlinePass.hlsl">
+      <Filter>Shaders\Multipass</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Multipass\PresentPass.hlsl">
       <Filter>Shaders\Multipass</Filter>
     </FxCompile>
   </ItemGroup>
@@ -434,6 +425,9 @@
     <ClCompile Include="Source\Engine\Core\Logging\GPUProfiler.cpp">
       <Filter>Source\Engine\Core\Logging</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Core\Logging\Log.cpp">
+      <Filter>Source\Engine\Core\Logging</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Core\Logging\Stats.cpp">
       <Filter>Source\Engine\Core\Logging</Filter>
     </ClCompile>
@@ -470,8 +464,8 @@
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp">
       <Filter>Source\Engine\Input</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Input\Controller\EditorController\BaseEditorController.cpp">
-      <Filter>Source\Engine\Input\Controller\EditorController</Filter>
+    <ClCompile Include="Source\Engine\Input\Controller\ViewportInputController.cpp">
+      <Filter>Source\Engine\Input\Controller</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.cpp">
       <Filter>Source\Engine\Input\Controller\EditorController</Filter>
@@ -481,6 +475,9 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Input\Controller\EditorController\PIEController.cpp">
       <Filter>Source\Engine\Input\Controller\EditorController</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Game\GameCameraController.cpp">
+      <Filter>Source\Game</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Math\Color.cpp">
       <Filter>Source\Engine\Math</Filter>
@@ -722,30 +719,6 @@
     <ClCompile Include="Source\Engine\Spatial\WorldSpatialIndex.cpp">
       <Filter>Source\Engine\Spatial</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Misc\ObjViewer\ObjViewerEngine.cpp">
-      <Filter>Source\Misc\ObjViewer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Misc\ObjViewer\ObjViewerRenderPipeline.cpp">
-      <Filter>Source\Misc\ObjViewer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Misc\ObjViewer\Settings\ObjViewerSettings.cpp">
-      <Filter>Source\Misc\ObjViewer\Settings</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Misc\ObjViewer\UI\ObjViewerControlWidget.cpp">
-      <Filter>Source\Misc\ObjViewer\UI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Misc\ObjViewer\UI\ObjViewerMainPanel.cpp">
-      <Filter>Source\Misc\ObjViewer\UI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Misc\ObjViewer\UI\ObjViewerMenuBarWIdget.cpp">
-      <Filter>Source\Misc\ObjViewer\UI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Misc\ObjViewer\UI\ObjViewerStatWidget.cpp">
-      <Filter>Source\Misc\ObjViewer\UI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Misc\ObjViewer\Viewport\ObjViewerViewportClient.cpp">
-      <Filter>Source\Misc\ObjViewer\Viewport</Filter>
-    </ClCompile>
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
@@ -869,10 +842,21 @@
       <Filter>ThirdParty\Lua</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\Script\ScriptComponent.cpp" />
-    <ClCompile Include="Source\Engine\Scripting\LuaScriptEngine.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaBinder.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaScriptSubsystem.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\DelegateTestActor.cpp" />
+    <ClCompile Include="Source\Game\GameEngine.cpp">
+      <Filter>Source\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Game\GameRenderPipeline.cpp">
+      <Filter>Source\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Game\GameViewportClient.cpp">
+      <Filter>Source\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Core\SoundManager.cpp" />
+    <ClCompile Include="Source\Engine\Collision\CollisionSystem.cpp" />
+    <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -1130,6 +1114,9 @@
     <ClInclude Include="Source\Engine\Core\Logging\GPUProfiler.h">
       <Filter>Source\Engine\Core\Logging</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Core\Logging\Log.h">
+      <Filter>Source\Engine\Core\Logging</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Core\Logging\Stats.h">
       <Filter>Source\Engine\Core\Logging</Filter>
     </ClInclude>
@@ -1178,8 +1165,8 @@
     <ClInclude Include="Source\Engine\Input\InputSystem.h">
       <Filter>Source\Engine\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Input\Controller\EditorController\BaseEditorController.h">
-      <Filter>Source\Engine\Input\Controller\EditorController</Filter>
+    <ClInclude Include="Source\Engine\Input\Controller\ViewportInputController.h">
+      <Filter>Source\Engine\Input\Controller</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.h">
       <Filter>Source\Engine\Input\Controller\EditorController</Filter>
@@ -1189,6 +1176,9 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Input\Controller\EditorController\PIEController.h">
       <Filter>Source\Engine\Input\Controller\EditorController</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\GameCameraController.h">
+      <Filter>Source\Game</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Math\Color.h">
       <Filter>Source\Engine\Math</Filter>
@@ -1499,33 +1489,6 @@
     <ClInclude Include="Source\Engine\Spatial\WorldSpatialIndex.h">
       <Filter>Source\Engine\Spatial</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Misc\ObjViewer\ObjViewerEngine.h">
-      <Filter>Source\Misc\ObjViewer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Misc\ObjViewer\ObjViewerRenderPipeline.h">
-      <Filter>Source\Misc\ObjViewer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Misc\ObjViewer\Settings\ObjViewerSettings.h">
-      <Filter>Source\Misc\ObjViewer\Settings</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerControlWidget.h">
-      <Filter>Source\Misc\ObjViewer\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerMainPanel.h">
-      <Filter>Source\Misc\ObjViewer\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerMenuBarWIdget.h">
-      <Filter>Source\Misc\ObjViewer\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerStatWidget.h">
-      <Filter>Source\Misc\ObjViewer\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerWidget.h">
-      <Filter>Source\Misc\ObjViewer\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Misc\ObjViewer\Viewport\ObjViewerViewportClient.h">
-      <Filter>Source\Misc\ObjViewer\Viewport</Filter>
-    </ClInclude>
     <ClInclude Include="ThirdParty\ImGui\imconfig.h">
       <Filter>ThirdParty\ImGui</Filter>
     </ClInclude>
@@ -1638,7 +1601,6 @@
       <Filter>ThirdParty\Lua</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Script\ScriptComponent.h" />
-    <ClInclude Include="Source\Engine\Scripting\LuaScriptEngine.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaBinder.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptInstance.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptSubsystem.h" />
@@ -1647,5 +1609,17 @@
     <ClInclude Include="Source\Engine\Core\Delegate\DelegateHandle.h" />
     <ClInclude Include="Source\Engine\Core\Delegate\DelegateMacros.h" />
     <ClInclude Include="Source\Engine\GameFramework\DelegateTestActor.h" />
+    <ClInclude Include="Source\Game\GameEngine.h">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\GameRenderPipeline.h">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\GameViewportClient.h">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Core\SoundManager.h" />
+    <ClInclude Include="Source\Engine\Collision\CollisionSystem.h" />
+    <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
   </ItemGroup>
 </Project>

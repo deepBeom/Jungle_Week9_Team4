@@ -126,7 +126,7 @@ private:
     void LogCollisionEvent(const char* EventName, const FCollisionEvent& Event) const;
     
 private:
-    std::unordered_set<FCollisionPair, FCollisionPairHash> PreviousOverlaps;
+    TSet<FCollisionPair, FCollisionPairHash> PreviousOverlaps;
     TArray<FCollisionDebugContact> DebugContacts;
     TArray<FCollisionDebugLine>    DebugLines;  // 매 Tick 시작 시 클리어
 };

@@ -22,7 +22,7 @@ public:
 
     virtual void InitDefaultComponents() {}
 
-    // 컴포넌트 생성 + Owner 설정 + 등록만 수행. Attach는 별도로 호출할 것.
+    // 컴포넌트 생성 + Owner 설정을 수행합니다. 월드에 붙어 있으면 즉시 등록됩니다.
     template<typename T>
     T* AddComponent() {
         static_assert(std::is_base_of_v<UActorComponent, T>,
@@ -35,14 +35,20 @@ public:
         Comp->SetOwner(this);
         OwnedComponents.push_back(Comp);
         bPrimitiveCacheDirty = true;
-        Comp->OnRegister();
+        if (OwningWorld != nullptr)
+        {
+            Comp->OnRegister();
+            bComponentsRegisteredToWorld = true;
+        }
         return Comp;
     }
 
-    // Tick 관련
+    // Gameplay lifecycle (BeginPlay/EndPlay) is separate from world registration.
     virtual void BeginPlay();
     virtual void Tick(float DeltaTime);
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
+    // Destruction lifecycle entrypoint used by UWorld::DestroyActor.
+    void TeardownForDestroy(const EEndPlayReason::Type EndPlayReason);
     virtual void Destroy();
     bool IsPendingDestroy() const { return bPendingDestroy; }
     bool IsBeingDestroyed() const { return bBeingDestroyed; }
@@ -120,6 +126,10 @@ public:
     bool IsOverlappingActor(const AActor* Other) const;
 
 protected:
+    void BeginPlayOwnedComponents();
+    void EndPlayOwnedComponents();
+    void RegisterOwnedComponents();
+    void UnregisterOwnedComponents();
     void MarkPrimitiveComponentsDirty();
 
     USceneComponent* RootComponent = nullptr;
@@ -133,6 +143,8 @@ protected:
     FString ActorTag = ActorTags::Untagged;
     bool bPendingDestroy = false;
     bool bBeingDestroyed = false;
+    bool bHasBegunPlay = false;
+    bool bComponentsRegisteredToWorld = false;
 
     TArray<UActorComponent*> OwnedComponents;
 

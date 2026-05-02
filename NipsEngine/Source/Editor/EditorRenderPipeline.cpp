@@ -109,7 +109,7 @@ bool FEditorRenderPipeline::PrepareViewport(FRenderer& Renderer, int32 ViewportI
     }
 
     FSceneViewport& SceneViewport = Editor->GetViewportLayout().GetSceneViewport(ViewportIndex);
-    FViewportRenderResource& ViewportResource = Editor->GetRenderer().AcquireViewportResource(&SceneViewport, Rect.Width, Rect.Height, ViewportIndex);
+    FViewportRenderResource& ViewportResource = Editor->GetRenderer().AcquireViewportResource(Rect.Width, Rect.Height, ViewportIndex);
     SceneViewport.SetRenderTargetSet(&ViewportResource.GetView());
 
     Renderer.BeginViewportFrame(SceneViewport.GetViewportRenderTargets());

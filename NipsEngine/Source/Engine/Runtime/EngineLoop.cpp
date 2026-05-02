@@ -1,24 +1,22 @@
 ﻿#include "Engine/Runtime/EngineLoop.h"
 
 #include "Editor/EditorEngine.h"
-#include "Misc/ObjViewer/ObjViewerEngine.h"
+#include "Game/GameEngine.h"
 
 void FEngineLoop::CreateEngine()
 {
-#if IS_OBJ_VIEWER
-    GEngine = UObjectManager::Get().CreateObject<UObjViewerEngine>();
-#elif WITH_EDITOR
+#if WITH_EDITOR
     GEngine = UObjectManager::Get().CreateObject<UEditorEngine>();
 #else
-    GEngine = UObjectManager::Get().CreateObject<UEngine>();
+    GEngine = UObjectManager::Get().CreateObject<UGameEngine>();
 #endif
 }
 
 bool FEngineLoop::Init(HINSTANCE hInstance, int nShowCmd)
 {
     (void)nShowCmd;
-    
-    UE_LOG("Hello, ZZup Engine!");
+
+    UE_LOG("Hello, Nips Engine!");
 
     if (!Application.Init(hInstance))
     {

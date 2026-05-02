@@ -26,7 +26,7 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
         CreateWorldContext(EWorldType::Editor, FName("Default"));
     }
     SetActiveWorld(WorldList[0].ContextHandle);
-    ApplySpatialIndexMaintenanceSettings();
+    ApplySpatialIndexMaintenanceSettings(WorldList[0].World);
 
     // Selection & Gizmo
     SelectionManager.Init();
@@ -135,7 +135,7 @@ void UEditorEngine::StartPlaySession()
     UWorld* PIEWorld = Cast<UWorld>(FocusedWorld->Duplicate());
     PIEWorld->SetWorldType(EWorldType::PIE);
     FName PIEHandle(("PIE_" + std::to_string(FocusedIdx)).c_str());
-    std::string PIEName = "PIE_World_" + std::to_string(FocusedIdx);
+    FString PIEName = "PIE_World_" + std::to_string(FocusedIdx);
     
     RegisterWorld(PIEWorld, EWorldType::PIE, PIEHandle, PIEName);
     ViewportPIEHandles[FocusedIdx] = PIEHandle;
@@ -286,20 +286,15 @@ void UEditorEngine::NewScene()
 
 void UEditorEngine::ApplySpatialIndexMaintenanceSettings(UWorld* TargetWorld)
 {
-    // Init 초반에는 ViewportLayout이 아직 연결되지 않았을 수 있으므로
-    // FocusedWorld보다 ActiveWorld(GetWorld) 경로를 우선 사용한다.
-    UWorld* World = (TargetWorld != nullptr) ? TargetWorld : GetWorld();
-    if (World == nullptr)
+    if (TargetWorld == nullptr)
     {
-        World = GetFocusedWorld();
-        if (World == nullptr)
-        {
-            return;
-        }
+        return;
     }
 
+    UEngine::ApplySpatialIndexMaintenanceSettings(TargetWorld);
+
     const FEditorSettings& Settings = GetSettings();
-    FWorldSpatialIndex::FMaintenancePolicy& Policy = World->GetSpatialIndex().GetMaintenancePolicy();
+    FWorldSpatialIndex::FMaintenancePolicy& Policy = TargetWorld->GetSpatialIndex().GetMaintenancePolicy();
 
     Policy.BatchRefitMinDirtyCount = std::max<int32>(1, Settings.SpatialBatchRefitMinDirtyCount);
     Policy.BatchRefitDirtyPercentThreshold = std::clamp<int32>(Settings.SpatialBatchRefitDirtyPercentThreshold, 1, 100);
@@ -349,7 +344,7 @@ void UEditorEngine::ClearScene()
 }
 
 // 이미 생성된 월드를 컨텍스트에 등록합니다.
-FWorldContext& UEditorEngine::RegisterWorld(UWorld* InWorld, EWorldType Type, const FName& Handle, const std::string& Name)
+FWorldContext& UEditorEngine::RegisterWorld(UWorld* InWorld, EWorldType Type, const FName& Handle, const FString& Name)
 {
     FWorldContext Context;
     Context.WorldType = Type;

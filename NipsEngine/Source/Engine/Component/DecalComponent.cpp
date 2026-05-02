@@ -80,7 +80,7 @@ void UDecalComponent::PostEditProperty(const char* PropertyName)
 {
     UPrimitiveComponent::PostEditProperty(PropertyName);
 
-    if (std::strcmp(PropertyName, "Materials") == 0)
+    if (PropertyNameId(PropertyName) == PropertyNameIdConstexpr("Materials"))
     {
         for (int32 i = 0; i < static_cast<int32>(Materials.size()); ++i)
         {

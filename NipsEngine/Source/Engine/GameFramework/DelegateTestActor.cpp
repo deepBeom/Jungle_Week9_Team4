@@ -1,6 +1,6 @@
 ﻿#include "DelegateTestActor.h"
 #include <cassert>
-#include "Editor/UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 DEFINE_CLASS(ADelegateTestActor, AActor)
 
@@ -103,3 +103,4 @@ void ADelegateTestActor::OnMulticastCallback(int Value)
 {
     MulticastResult += Value;
 }
+

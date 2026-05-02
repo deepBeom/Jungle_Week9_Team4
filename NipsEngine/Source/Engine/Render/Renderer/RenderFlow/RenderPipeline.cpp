@@ -22,7 +22,7 @@
 #include "BlurPass.h"
 #include "HitMapRenderPass.h"
 #include "ToonOutlineRenderPass.h"
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 #include <algorithm>
 #include <cwctype>
@@ -347,3 +347,4 @@ void FRenderPipeline::Release()
         PostProcessOutlineRenderPass.reset();
     }
 }
+

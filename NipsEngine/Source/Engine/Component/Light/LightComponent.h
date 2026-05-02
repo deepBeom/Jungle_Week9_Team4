@@ -23,16 +23,13 @@ public:
     void BeginPlay() override;
     void EndPlay() override;
 
-    void OnRegister() override;
-    void OnUnregister() override;
-
     virtual const char* GetBillboardTexturePath() const { return nullptr; }
 
 public:
     const FColor& GetLightColor() const { return LightColor; }
     float GetIntensity() const { return Intensity; }
     bool IsVisible() const { return bVisible; }
-    bool IsCastShadows() const { return bCastShadows; } // DoesCastShadows() in UE5, 통일성을 위해 Is 유지
+    bool IsCastShadows() const { return bCastShadows; } // Keep UE-style meaning with engine naming consistency.
     bool IsDebugDrawEnabled() const { return bDebugDraw; }
 
     void SetLightColor(const FColor& InColor) { LightColor = InColor; }
@@ -43,6 +40,14 @@ public:
 
     const FLightHandle& GetLightHandle() const { return LightHandle; }
     void SetLightHandle(const FLightHandle& InLightHandle) { LightHandle = InLightHandle; }
+
+private:
+    void SerializeLightCommon(FArchive& Ar);
+    void CopyDuplicateStateFrom(const ULightComponentBase& Original);
+
+protected:
+    void RegisterComponentWithWorld(class UWorld& World) override;
+    void UnregisterComponentFromWorld(class UWorld& World) override;
 
 private:
     FColor LightColor = FColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -80,6 +85,9 @@ protected:
     bool bShadowTexelSnapped = true;
 
 private:
+    void SerializeShadowSettings(FArchive& Ar);
+    void CopyDuplicateStateFrom(const ULightComponent& Original);
+
     ELightType LightType = ELightType::Max;
 
     float ShadowResolutionScale = 1.0f;

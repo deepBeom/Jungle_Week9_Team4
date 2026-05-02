@@ -155,7 +155,7 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
         }
     }
 
-    std::unordered_set<UPrimitiveComponent*> CollectCameraDependentPrimitives;
+    TSet<UPrimitiveComponent*> CollectCameraDependentPrimitives;
     if (ViewFrustum)
     {
         CollectCameraDependentPrimitives.reserve(32);
@@ -287,7 +287,7 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
     PrimitiveRenderCollector.CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, WorldType, LastStats, LineBatcher);
 }
 
-void FRenderCollector::CollectBVHInternalNodeAABBs(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus, std::unordered_set<int32>& SeenNodeIndices)
+void FRenderCollector::CollectBVHInternalNodeAABBs(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus, TSet<int32>& SeenNodeIndices)
 {
     OverlayRenderCollector.CollectBVHInternalNodeAABBs(PrimitiveComponent, ShowFlags, RenderBus, LineBatcher, SeenNodeIndices);
 }

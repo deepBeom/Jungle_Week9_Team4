@@ -1,7 +1,7 @@
 ﻿#include "ShadowPass.h"
 
 #include "Core/ResourceManager.h"
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 namespace
 {
@@ -614,3 +614,4 @@ bool FShadowPass::EnsurePointShadowResources(ID3D11Device* Device)
     
     return true;
 }
+

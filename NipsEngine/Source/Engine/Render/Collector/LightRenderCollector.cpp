@@ -914,7 +914,7 @@ void FLightRenderCollector::CollectShadowCasters(UWorld* World, FRenderBus& Rend
     }
 
     const EWorldType WorldType = World->GetWorldType();
-    std::unordered_set<UPrimitiveComponent*> AddedPrimitives;
+    TSet<UPrimitiveComponent*> AddedPrimitives;
 
     auto AddShadowCaster = [&](UPrimitiveComponent* Primitive)
     {

@@ -1,7 +1,6 @@
 ﻿#include "TextRenderComponent.h"
 
 #include <cmath>
-#include <cstring>
 #include "GameFramework/Actor.h"
 #include "Core/ResourceManager.h"
 #include "Object/ObjectFactory.h"
@@ -146,7 +145,7 @@ void UTextRenderComponent::GetEditableProperties(TArray<FPropertyDescriptor>& Ou
 
 void UTextRenderComponent::PostEditProperty(const char* PropertyName)
 {
-    if (strcmp(PropertyName, "Font") == 0)
+    if (PropertyNameId(PropertyName) == PropertyNameIdConstexpr("Font"))
     {
         SetFont(FontName);
     }

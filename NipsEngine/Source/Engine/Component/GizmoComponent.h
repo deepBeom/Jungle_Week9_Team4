@@ -35,7 +35,7 @@ private:
     bool IntersectRayAxis(const FRay& Ray, FVector AxisEnd, float& OutRayT);
     const FMeshData* GetActiveMeshData() const;
 
-    //Control Target Method
+    // Target manipulation handlers.
     void HandleDrag(float DragAmount);
     void TranslateTarget(float DragAmount);
     void RotateTarget(float DragAmount);
@@ -48,7 +48,7 @@ public:
     DECLARE_CLASS(UGizmoComponent, UPrimitiveComponent)
     UGizmoComponent();
 
-    // 기즈모 컴포넌트는 복제를 지원하지 않습니다.
+    // Gizmo components are editor-only and are not duplicated.
     virtual UGizmoComponent* Duplicate() override { return nullptr; }
 
     void UpdateWorldAABB() const override;
@@ -84,7 +84,7 @@ public:
     void UpdateGizmoTransform();
     void ApplyScreenSpaceScaling(const FVector& CameraLocation);
 
-    // 직교 뷰 전용: OrthoHeight 기반으로 기즈모 스케일 설정
+    // Ortho-only scaling based on viewport OrthoHeight.
     void ApplyScreenSpaceScalingOrtho(float OrthoHeight);
     void SetWorldSpace(bool bWorldSpace);
     bool IsWorldSpace() const { return bIsWorldSpace; }

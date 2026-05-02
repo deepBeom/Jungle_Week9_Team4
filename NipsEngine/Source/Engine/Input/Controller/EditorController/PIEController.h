@@ -1,12 +1,12 @@
 ﻿#pragma once
-#include "BaseEditorController.h"
+#include "Engine/Input/Controller/ViewportInputController.h"
 #include <functional>
 
 class AActor;
 class FViewportCamera;
 class UWorld;
 
-class FPIEController : public IBaseEditorController
+class FPIEController : public IViewportInputController
 {
   public:
     void Tick(float InDeltaTime) override;

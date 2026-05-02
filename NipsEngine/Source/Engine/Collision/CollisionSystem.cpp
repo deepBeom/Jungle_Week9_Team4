@@ -7,7 +7,7 @@
 #include "Component/Movement/MovementComponent.h"
 #include "Component/Script/ScriptComponent.h"
 #include "Core/ActorTags.h"
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 
@@ -651,8 +651,8 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
     TArray<UShapeComponent*> Shapes;
     CollectShapeComponents(World, Shapes);
 
-    std::unordered_set<FCollisionPair, FCollisionPairHash> CurrentOverlaps;
-    std::unordered_set<UShapeComponent*> LiveShapes;
+    TSet<FCollisionPair, FCollisionPairHash> CurrentOverlaps;
+    TSet<UShapeComponent*> LiveShapes;
     LiveShapes.reserve(Shapes.size());
     for (UShapeComponent* Shape : Shapes)
     {
@@ -1300,3 +1300,4 @@ void FCollisionSystem::LogCollisionEvent(const char* EventName, const FCollision
         Event.Normal.Z,
         Event.bBlockingHit ? "true" : "false");
 }
+

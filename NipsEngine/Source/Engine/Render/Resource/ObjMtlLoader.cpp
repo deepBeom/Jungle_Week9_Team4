@@ -2,7 +2,7 @@
 #include "Asset/FileUtils.h"
 #include "Core/Paths.h"
 #include "Core/ResourceManager.h"
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 #include <algorithm>
 #include <cctype>
@@ -306,3 +306,4 @@ bool FObjMtlLoader::Load(const FString& FilePath, TMap<FString, UMaterial*>& Out
     return true;
 
 }
+

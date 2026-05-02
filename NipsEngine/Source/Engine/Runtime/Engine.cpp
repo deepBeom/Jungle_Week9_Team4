@@ -170,3 +170,20 @@ void UEngine::SetActiveWorld(const FName& Handle)
 {
     ActiveWorldHandle = Handle;
 }
+
+void UEngine::ApplySpatialIndexMaintenanceSettings(UWorld* TargetWorld)
+{
+	if (TargetWorld == nullptr)
+	{
+		return;
+	}
+
+	FWorldSpatialIndex::FMaintenancePolicy& Policy = TargetWorld->GetSpatialIndex().GetMaintenancePolicy();
+
+	// Default values
+	Policy.BatchRefitMinDirtyCount = 8;
+	Policy.BatchRefitDirtyPercentThreshold = 15;
+	Policy.RotationStructuralChangeThreshold = 8;
+	Policy.RotationDirtyCountThreshold = 24;
+	Policy.RotationDirtyPercentThreshold = 30;
+}

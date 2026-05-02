@@ -3,7 +3,7 @@
 #include "Texture.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Scene/RenderCommand.h"
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 #include <vector>
 
@@ -100,8 +100,8 @@ bool UShader::CreateInputLayoutFromReflection(ID3DBlob* ShaderBlob, ID3D11Device
         return false;
     }
 
-    std::vector<std::string> SemanticNames;
-    std::vector<D3D11_INPUT_ELEMENT_DESC> InputLayoutDesc;
+    TArray<FString> SemanticNames;
+    TArray<D3D11_INPUT_ELEMENT_DESC> InputLayoutDesc;
     SemanticNames.reserve(ShaderDesc.InputParameters);
     InputLayoutDesc.reserve(ShaderDesc.InputParameters);
 
@@ -640,3 +640,4 @@ void FShaderBindingInstance::Bind(ID3D11DeviceContext* Context)
     BindTextures(Context);
     BindSamplers(Context);
 }
+

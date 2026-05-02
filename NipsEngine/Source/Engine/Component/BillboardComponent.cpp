@@ -1,6 +1,5 @@
 ﻿#include "BillboardComponent.h"
 #include <cmath>
-#include <cstring>
 #include "GameFramework/World.h"
 #include "Editor/Viewport/ViewportCamera.h"
 #include "Core/ResourceManager.h"
@@ -108,7 +107,7 @@ void UBillboardComponent::PostEditProperty(const char* PropertyName)
 {
     UPrimitiveComponent::PostEditProperty(PropertyName);
 
-    if (strcmp(PropertyName, "Texture Path") == 0)
+    if (PropertyNameId(PropertyName) == PropertyNameIdConstexpr("Texture Path"))
     {
         SetTexturePath(TexturePath);
     }

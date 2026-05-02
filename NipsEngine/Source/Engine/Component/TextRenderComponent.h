@@ -4,32 +4,31 @@
 #include "Core/ResourceTypes.h"
 #include "Object/FName.h"
 
-// 텍스트 렌더링 공간 모드
+// Text rendering space mode.
 enum class ETextRenderSpace : int32
 {
-    World,		// 3D 공간에 빌보드로 렌더링
-    Screen		// 2D 스크린 좌표에 고정 렌더링
+    World,  // Billboarded in 3D world space
+    Screen, // Fixed in 2D screen space
 };
 
-// 텍스트 수평 정렬
+// Horizontal alignment.
 enum class ETextHAlign : int32
 {
     Left,
     Center,
-    Right
+    Right,
 };
 
-// 텍스트 수직 정렬
+// Vertical alignment.
 enum class ETextVAlign : int32
 {
     Top,
     Center,
-    Bottom
+    Bottom,
 };
 
-// 텍스트를 월드 공간에 빌보드로 렌더링하는 컴포넌트.
-// PrimitiveComponent를 상속받아 RenderCollector에 자동으로 감지됩니다.
-// MeshBuffer를 사용하지 않으며, FontBatcher가 드로우콜을 처리합니다.
+// Component that renders text in world or screen space.
+// It is discovered through UPrimitiveComponent and rendered by the font batcher.
 class UTextRenderComponent : public UPrimitiveComponent
 {
 public:
@@ -39,57 +38,51 @@ public:
     ~UTextRenderComponent() override = default;
 
     virtual void PostDuplicate(UObject* Original) override;
-
     virtual void Serialize(FArchive& Ar) override;
 
     void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
     void PostEditProperty(const char* PropertyName) override;
 
-    // --- Text ---
+    // Text.
     void SetText(const FString& InText) { Text = InText; }
     const FString& GetText() const { return Text; }
 
-    // Owner의 UUID를 문자열로 반환
     FString GetOwnerUUIDToString() const;
-
-    // Owner의 FName을 문자열로 반환
     FString GetOwnerNameToString() const;
 
-    // --- Font ---
-    // FName 키로 ResourceManager에서 FFontResource*를 찾아 캐싱
+    // Font.
     void SetFont(const FName& InFontName);
     const FFontResource* GetFont() const { return CachedFont; }
     const FName& GetFontName() const { return FontName; }
 
-    // --- Appearance ---
+    // Appearance.
     void SetColor(const FVector4& InColor) { Color = InColor; }
     const FVector4& GetColor() const { return Color; }
 
     void SetFontSize(float InSize) { FontSize = InSize; }
     float GetFontSize() const { return FontSize; }
 
-    // --- Space ---
+    // Space mode.
     void SetRenderSpace(ETextRenderSpace InSpace) { RenderSpace = InSpace; }
     ETextRenderSpace GetRenderSpace() const { return RenderSpace; }
 
-    // Screen 모드 전용: 스크린 좌표 (픽셀)
+    // Screen-space position (pixels).
     void SetScreenPosition(float X, float Y) { ScreenX = X; ScreenY = Y; }
     float GetScreenX() const { return ScreenX; }
     float GetScreenY() const { return ScreenY; }
 
-    // --- Alignment ---
+    // Alignment.
     void SetHorizontalAlignment(ETextHAlign InAlign) { HAlign = InAlign; }
     ETextHAlign GetHorizontalAlignment() const { return HAlign; }
 
     void SetVerticalAlignment(ETextVAlign InAlign) { VAlign = InAlign; }
     ETextVAlign GetVerticalAlignment() const { return VAlign; }
 
-    // --- PrimitiveComponent 인터페이스 ---
+    // Primitive component interface.
     EPrimitiveType GetPrimitiveType() const override { return PrimitiveType; }
     bool SupportsOutline() const override { return true; }
     static constexpr EPrimitiveType PrimitiveType = EPrimitiveType::EPT_Text;
 
-    //Collision
     void UpdateWorldAABB() const override;
     bool RaycastMesh(const FRay& Ray, FHitResult& OutHitResult);
 
@@ -99,7 +92,7 @@ public:
 private:
     FString Text;
     FName FontName = FName("Default");
-    FFontResource* CachedFont = nullptr;	// ResourceManager 소유, 여기선 참조만
+    FFontResource* CachedFont = nullptr; // Owned by ResourceManager; referenced only.
 
     FVector4 Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
     float FontSize = 1.0f;
@@ -111,7 +104,6 @@ private:
     ETextHAlign HAlign = ETextHAlign::Center;
     ETextVAlign VAlign = ETextVAlign::Center;
 
-    // Screen 모드 전용
     float ScreenX = 0.0f;
     float ScreenY = 0.0f;
 };

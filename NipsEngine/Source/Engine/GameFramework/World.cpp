@@ -50,19 +50,7 @@ void UWorld::PostDuplicate(UObject* Original)
         for (AActor* DuplicatedActor : PersistentLevel->GetActors())
         {
             if (!DuplicatedActor) continue;
-
-            const TArray<UActorComponent*>& Comps = DuplicatedActor->GetComponents();
-            for (int32 i = static_cast<int32>(Comps.size()) - 1; i >= 0; --i)
-            {
-                if (Comps[i]) Comps[i]->OnUnregister();
-            }
-
             DuplicatedActor->SetWorld(this);
-
-            for (UActorComponent* Comp : Comps)
-            {
-                if (Comp) Comp->OnRegister();
-            }
         }
     }
 
@@ -119,6 +107,18 @@ void UWorld::RebuildSpatialIndex()
 void UWorld::SyncSpatialIndex()
 {
     SpatialIndex.FlushDirtyBounds();
+}
+
+void UWorld::DestroyActor(AActor* Actor) 
+{
+    if (!Actor || !UObject::IsValid(Actor) || Actor->IsBeingDestroyed()) return;
+
+    Actor->MarkBeingDestroyed();
+    Actor->TeardownForDestroy(EEndPlayReason::Type::Destroyed);
+    
+    PersistentLevel->RemoveActor(Actor);
+    Actor->SetWorld(nullptr);
+    UObjectManager::Get().DestroyObject(Actor);
 }
 
 void UWorld::RequestDestroyActor(AActor* Actor)
