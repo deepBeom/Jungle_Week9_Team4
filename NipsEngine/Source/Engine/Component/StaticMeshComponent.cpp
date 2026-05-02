@@ -1,7 +1,7 @@
 ﻿#include "StaticMeshComponent.h"
 
 #include <algorithm>
-#include <cstring>
+#include <cfloat>
 
 #include "Core/ResourceManager.h"
 
@@ -10,12 +10,9 @@ REGISTER_FACTORY(UStaticMeshComponent)
 
 UStaticMeshComponent::UStaticMeshComponent()
 {
-    //	기본 도형은 Cube로 설정
     SetStaticMesh(FResourceManager::Get().LoadStaticMesh("Asset\\Mesh\\Dice\\Dice.obj"));
 }
 
-// 프로퍼티 시스템에 노출되지 않은 필드를 직접 복사합니다.
-// StaticMeshAsset·OverrideMaterial 은 얕은 복사로 동일한 원본 리소스를 참조하게 합니다.
 void UStaticMeshComponent::PostDuplicate(UObject* Original)
 {
     UMeshComponent::PostDuplicate(Original);
@@ -45,7 +42,7 @@ void UStaticMeshComponent::PostDuplicate(UObject* Original)
         }
         else
         {
-            Materials[i] = Orig->Materials[i]; // 얕은 복사 — ResourceManager 가 소유
+            Materials[i] = Orig->Materials[i];
         }
     }
 }
@@ -53,35 +50,7 @@ void UStaticMeshComponent::PostDuplicate(UObject* Original)
 void UStaticMeshComponent::Serialize(FArchive& Ar)
 {
     UMeshComponent::Serialize(Ar);
-    Ar << "ObjStaticMeshAsset" << StaticMeshAssetPath;
-    Ar << "NormalizeOnImport" << bNormalizeOnImport;
-
-    if (Ar.IsLoading())
-    {
-        TArray<UMaterialInterface*> SavedMaterials = Materials;
-
-        if (!StaticMeshAssetPath.empty())
-        {
-            SetStaticMesh(FResourceManager::Get().LoadStaticMesh(StaticMeshAssetPath, bNormalizeOnImport));
-        }
-        else
-        {
-            SetStaticMesh(nullptr);
-        }
-
-        // StaticMesh 로드 시 기본 슬롯 material 이 다시 채워지므로
-        // scene 에 저장된 override 를 마지막에 복원합니다.
-        const int32 RestoreCount = static_cast<int32>(std::min(SavedMaterials.size(), Materials.size()));
-        for (int32 i = 0; i < RestoreCount; ++i)
-        {
-            // 구형 scene 에서 빈 문자열은 "override 없음" 의미로 저장되므로
-            // null 슬롯은 mesh 기본 material 을 유지합니다.
-            if (SavedMaterials[i] != nullptr)
-            {
-                SetMaterial(i, SavedMaterials[i]);
-            }
-        }
-    }
+    SerializeStaticMeshAsset(Ar);
 }
 
 void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
@@ -127,7 +96,6 @@ bool UStaticMeshComponent::HasValidMesh() const
     return StaticMeshAsset != nullptr && StaticMeshAsset->HasValidMeshData();
 }
 
-
 void UStaticMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
 {
     UMeshComponent::GetEditableProperties(OutProps);
@@ -138,34 +106,7 @@ void UStaticMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& Ou
 void UStaticMeshComponent::PostEditProperty(const char* PropertyName)
 {
     UMeshComponent::PostEditProperty(PropertyName);
-
-    //	추후에 FName으로 바꿔도 될 듯 싶긴한데 보류
-    if (std::strcmp(PropertyName, "StaticMesh") == 0)
-    {
-        if (StaticMeshAssetPath.empty())
-        {
-            SetStaticMesh(nullptr);
-            return;
-        }
-
-        UStaticMesh* Mesh = FResourceManager::Get().LoadStaticMesh(StaticMeshAssetPath, bNormalizeOnImport);
-        SetStaticMesh(Mesh);
-    }
-    else if (std::strcmp(PropertyName, "Normalize On Import") == 0)
-    {
-        if (!StaticMeshAssetPath.empty())
-        {
-            UStaticMesh* Mesh = FResourceManager::Get().LoadStaticMesh(StaticMeshAssetPath, bNormalizeOnImport);
-            SetStaticMesh(Mesh);
-        }
-    }
-    else if (std::strcmp(PropertyName, "Materials") == 0)
-    {
-        for (int32 i = 0; i < static_cast<int32>(Materials.size()); ++i)
-        {
-            SetMaterial(i, Materials[i]);
-        }
-    }
+    ApplyPropertyEdit(PropertyName);
 }
 
 void UStaticMeshComponent::UpdateWorldAABB() const
@@ -207,8 +148,6 @@ void UStaticMeshComponent::UpdateWorldAABB() const
     bBoundsDirty = false;
 }
 
-//	Ray를 Local로 바꿔서 확인
-//	모든 Mesh를 World로 바꾸는 것보다 훨씬 빠름
 bool UStaticMeshComponent::RaycastMesh(const FRay& Ray, FHitResult& OutHitResult)
 {
     if (!HasValidMesh())
@@ -308,6 +247,72 @@ bool UStaticMeshComponent::ConsumeRenderStateDirty()
     return bWasDirty;
 }
 
+void UStaticMeshComponent::SerializeStaticMeshAsset(FArchive& Ar)
+{
+    Ar << "ObjStaticMeshAsset" << StaticMeshAssetPath;
+    Ar << "NormalizeOnImport" << bNormalizeOnImport;
+
+    if (!Ar.IsLoading())
+    {
+        return;
+    }
+
+    TArray<UMaterialInterface*> SavedMaterials = Materials;
+    ReloadStaticMeshFromAssetPath();
+    RestoreSavedOverrideMaterials(SavedMaterials);
+}
+
+void UStaticMeshComponent::RestoreSavedOverrideMaterials(const TArray<UMaterialInterface*>& SavedMaterials)
+{
+    const int32 RestoreCount = static_cast<int32>(std::min(SavedMaterials.size(), Materials.size()));
+    for (int32 i = 0; i < RestoreCount; ++i)
+    {
+        if (SavedMaterials[i] != nullptr)
+        {
+            SetMaterial(i, SavedMaterials[i]);
+        }
+    }
+}
+
+void UStaticMeshComponent::ReloadStaticMeshFromAssetPath()
+{
+    if (StaticMeshAssetPath.empty())
+    {
+        SetStaticMesh(nullptr);
+        return;
+    }
+
+    UStaticMesh* Mesh = FResourceManager::Get().LoadStaticMesh(StaticMeshAssetPath, bNormalizeOnImport);
+    SetStaticMesh(Mesh);
+}
+
+void UStaticMeshComponent::ApplyPropertyEdit(const char* PropertyName)
+{
+    switch (PropertyNameId(PropertyName))
+    {
+    case PropertyNameIdConstexpr("StaticMesh"):
+        ReloadStaticMeshFromAssetPath();
+        return;
+
+    case PropertyNameIdConstexpr("Normalize On Import"):
+        if (!StaticMeshAssetPath.empty())
+        {
+            ReloadStaticMeshFromAssetPath();
+        }
+        return;
+
+    case PropertyNameIdConstexpr("Materials"):
+        for (int32 i = 0; i < static_cast<int32>(Materials.size()); ++i)
+        {
+            SetMaterial(i, Materials[i]);
+        }
+        return;
+
+    default:
+        return;
+    }
+}
+
 void UStaticMeshComponent::MarkBoundsDirty()
 {
     bBoundsDirty = true;
@@ -320,12 +325,12 @@ void UStaticMeshComponent::MarkRenderStateDirty()
 
 void UStaticMeshComponent::EnsureBoundsUpdated() const
 {
-    if (!bBoundsDirty && !bTransformDirty)
+    if (!bBoundsDirty && !IsTransformDirty())
     {
         return;
     }
 
-    if (bTransformDirty)
+    if (IsTransformDirty())
     {
         (void)GetWorldMatrix();
         return;

@@ -21,19 +21,24 @@ void USpotLightComponent::PostEditProperty(const char* PropertyName)
 {
     UPointLightComponent::PostEditProperty(PropertyName);
 
-    if (strcmp(PropertyName, "Inner Cone Angle") == 0)
+    switch (PropertyNameId(PropertyName))
     {
+    case PropertyNameIdConstexpr("Inner Cone Angle"):
         if (InnerConeAngle > OuterConeAngle)
         {
             OuterConeAngle = InnerConeAngle;
         }
-    }
-    else if (strcmp(PropertyName, "Outer Cone Angle") == 0)
-    {
+        return;
+
+    case PropertyNameIdConstexpr("Outer Cone Angle"):
         if (OuterConeAngle < InnerConeAngle)
         {
             InnerConeAngle = OuterConeAngle;
         }
+        return;
+
+    default:
+        return;
     }
 }
 

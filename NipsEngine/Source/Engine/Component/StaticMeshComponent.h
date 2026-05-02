@@ -29,6 +29,11 @@ public:
     bool ConsumeRenderStateDirty();
 
 private:
+    void SerializeStaticMeshAsset(FArchive& Ar);
+    void RestoreSavedOverrideMaterials(const TArray<UMaterialInterface*>& SavedMaterials);
+    void ReloadStaticMeshFromAssetPath();
+    void ApplyPropertyEdit(const char* PropertyName);
+
     void MarkBoundsDirty();
     void MarkRenderStateDirty();
     void EnsureBoundsUpdated() const;

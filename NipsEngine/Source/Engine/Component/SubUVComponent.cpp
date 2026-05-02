@@ -1,7 +1,6 @@
 ﻿#include "SubUVComponent.h"
 
 #include <cmath>
-#include <cstring>
 #include "Editor/Viewport/ViewportCamera.h"
 #include "Core/ResourceManager.h"
 #include "GameFramework/Actor.h"
@@ -111,7 +110,7 @@ void USubUVComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProp
 
 void USubUVComponent::PostEditProperty(const char* PropertyName)
 {
-    if (strcmp(PropertyName, "Particle") == 0)
+    if (PropertyNameId(PropertyName) == PropertyNameIdConstexpr("Particle"))
     {
         SetParticle(ParticleName);
     }

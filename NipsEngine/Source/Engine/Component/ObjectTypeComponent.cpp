@@ -1,7 +1,6 @@
 #include "ObjectTypeComponent.h"
 
 #include <algorithm>
-#include <cstring>
 
 #include "Asset/StaticMesh.h"
 #include "Component/ShapeComponent.h"
@@ -110,7 +109,7 @@ void UObjectTypeComponent::PostEditProperty(const char* PropertyName)
 {
     UActorComponent::PostEditProperty(PropertyName);
 
-    if (std::strcmp(PropertyName, "ObjectType") == 0)
+    if (PropertyNameId(PropertyName) == PropertyNameIdConstexpr("ObjectType"))
     {
         if (ObjectTypeValue < 0 || ObjectTypeValue >= static_cast<int32>(EObjectType::MAX))
         {

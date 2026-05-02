@@ -128,19 +128,22 @@ void UScriptComponent::PostEditProperty(const char* PropertyName)
 {
     UActorComponent::PostEditProperty(PropertyName);
 
-    if (strcmp(PropertyName, "Script Path") == 0)
+    switch (PropertyNameId(PropertyName))
     {
+    case PropertyNameIdConstexpr("Script Path"):
         ScriptPath = FPaths::Normalize(ScriptPath);
         if (bHasBegunPlay)
         {
             ReloadScript();
         }
         return;
-    }
 
-    if (strcmp(PropertyName, "Script Enabled") == 0)
-    {
+    case PropertyNameIdConstexpr("Script Enabled"):
         SetActive(bSerializedEnabled);
+        return;
+
+    default:
+        return;
     }
 }
 

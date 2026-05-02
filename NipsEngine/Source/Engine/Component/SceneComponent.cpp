@@ -1,51 +1,12 @@
 ﻿#include "SceneComponent.h"
+
+#include <algorithm>
+
 #include "Object/ObjectFactory.h"
 
 DEFINE_CLASS(USceneComponent, UActorComponent)
 REGISTER_FACTORY(USceneComponent)
 
-// 소유자와 부모-자식 관계를 초기 상태로 명시적으로 리셋합니다.
-// Actor::Duplicate() 에서 DuplicateSubTree 를 통해 올바른 관계가 복원됩니다.
-void USceneComponent::PostDuplicate(UObject* Original)
-{
-    UActorComponent::PostDuplicate(Original);
-
-    SetOwner(nullptr);
-
-    // 트랜스폼 캐시는 새 부모에 붙을 때 다시 계산되도록 Dirty 플래그를 켭니다.
-    bTransformDirty = true;
-
-    // 부모-자식 관계는 Actor::PostDuplicate() 에서 DuplicateSubTree 를 통해 복원됩니다.
-    ParentComponent = nullptr;
-    ChildComponents.clear();
-}
-
-void USceneComponent::Serialize(FArchive& Ar)
-{
-    UActorComponent::Serialize(Ar);
-
-    if (Ar.IsSaving())
-    {
-        if (GetParent() != nullptr)
-        {
-            uint32 ParentUUID = GetParent()->GetUUID();
-            Ar << "ParentUUID" << ParentUUID;
-        }
-    }
-
-    Ar << "Location" << RelativeLocation;
-    Ar << "Rotation" << RelativeRotation;
-    Ar << "Scale" << RelativeScale3D;
-
-    if (Ar.IsLoading())
-    {
-        // FArchive 로드는 setter 를 거치지 않으므로 회전 권위 소스와 transform dirty 상태를
-        // 수동으로 동기화해야 이후 WorldMatrix 계산이 올바르게 복원됩니다.
-        RelativeRotationQuat = FQuat::MakeFromEuler(RelativeRotation);
-        RelativeRotationQuat.Normalize();
-        MarkTransformDirty();
-    }
-}
 USceneComponent::USceneComponent()
 {
     CachedWorldMatrix = FMatrix::Identity;
@@ -57,21 +18,23 @@ USceneComponent::USceneComponent()
 
 USceneComponent::~USceneComponent()
 {
-    if (ParentComponent != nullptr)
-    {
-        ParentComponent->RemoveChild(this);
-        ParentComponent = nullptr;
-    }
+    DetachFromParent();
+    DetachAllChildren();
+}
 
-    for (auto* Child : ChildComponents)
-    {
-        if (Child)
-        {
-            Child->ParentComponent = nullptr;
-            Child->MarkTransformDirty();
-        }
-    }
-    ChildComponents.clear();
+void USceneComponent::PostDuplicate(UObject* Original)
+{
+    UActorComponent::PostDuplicate(Original);
+
+    SetOwner(nullptr);
+    ResetHierarchyForDuplicate();
+}
+
+void USceneComponent::Serialize(FArchive& Ar)
+{
+    UActorComponent::Serialize(Ar);
+    SerializeParentReference(Ar);
+    SerializeRelativeTransformState(Ar);
 }
 
 void USceneComponent::AttachToComponent(USceneComponent* InParent)
@@ -91,19 +54,12 @@ void USceneComponent::SetParent(USceneComponent* NewParent)
         return;
     }
 
-    if (ParentComponent)
-    {
-        ParentComponent->RemoveChild(this);
-    }
-
+    DetachFromParent();
     ParentComponent = NewParent;
 
-    if (ParentComponent)
+    if (ParentComponent != nullptr && !ParentComponent->ContainsChild(this))
     {
-        if (!ParentComponent->ContainsChild(this))
-        {
-            ParentComponent->ChildComponents.push_back(this);
-        }
+        ParentComponent->ChildComponents.push_back(this);
     }
 
     MarkTransformDirty();
@@ -127,16 +83,18 @@ void USceneComponent::RemoveChild(USceneComponent* Child)
     }
 
     auto Iter = std::find(ChildComponents.begin(), ChildComponents.end(), Child);
-    if (Iter != ChildComponents.end())
+    if (Iter == ChildComponents.end())
     {
-        if ((*Iter)->ParentComponent == this)
-        {
-            (*Iter)->ParentComponent = nullptr;
-            (*Iter)->MarkTransformDirty();
-        }
-
-        ChildComponents.erase(Iter);
+        return;
     }
+
+    if ((*Iter)->ParentComponent == this)
+    {
+        (*Iter)->ParentComponent = nullptr;
+        (*Iter)->MarkTransformDirty();
+    }
+
+    ChildComponents.erase(Iter);
 }
 
 bool USceneComponent::ContainsChild(const USceneComponent* Child) const
@@ -160,15 +118,12 @@ void USceneComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProp
 void USceneComponent::PostEditProperty(const char* PropertyName)
 {
     UActorComponent::PostEditProperty(PropertyName);
-    // 에디터가 RelativeRotation(Euler)을 직접 수정했을 때 쿼터니언 권위 소스를 동기화합니다.
-    RelativeRotationQuat = FQuat::MakeFromEuler(RelativeRotation);
-    RelativeRotationQuat.Normalize();
+    SyncQuatFromEulerCache();
     MarkTransformDirty();
 }
 
 FRotator USceneComponent::GetRelativeRotator() const
 {
-    // 쿼터니언 권위 소스에서 직접 변환 — Euler 왕복 없음
     FRotator Rot = RelativeRotationQuat.Rotator();
     Rot.Normalize();
     return Rot;
@@ -176,7 +131,6 @@ FRotator USceneComponent::GetRelativeRotator() const
 
 FQuat USceneComponent::GetRelativeQuat() const
 {
-    // 권위 있는 쿼터니언을 직접 반환 — 짐벌 락 없음
     return RelativeRotationQuat;
 }
 
@@ -185,24 +139,17 @@ void USceneComponent::SetRelativeRotationRotator(const FRotator& NewRotation)
     FRotator Normalized = NewRotation;
     Normalized.Normalize();
 
-    // 에디터/카메라 용도에서 roll drift 방지
     if (MathUtil::Abs(Normalized.Roll) < 1e-6f)
     {
         Normalized.Roll = 0.0f;
     }
 
-    RelativeRotationQuat = FQuat(Normalized);
-    RelativeRotationQuat.Normalize();
-    RelativeRotation = RelativeRotationQuat.Euler();
-    MarkTransformDirty();
+    ApplyRelativeQuat(FQuat(Normalized));
 }
 
 void USceneComponent::SetRelativeRotationQuat(const FQuat& NewRotationQuat)
 {
-    // 쿼터니언을 권위 소스에 직접 저장 — Euler 왕복 변환 없음
-    RelativeRotationQuat = NewRotationQuat.GetNormalized();
-    RelativeRotation = RelativeRotationQuat.Euler();
-    MarkTransformDirty();
+    ApplyRelativeQuat(NewRotationQuat);
 }
 
 void USceneComponent::SetRelativeLocation(const FVector& NewLocation)
@@ -213,10 +160,9 @@ void USceneComponent::SetRelativeLocation(const FVector& NewLocation)
 
 void USceneComponent::SetRelativeRotation(const FVector& NewRotation)
 {
-    // Euler 입력을 쿼터니언 권위 소스에 저장하고 표시용 캐시도 동기화
-    RelativeRotationQuat = FQuat::MakeFromEuler(NewRotation);
-    RelativeRotationQuat.Normalize();
-    RelativeRotation = RelativeRotationQuat.Euler();
+    RelativeRotation = NewRotation;
+    SyncQuatFromEulerCache();
+    SyncEulerCacheFromQuat();
     MarkTransformDirty();
 }
 
@@ -233,7 +179,7 @@ void USceneComponent::MarkTransformDirty()
 
     for (auto* Child : ChildComponents)
     {
-        if (Child)
+        if (Child != nullptr)
         {
             Child->MarkTransformDirty();
         }
@@ -242,7 +188,6 @@ void USceneComponent::MarkTransformDirty()
 
 FTransform USceneComponent::GetRelativeTransform() const
 {
-    // 쿼터니언 권위 소스를 직접 사용 — Euler/Rotator 왕복 없음
     return FTransform(RelativeRotationQuat, RelativeLocation, RelativeScale3D);
 }
 
@@ -275,7 +220,7 @@ void USceneComponent::UpdateWorldMatrix() const
 
 const FMatrix& USceneComponent::GetWorldMatrix() const
 {
-    if (bTransformDirty)
+    if (IsTransformDirty())
     {
         UpdateWorldMatrix();
     }
@@ -285,7 +230,7 @@ const FMatrix& USceneComponent::GetWorldMatrix() const
 
 FTransform USceneComponent::GetWorldTransform() const
 {
-    if (bTransformDirty)
+    if (IsTransformDirty())
     {
         UpdateWorldMatrix();
     }
@@ -300,11 +245,10 @@ void USceneComponent::SetWorldLocation(FVector NewWorldLocation)
         const FTransform ParentWorldInverse = ParentComponent->GetWorldTransform().Inverse();
         const FVector NewRelativeLocation = ParentWorldInverse.TransformPosition(NewWorldLocation);
         SetRelativeLocation(NewRelativeLocation);
+        return;
     }
-    else
-    {
-        SetRelativeLocation(NewWorldLocation);
-    }
+
+    SetRelativeLocation(NewWorldLocation);
 }
 
 FVector USceneComponent::GetWorldLocation() const
@@ -369,11 +313,9 @@ void USceneComponent::AddRelativeYaw(float DeltaYawDegrees)
         return;
     }
 
-    // Yaw는 "부모 기준 Up(Z)" 축으로 회전시키는 게 local 계층에서도 가장 일관적임.
-    // 부모가 없으면 사실상 world up 기준과 동일.
-    const FVector ParentUpAxis = FVector(0.0f, 0.0f, 1.0f);
+    const FVector ParentUpAxis(0.0f, 0.0f, 1.0f);
 
-    FQuat CurrentQuat = GetRelativeQuat();
+    const FQuat CurrentQuat = GetRelativeQuat();
     FQuat DeltaQuat(ParentUpAxis, MathUtil::DegreesToRadians(DeltaYawDegrees));
 
     FQuat ResultQuat = DeltaQuat * CurrentQuat;
@@ -389,8 +331,7 @@ void USceneComponent::AddRelativePitch(float DeltaPitchDegrees)
         return;
     }
 
-    // pitch는 현재 local right 축 기준으로 회전
-    FQuat CurrentQuat = GetRelativeQuat();
+    const FQuat CurrentQuat = GetRelativeQuat();
     const FVector LocalRightAxis = CurrentQuat.GetAxisY();
 
     FQuat DeltaQuat(LocalRightAxis, MathUtil::DegreesToRadians(DeltaPitchDegrees));
@@ -407,7 +348,6 @@ void USceneComponent::AddRelativePitch(float DeltaPitchDegrees)
 
 void USceneComponent::Rotate(float DeltaYaw, float DeltaPitch)
 {
-    // 기존 인터페이스 유지하면서 내부는 quat 기반 처리
     if (MathUtil::Abs(DeltaYaw) > 1e-6f)
     {
         AddRelativeYaw(DeltaYaw);
@@ -417,4 +357,82 @@ void USceneComponent::Rotate(float DeltaYaw, float DeltaPitch)
     {
         AddRelativePitch(DeltaPitch);
     }
+}
+
+void USceneComponent::SerializeParentReference(FArchive& Ar)
+{
+    if (!Ar.IsSaving() || GetParent() == nullptr)
+    {
+        return;
+    }
+
+    uint32 ParentUUID = GetParent()->GetUUID();
+    Ar << "ParentUUID" << ParentUUID;
+}
+
+void USceneComponent::SerializeRelativeTransformState(FArchive& Ar)
+{
+    Ar << "Location" << RelativeLocation;
+    Ar << "Rotation" << RelativeRotation;
+    Ar << "Scale" << RelativeScale3D;
+
+    if (!Ar.IsLoading())
+    {
+        return;
+    }
+
+    SyncQuatFromEulerCache();
+    MarkTransformDirty();
+}
+
+void USceneComponent::ResetHierarchyForDuplicate()
+{
+    bTransformDirty = true;
+    ParentComponent = nullptr;
+    ChildComponents.clear();
+}
+
+void USceneComponent::DetachFromParent()
+{
+    if (ParentComponent == nullptr)
+    {
+        return;
+    }
+
+    ParentComponent->RemoveChild(this);
+    ParentComponent = nullptr;
+}
+
+void USceneComponent::DetachAllChildren()
+{
+    for (auto* Child : ChildComponents)
+    {
+        if (Child == nullptr)
+        {
+            continue;
+        }
+
+        Child->ParentComponent = nullptr;
+        Child->MarkTransformDirty();
+    }
+
+    ChildComponents.clear();
+}
+
+void USceneComponent::SyncQuatFromEulerCache()
+{
+    RelativeRotationQuat = FQuat::MakeFromEuler(RelativeRotation);
+    RelativeRotationQuat.Normalize();
+}
+
+void USceneComponent::SyncEulerCacheFromQuat()
+{
+    RelativeRotation = RelativeRotationQuat.Euler();
+}
+
+void USceneComponent::ApplyRelativeQuat(const FQuat& NewRotationQuat)
+{
+    RelativeRotationQuat = NewRotationQuat.GetNormalized();
+    SyncEulerCacheFromQuat();
+    MarkTransformDirty();
 }
