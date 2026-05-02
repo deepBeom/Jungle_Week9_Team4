@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "BaseEditorController.h"
+#include "Engine/Input/Controller/ViewportInputController.h"
 #include "Editor/Viewport/ViewportCamera.h"
 
 class FSelectionManager;
@@ -7,7 +7,7 @@ class UGizmoComponent;
 class UWorld;
 
 // Note: Editor Viewport uses FViewportCamera
-class FEditorWorldController : public IBaseEditorController
+class FEditorWorldController : public IViewportInputController
 {
   public:
     void Tick(float InDeltaTime) override;

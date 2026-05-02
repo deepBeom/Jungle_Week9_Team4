@@ -79,7 +79,10 @@ void UWorld::Tick(float DeltaTime)
     else
         PersistentLevel->TickGame(DeltaTime);
 
-    CollisionSystem.Tick(this, DeltaTime);
+    if (WorldType == EWorldType::PIE || WorldType == EWorldType::Game)
+    {
+        CollisionSystem.Tick(this, DeltaTime);
+    }
     FlushPendingDestroyActors();
     SyncSpatialIndex();
 }

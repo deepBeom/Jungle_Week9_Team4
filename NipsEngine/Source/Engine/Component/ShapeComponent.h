@@ -3,6 +3,7 @@
 
 #include "Core/GameObjectTypes.h"
 #include "PrimitiveComponent.h"
+#include "Engine/Core/Delegate/DelegateMacros.h"
 
 class AActor;
 class UShapeComponent;
@@ -51,6 +52,7 @@ struct FCollisionEvent
 
 using FCollisionEventCallback = std::function<void(const FCollisionEvent&)>;
 
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnHitDelegate, const FCollisionEvent&);
 class UShapeComponent : public UPrimitiveComponent
 {
 public:
@@ -91,9 +93,10 @@ public:
     void DispatchEndOverlap(const FCollisionEvent& Event);
     void DispatchHit(const FCollisionEvent& Event);
 
-    FCollisionEventCallback OnComponentBeginOverlap;
-    FCollisionEventCallback OnComponentEndOverlap;
-    FCollisionEventCallback OnComponentHit;
+    FOnHitDelegate OnHit;
+    FOnHitDelegate OnComponentBeginOverlap;
+    FOnHitDelegate OnComponentEndOverlap;
+    FOnHitDelegate OnComponentHit;
     
 protected:
     bool bGenerateOverlapEvents = true;

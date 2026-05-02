@@ -52,8 +52,10 @@ public:
     void SetTimer(FTimer* InTimer) { Timer = InTimer; }
     FTimer* GetTimer() const { return Timer; }
 
-    FRenderer& GetRenderer() { return Renderer; }
-    IRenderPipeline* GetRenderPipeline() const { return RenderPipeline.get(); }
+	FRenderer& GetRenderer() { return Renderer; }
+	IRenderPipeline* GetRenderPipeline() const { return RenderPipeline.get(); }
+
+	virtual void ApplySpatialIndexMaintenanceSettings(UWorld* TargetWorld);
 
     FLuaScriptSubsystem& GetLuaScriptSubsystem() { return LuaScriptSubsystem; }
     uint64 GetFrameCount() const { return FrameCounter; }

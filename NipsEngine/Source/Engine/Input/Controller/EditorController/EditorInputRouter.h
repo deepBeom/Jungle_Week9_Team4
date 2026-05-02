@@ -50,7 +50,7 @@ class FEditorInputRouter
 
   private:
     EActiveEditorController ActiveEditorControllerState = EActiveEditorController::EditorWorldController;
-    IBaseEditorController*  ActiveController = nullptr;
+    IViewportInputController*  ActiveController = nullptr;
     FEditorWorldController  EditorWorldController;
     FPIEController          PIEController;
 };

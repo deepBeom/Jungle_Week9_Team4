@@ -1,4 +1,4 @@
-#include "CollisionSystem.h"
+﻿#include "CollisionSystem.h"
 
 #include <algorithm>
 #include <cmath>
@@ -770,7 +770,9 @@ void FCollisionSystem::HandleBeginOverlap(UShapeComponent* A, UShapeComponent* B
     {
         const FCollisionEvent Event = MakeCollisionEvent(A, B, false);
         LogCollisionEvent("BeginOverlap", Event);
-        A->DispatchBeginOverlap(Event);
+        A->OnHit.Broadcast(Event);
+
+        //A->DispatchBeginOverlap(Event);
     }
 
     if (B->GetGenerateOverlapEvents())

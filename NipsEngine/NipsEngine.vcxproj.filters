@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Shaders">
@@ -123,6 +123,9 @@
     </Filter>
     <Filter Include="Source\Engine\Spatial">
       <UniqueIdentifier>{f8334c36-7f14-c751-7bba-2157775fd0eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Game">
+      <UniqueIdentifier>{66923485-3049-4823-9345-234983204932}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Misc">
       <UniqueIdentifier>{80bb3fb1-78dd-ab3e-b9d5-e1cee5602ed0}</UniqueIdentifier>
@@ -473,8 +476,8 @@
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp">
       <Filter>Source\Engine\Input</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Input\Controller\EditorController\BaseEditorController.cpp">
-      <Filter>Source\Engine\Input\Controller\EditorController</Filter>
+    <ClCompile Include="Source\Engine\Input\Controller\ViewportInputController.cpp">
+      <Filter>Source\Engine\Input\Controller</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.cpp">
       <Filter>Source\Engine\Input\Controller\EditorController</Filter>
@@ -484,6 +487,9 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Input\Controller\EditorController\PIEController.cpp">
       <Filter>Source\Engine\Input\Controller\EditorController</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Game\GameCameraController.cpp">
+      <Filter>Source\Game</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Math\Color.cpp">
       <Filter>Source\Engine\Math</Filter>
@@ -872,10 +878,18 @@
       <Filter>ThirdParty\Lua</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\Script\ScriptComponent.cpp" />
-    <ClCompile Include="Source\Engine\Scripting\LuaScriptEngine.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaBinder.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaScriptSubsystem.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\DelegateTestActor.cpp" />
+    <ClCompile Include="Source\Game\GameEngine.cpp">
+      <Filter>Source\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Game\GameRenderPipeline.cpp">
+      <Filter>Source\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Game\GameViewportClient.cpp">
+      <Filter>Source\Game</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -1181,8 +1195,8 @@
     <ClInclude Include="Source\Engine\Input\InputSystem.h">
       <Filter>Source\Engine\Input</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Input\Controller\EditorController\BaseEditorController.h">
-      <Filter>Source\Engine\Input\Controller\EditorController</Filter>
+    <ClInclude Include="Source\Engine\Input\Controller\ViewportInputController.h">
+      <Filter>Source\Engine\Input\Controller</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.h">
       <Filter>Source\Engine\Input\Controller\EditorController</Filter>
@@ -1192,6 +1206,9 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Input\Controller\EditorController\PIEController.h">
       <Filter>Source\Engine\Input\Controller\EditorController</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\GameCameraController.h">
+      <Filter>Source\Game</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Math\Color.h">
       <Filter>Source\Engine\Math</Filter>
@@ -1641,7 +1658,6 @@
       <Filter>ThirdParty\Lua</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Script\ScriptComponent.h" />
-    <ClInclude Include="Source\Engine\Scripting\LuaScriptEngine.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaBinder.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptInstance.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptSubsystem.h" />
@@ -1650,5 +1666,14 @@
     <ClInclude Include="Source\Engine\Core\Delegate\DelegateHandle.h" />
     <ClInclude Include="Source\Engine\Core\Delegate\DelegateMacros.h" />
     <ClInclude Include="Source\Engine\GameFramework\DelegateTestActor.h" />
+    <ClInclude Include="Source\Game\GameEngine.h">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\GameRenderPipeline.h">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\GameViewportClient.h">
+      <Filter>Source\Game</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

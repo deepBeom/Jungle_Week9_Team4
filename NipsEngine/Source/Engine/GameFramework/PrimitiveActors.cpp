@@ -11,7 +11,7 @@
 #include "Component/StaticMeshComponent.h"
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
-
+#include "Engine/Core/SoundManager.h"
 
 #include "Component/ObjectTypeComponent.h"
 
@@ -72,6 +72,25 @@ void AStaticMeshActor::InitDefaultComponents()
     SetRootComponent(StaticMesh);
 
     AddComponent<UObjectTypeComponent>();
+}
+
+void AStaticMeshActor::BeginPlay()
+{
+    for (UActorComponent* Comp : GetComponents())
+    {
+        UShapeComponent* ShapeComp = Cast<UShapeComponent>(Comp);
+        if (!ShapeComp) continue;
+
+        ShapeComp->SetGenerateOverlapEvents(true);
+
+        // 외부 싱글턴 호출은 Add
+        ShapeComp->OnHit.Add([](const FCollisionEvent& Event)
+            {
+                FSoundManager::Get().PlaySFX("Click.wav");
+            });
+
+
+    }
 }
 
 void ASubUVActor::InitDefaultComponents()

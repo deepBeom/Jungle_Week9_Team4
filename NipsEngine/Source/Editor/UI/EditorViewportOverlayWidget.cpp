@@ -416,11 +416,11 @@ void FEditorViewportOverlayWidget::RenderViewportSettings(float DeltaTime)
         SetControlWidth();
         bPolicyChanged |= ImGui::SliderInt("Rotation Dirty %", &Settings.SpatialRotationDirtyPercentThreshold, 1, 100);
 
-        if (bPolicyChanged && EditorEngine)
-        {
-            EditorEngine->ApplySpatialIndexMaintenanceSettings();
-        }
-    }
+		if (bPolicyChanged && EditorEngine)
+		{
+			EditorEngine->ApplySpatialIndexMaintenanceSettings(EditorEngine->GetWorld());
+		}
+	}
 
     ImGui::End();
 }
