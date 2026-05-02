@@ -115,8 +115,8 @@ void FUIBatcher::AddQuad(FVector2 ScreenXY,
 
     // 좌상 -> 우상 -> 좌하 -> 우하
     Vertices.push_back({ LeftTop, {0, 0}, Color });
-    Vertices.push_back({ RightTop, {0, 1}, Color });
-    Vertices.push_back({ LeftBottom, {1, 0}, Color });
+    Vertices.push_back({ RightTop, {1, 0}, Color });
+    Vertices.push_back({ LeftBottom, {0, 1}, Color });
     Vertices.push_back({ RightBottom, {1, 1}, Color });
 
     Indices.push_back(LocalBase + 0); 

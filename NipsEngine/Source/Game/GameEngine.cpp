@@ -34,9 +34,9 @@ void UGameEngine::Init(FWindowsWindow* InWindow)
     FUIManager::Get().CreateImage(
         nullptr,                        // 부모 없음 (루트)
         { 400.f, 400.f },               // 스크린 좌표 (픽셀)
-        { 200.f, 200.f },              // 크기
+        { 100.f, 100.f },              // 크기
         IconTex,                        // 텍스처 (nullptr 이면 흰 박스)
-        { 1.f, 0.f, 0.f, 1.f }        // 색상 tint (빨간색)
+        { 1.f, 1.f, 1.f, 1.f }        // 색상 tint (빨간색)
     );
 }
 
