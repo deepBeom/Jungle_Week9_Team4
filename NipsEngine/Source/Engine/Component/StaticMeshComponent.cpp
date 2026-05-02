@@ -10,7 +10,8 @@ REGISTER_FACTORY(UStaticMeshComponent)
 
 UStaticMeshComponent::UStaticMeshComponent()
 {
-    SetStaticMesh(FResourceManager::Get().LoadStaticMesh("Asset\\Mesh\\Dice\\Dice.obj"));
+    //	기본 도형은 Cube로 설정
+    SetStaticMesh(FResourceManager::Get().LoadStaticMesh("Asset/Mesh/cube.obj"));
 }
 
 void UStaticMeshComponent::PostDuplicate(UObject* Original)
