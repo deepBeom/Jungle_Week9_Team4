@@ -1,0 +1,20 @@
+{
+    "Name": "WaterSurfaceMat",
+    "Shader": "Shaders/Water.hlsl",
+    "MaterialDomain": "Surface",
+    "LightingModel": "Phong",
+    "Params": [
+        { "Name": "bIsWater", "Type": "Bool", "Value": true },
+        { "Name": "BaseColor", "Type": "Vector3", "Value": [0.08, 0.22, 0.33] },
+        { "Name": "Alpha", "Type": "Float", "Value": 1.0 },
+        { "Name": "NormalStrength", "Type": "Float", "Value": 0.45 },
+        { "Name": "NormalTilingA", "Type": "Vector2", "Value": [4.0, 4.0] },
+        { "Name": "NormalScrollSpeedA", "Type": "Vector2", "Value": [0.03, 0.01] },
+        { "Name": "NormalTilingB", "Type": "Vector2", "Value": [2.5, 2.5] },
+        { "Name": "NormalScrollSpeedB", "Type": "Vector2", "Value": [-0.02, 0.015] },
+        { "Name": "ColorVariationStrength", "Type": "Float", "Value": 0.15 },
+        { "Name": "WaterNormalA", "Type": "Texture", "Value": "Asset/Mesh/Water/Wave_Normal_DirectX.png" },
+        { "Name": "bHasNormalMapA", "Type": "Bool", "Value": true },
+        { "Name": "bHasNormalMapB", "Type": "Bool", "Value": false }
+    ]
+}

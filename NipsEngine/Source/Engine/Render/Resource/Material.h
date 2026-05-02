@@ -117,6 +117,21 @@ public:
     virtual bool GetParam(const FString& Name, FMaterialParamValue& OutValue) const = 0;
     virtual EMaterialDomain GetEffectiveMaterialDomain() const = 0;
     virtual ELightingModel GetEffectiveLightingModel() const = 0;
+    bool IsWaterMaterial() const
+    {
+        FMaterialParamValue ParamValue;
+        if (!GetParam("bIsWater", ParamValue) || ParamValue.Type != EMaterialParamType::Bool)
+        {
+            return false;
+        }
+
+        if (!std::holds_alternative<bool>(ParamValue.Value))
+        {
+            return false;
+        }
+
+        return std::get<bool>(ParamValue.Value);
+    }
 
     virtual void SetParam(const FString& Name, const FMaterialParamValue& Value) = 0;
 

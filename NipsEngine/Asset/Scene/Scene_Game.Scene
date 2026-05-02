@@ -1,7 +1,7 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 127,
+  "NextUUID" : 128,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
@@ -139,6 +139,22 @@
       "Type" : "UBillboardComponent",
       "Visible" : true,
       "Width" : 1.000000
+    },
+    "127" : {
+      "EditorOnly" : false,
+      "Enable Cull" : true,
+      "EnableTick" : true,
+      "HiddenInEditor" : false,
+      "Location" : [0.000000, 0.000000, -1.000000],
+      "Materials" : ["WaterSurfaceMat"],
+      "NormalizeOnImport" : false,
+      "ObjStaticMeshAsset" : "Asset\\Mesh\\Water\\Wave.obj",
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [2.000000, 2.000000, 2.000000],
+      "Scroll U" : 0.000000,
+      "Scroll V" : 0.000000,
+      "Type" : "UStaticMeshComponent",
+      "Visible" : true
     }
   },
   "Version" : 4,

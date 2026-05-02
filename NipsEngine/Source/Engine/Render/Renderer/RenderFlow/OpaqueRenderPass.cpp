@@ -4,6 +4,7 @@
 #include "Render/Resource/RenderResources.h"
 #include "Render/Resource/Material.h"
 #include "Core/ResourceManager.h"
+#include "Core/Logging/Log.h"
 #include "SceneLightBinding.h"
 
 namespace
@@ -61,6 +62,8 @@ bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)
         return true;
 
     UShader* ShaderOverride = ResolveOpaqueShaderOverride(Context);
+    UShader* WaterShader = FResourceManager::Get().GetShader("Shaders/Water.hlsl");
+    static bool bWaterShaderMissingLogged = false;
 
     SceneLightBinding::BindResources(Context,
         VisibleLightConstantBuffer,
@@ -102,7 +105,21 @@ bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)
 
         if (Cmd.Material)
         {
-            Cmd.Material->Bind(Context->DeviceContext, Context->RenderBus, &Cmd.PerObjectConstants, ShaderOverride, Context);
+            UShader* PerCommandShaderOverride = ShaderOverride;
+            if (Cmd.Material->IsWaterMaterial())
+            {
+                if (WaterShader)
+                {
+                    PerCommandShaderOverride = WaterShader;
+                }
+                else if (!bWaterShaderMissingLogged)
+                {
+                    UE_LOG("[Water] Dedicated water shader is not loaded (Shaders/Water.hlsl). Falling back to material shader.");
+                    bWaterShaderMissingLogged = true;
+                }
+            }
+
+            Cmd.Material->Bind(Context->DeviceContext, Context->RenderBus, &Cmd.PerObjectConstants, PerCommandShaderOverride, Context);
             ID3D11DepthStencilState* DepthStencilState =
                 FResourceManager::Get().GetOrCreateDepthStencilState(EDepthStencilType::DepthReadOnly);
             Context->DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);

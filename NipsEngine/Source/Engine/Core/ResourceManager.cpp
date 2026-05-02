@@ -25,6 +25,11 @@ namespace
             return ResourceManager.LoadShader(ShaderName, "mainVS", "mainPS", static_cast<const D3D_SHADER_MACRO*>(nullptr));
         }
 
+        if (ShaderName == "Shaders/Water.hlsl")
+        {
+            return ResourceManager.LoadShader(ShaderName, "mainVS", "mainPS", static_cast<const D3D_SHADER_MACRO*>(nullptr));
+        }
+
         if (ShaderName == "Shaders/OutlinePostProcess.hlsl")
         {
             return ResourceManager.LoadShader(ShaderName, "VS", "PS", static_cast<const D3D_SHADER_MACRO*>(nullptr));
