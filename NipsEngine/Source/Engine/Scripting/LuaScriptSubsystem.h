@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <sol/sol.hpp>
 #include "Engine/Scripting/LuaScriptInstance.h"
@@ -64,7 +64,7 @@ public:
      */
     bool HasFunction(std::shared_ptr<FLuaScriptInstance> Instance, const std::string& FunctionName) const;
 
-	template <typename... Args>
+    template <typename... Args>
     bool CallFunction(
         std::shared_ptr<FLuaScriptInstance> Instance,
         const std::string& FunctionName,

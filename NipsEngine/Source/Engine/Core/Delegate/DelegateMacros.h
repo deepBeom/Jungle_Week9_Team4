@@ -11,11 +11,11 @@
  * @note: To avoid issues with macro expansion breaking code navigation, make sure the type/class name macro params are unique across all of these macros
  */
 #define FUNC_DECLARE_DELEGATE( DelegateName, ReturnType, ... ) \
-	typedef TDelegate<ReturnType(__VA_ARGS__)> DelegateName;
+    typedef TDelegate<ReturnType(__VA_ARGS__)> DelegateName;
 
  /** Declares a broadcast delegate that can bind to multiple native functions simultaneously */
 #define FUNC_DECLARE_MULTICAST_DELEGATE( MulticastDelegateName, ReturnType, ... ) \
-	typedef TMulticastDelegate<ReturnType(__VA_ARGS__)> MulticastDelegateName;
+    typedef TMulticastDelegate<ReturnType(__VA_ARGS__)> MulticastDelegateName;
 
 
 #define DECLARE_DELEGATE_OneParam( DelegateName, Param1Type ) FUNC_DECLARE_DELEGATE( DelegateName, void, Param1Type )

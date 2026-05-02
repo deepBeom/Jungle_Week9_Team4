@@ -14,154 +14,154 @@ UEngine* GEngine = nullptr;
 
 void UEngine::Init(FWindowsWindow* InWindow)
 {
-	Window = InWindow;
+    Window = InWindow;
 
-	// 싱글턴 초기화 순서 보장
-	FNamePool::Get();
-	FObjectFactory::Get();
+    // 싱글턴 초기화 순서 보장
+    FNamePool::Get();
+    FObjectFactory::Get();
 
-	InputSystem::Get().SetOwnerWindow(Window->GetHWND());
-	Renderer.Create(Window->GetHWND());
+    InputSystem::Get().SetOwnerWindow(Window->GetHWND());
+    Renderer.Create(Window->GetHWND());
 
-	FResourceManager::Get().LoadFromAssetDirectory(FPaths::ToUtf8(FPaths::AssetDirectoryPath()));
+    FResourceManager::Get().LoadFromAssetDirectory(FPaths::ToUtf8(FPaths::AssetDirectoryPath()));
 
-	LuaScriptSubsystem.Initialize();
-	Renderer.CreateResources();
+    LuaScriptSubsystem.Initialize();
+    Renderer.CreateResources();
 
-	SetRenderPipeline(std::make_unique<FDefaultRenderPipeline>(this, Renderer));
-	FrameCounter = 0;
+    SetRenderPipeline(std::make_unique<FDefaultRenderPipeline>(this, Renderer));
+    FrameCounter = 0;
 }
 
 void UEngine::Shutdown()
 {
-	LuaScriptSubsystem.Shutdown();
-	RenderPipeline.reset();
-	FResourceManager::Get().ReleaseGPUResources();
-	Renderer.Release();
+    LuaScriptSubsystem.Shutdown();
+    RenderPipeline.reset();
+    FResourceManager::Get().ReleaseGPUResources();
+    Renderer.Release();
 }
 
 void UEngine::BeginPlay()
 {
-	FWorldContext* Context = GetWorldContextFromHandle(ActiveWorldHandle);
-	if (Context && Context->World)
-	{
-		if (Context->WorldType == EWorldType::Game || Context->WorldType == EWorldType::PIE)
-		{
-			Context->World->BeginPlay();
-		}
-	}
+    FWorldContext* Context = GetWorldContextFromHandle(ActiveWorldHandle);
+    if (Context && Context->World)
+    {
+        if (Context->WorldType == EWorldType::Game || Context->WorldType == EWorldType::PIE)
+        {
+            Context->World->BeginPlay();
+        }
+    }
 }
 
 void UEngine::Tick(float DeltaTime)
 {
-	InputSystem::Get().Tick();
-	WorldTick(DeltaTime);
-	++FrameCounter;
-	Render(DeltaTime);
+    InputSystem::Get().Tick();
+    WorldTick(DeltaTime);
+    ++FrameCounter;
+    Render(DeltaTime);
 }
 
 void UEngine::Render(float DeltaTime)
 {
-	if (RenderPipeline)
-	{
-		SCOPE_STAT("UEngine::Render");
-		RenderPipeline->Execute(DeltaTime, Renderer);
-	}
+    if (RenderPipeline)
+    {
+        SCOPE_STAT("UEngine::Render");
+        RenderPipeline->Execute(DeltaTime, Renderer);
+    }
 }
 
 void UEngine::SetRenderPipeline(std::unique_ptr<IRenderPipeline> InPipeline)
 {
-	RenderPipeline = std::move(InPipeline);
+    RenderPipeline = std::move(InPipeline);
 }
 
 void UEngine::OnWindowResized(uint32 Width, uint32 Height)
 {
-	if (Width <= 0 || Height <= 0)
-	{
-		return;
-	}
+    if (Width <= 0 || Height <= 0)
+    {
+        return;
+    }
 
-	Renderer.InvalidateSceneFinalTargets();
-	Renderer.GetFD3DDevice().OnResizeViewport(Width, Height);
+    Renderer.InvalidateSceneFinalTargets();
+    Renderer.GetFD3DDevice().OnResizeViewport(Width, Height);
 }
 
 void UEngine::WorldTick(float DeltaTime)
 {
-	UWorld* World = GetWorld();
-	if (World)
-	{
-		World->Tick(DeltaTime);
-	}
+    UWorld* World = GetWorld();
+    if (World)
+    {
+        World->Tick(DeltaTime);
+    }
 }
 
 UWorld* UEngine::GetWorld() const
 {
-	const FWorldContext* Context = GetWorldContextFromHandle(ActiveWorldHandle);
-	return Context ? Context->World : nullptr;
+    const FWorldContext* Context = GetWorldContextFromHandle(ActiveWorldHandle);
+    return Context ? Context->World : nullptr;
 }
 
 FWorldContext& UEngine::CreateWorldContext(EWorldType Type, const FName& Handle, const FString& Name)
 {
-	FWorldContext Context;
-	Context.WorldType = Type;
-	Context.ContextHandle = Handle;
-	Context.ContextName = Name.empty() ? Handle.ToString() : Name;
-	Context.World = UObjectManager::Get().CreateObject<UWorld>();
-	WorldList.push_back(Context);
-	return WorldList.back();
+    FWorldContext Context;
+    Context.WorldType = Type;
+    Context.ContextHandle = Handle;
+    Context.ContextName = Name.empty() ? Handle.ToString() : Name;
+    Context.World = UObjectManager::Get().CreateObject<UWorld>();
+    WorldList.push_back(Context);
+    return WorldList.back();
 }
 
 void UEngine::DestroyWorldContext(const FName& Handle)
 {
-	for (auto it = WorldList.begin(); it != WorldList.end(); ++it)
-	{
-		if (it->ContextHandle == Handle)
-		{
-			it->World->EndPlay(EEndPlayReason::Type::Destroyed);
-			UObjectManager::Get().DestroyObject(it->World);
-			WorldList.erase(it);
-			return;
-		}
-	}
+    for (auto it = WorldList.begin(); it != WorldList.end(); ++it)
+    {
+        if (it->ContextHandle == Handle)
+        {
+            it->World->EndPlay(EEndPlayReason::Type::Destroyed);
+            UObjectManager::Get().DestroyObject(it->World);
+            WorldList.erase(it);
+            return;
+        }
+    }
 }
 
 FWorldContext* UEngine::GetWorldContextFromHandle(const FName& Handle)
 {
-	for (FWorldContext& Ctx : WorldList)
-	{
-		if (Ctx.ContextHandle == Handle)
-		{
-			return &Ctx;
-		}
-	}
-	return nullptr;
+    for (FWorldContext& Ctx : WorldList)
+    {
+        if (Ctx.ContextHandle == Handle)
+        {
+            return &Ctx;
+        }
+    }
+    return nullptr;
 }
 
 const FWorldContext* UEngine::GetWorldContextFromHandle(const FName& Handle) const
 {
-	for (const FWorldContext& Ctx : WorldList)
-	{
-		if (Ctx.ContextHandle == Handle)
-		{
-			return &Ctx;
-		}
-	}
-	return nullptr;
+    for (const FWorldContext& Ctx : WorldList)
+    {
+        if (Ctx.ContextHandle == Handle)
+        {
+            return &Ctx;
+        }
+    }
+    return nullptr;
 }
 
 FWorldContext* UEngine::GetWorldContextFromWorld(const UWorld* World)
 {
-	for (FWorldContext& Ctx : WorldList)
-	{
-		if (Ctx.World == World)
-		{
-			return &Ctx;
-		}
-	}
-	return nullptr;
+    for (FWorldContext& Ctx : WorldList)
+    {
+        if (Ctx.World == World)
+        {
+            return &Ctx;
+        }
+    }
+    return nullptr;
 }
 
 void UEngine::SetActiveWorld(const FName& Handle)
 {
-	ActiveWorldHandle = Handle;
+    ActiveWorldHandle = Handle;
 }

@@ -103,7 +103,7 @@ FFrustum::EFrustumIntersectResult FFrustum::Intersects(const FAABB& Box) const
 // - 교차 여부를 판정할 필요가 없으므로 연산 최적화를 위해 단순 bool return합니다.
 bool FFrustum::IntersectsBoundingSphere(const FVector& Center, float Radius) const
 {
-	for (const FPlane& Plane : Planes)
+    for (const FPlane& Plane : Planes)
     {
         const float Distance = Plane.GetSignedDistanceToPoint(Center);
 

@@ -117,7 +117,7 @@ void UEditorEngine::StartPlaySession()
     }
     if (CurrentState == EViewportPlayState::Playing) return;
 
-	// 포커스된 뷰포트 클라이언트를 찾고 카메라 상태를 저장한 뒤, 실행 상태를 변경합니다.
+    // 포커스된 뷰포트 클라이언트를 찾고 카메라 상태를 저장한 뒤, 실행 상태를 변경합니다.
     const int32 FocusedIdx = ViewportLayout.GetLastFocusedViewportIndex();
     FEditorViewportClient* FocusedClient = ViewportLayout.GetViewportClient(FocusedIdx);
     UWorld* FocusedWorld = GetFocusedWorld();
@@ -126,7 +126,7 @@ void UEditorEngine::StartPlaySession()
 
     FocusedClient->SaveCameraSnapshot();
 
-	// 주의! Editor State는 실제 에디터의 상태가 아닌, 현재 에디터가 포커스한 뷰포트의 상태를 의미합니다.
+    // 주의! Editor State는 실제 에디터의 상태가 아닌, 현재 에디터가 포커스한 뷰포트의 상태를 의미합니다.
     SetEditorState(EViewportPlayState::Playing); 
 
     // PIE 월드 복제하고 세팅한 뒤, RegisterWorld() 헬퍼를 사용해 월드를 WorldList에 등록합니다.

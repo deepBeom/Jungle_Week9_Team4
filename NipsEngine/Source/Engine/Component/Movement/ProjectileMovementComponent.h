@@ -5,17 +5,17 @@
 class UProjectileMovementComponent : public UMovementComponent
 {
 public:
-	DECLARE_CLASS(UProjectileMovementComponent, UMovementComponent)
+    DECLARE_CLASS(UProjectileMovementComponent, UMovementComponent)
 
-	virtual void TickComponent(float DeltaTime) override;
-	virtual void BeginPlay() override;
-	virtual void Serialize(FArchive& Ar) override;
+    virtual void TickComponent(float DeltaTime) override;
+    virtual void BeginPlay() override;
+    virtual void Serialize(FArchive& Ar) override;
 
     void SetInitialSpeed(const float InSpeed) { InitialSpeed = InSpeed; }
     float GetInitialSpeed() const { return InitialSpeed; }
 
     void SetMaxSpeed(const float InSpeed) { MaxSpeed = InSpeed; }
-	virtual float GetMaxSpeed() const { return MaxSpeed; }
+    virtual float GetMaxSpeed() const { return MaxSpeed; }
 
     void SetGravityScale(const float InScale) { GravityScale = InScale; }
     float GetGravityScale() const { return GravityScale; }
@@ -23,12 +23,12 @@ public:
     void SetRotationFollowsVelocity(bool bFollow) { bRotationFollowsVelocity = bFollow; }
     bool GetRotationFollowsVelocity() const { return bRotationFollowsVelocity; }
 
-	virtual void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
+    virtual void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
 
 private:
-	float InitialSpeed = 5.0f;
-	float MaxSpeed = 100.0f;
-	float GravityScale = 0.0f;
+    float InitialSpeed = 5.0f;
+    float MaxSpeed = 100.0f;
+    float GravityScale = 0.0f;
 
-	bool bRotationFollowsVelocity = true; // 켤 시 화살 및 로켓이 날아가는 궤적을 바라본다.
+    bool bRotationFollowsVelocity = true; // 켤 시 화살 및 로켓이 날아가는 궤적을 바라본다.
 };

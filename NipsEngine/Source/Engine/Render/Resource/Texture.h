@@ -4,38 +4,38 @@
 
 struct FTexture
 {
-	~FTexture() { Release(); }
+    ~FTexture() { Release(); }
 
-	void Release()
-	{
-		if (SRV)
-		{
-			SRV->Release();
-			SRV = nullptr;
-		}
-	}
+    void Release()
+    {
+        if (SRV)
+        {
+            SRV->Release();
+            SRV = nullptr;
+        }
+    }
 
-	ID3D11ShaderResourceView* SRV = nullptr;
+    ID3D11ShaderResourceView* SRV = nullptr;
 };
 
 class UTexture : public UObject
 {
 public:
-	DECLARE_CLASS(UTexture, UObject)
-	~UTexture() override
-	{
-		TextureData.Release();
-	}
+    DECLARE_CLASS(UTexture, UObject)
+    ~UTexture() override
+    {
+        TextureData.Release();
+    }
 
-	bool LoadFromFile(const FString& InFilePath, ID3D11Device* InDevice);
+    bool LoadFromFile(const FString& InFilePath, ID3D11Device* InDevice);
 
-	const FString& GetFilePath() const { return FilePath; }
-	FString& GetFilePathRef() { return FilePath; }
+    const FString& GetFilePath() const { return FilePath; }
+    FString& GetFilePathRef() { return FilePath; }
 
-	ID3D11ShaderResourceView** GetAddressOfSRV() { return &TextureData.SRV; }
-	ID3D11ShaderResourceView* GetSRV() const { return TextureData.SRV; }
+    ID3D11ShaderResourceView** GetAddressOfSRV() { return &TextureData.SRV; }
+    ID3D11ShaderResourceView* GetSRV() const { return TextureData.SRV; }
 
 private:
-	FString FilePath;
-	FTexture TextureData;
+    FString FilePath;
+    FTexture TextureData;
 };

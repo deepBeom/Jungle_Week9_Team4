@@ -1,4 +1,4 @@
-#include "Core/EnginePCH.h"
+﻿#include "Core/EnginePCH.h"
 #include "Scripting/LuaScriptSubsystem.h"
 
 #include "Engine/Scripting/LuaBinder.h"

@@ -9,25 +9,25 @@
  */
 struct FSceneView
 {
-	FViewportRect ViewRect;
+    FViewportRect ViewRect;
 
-	FMatrix ViewMatrix;
-	FMatrix ProjectionMatrix;
-	FMatrix ViewProjectionMatrix;
+    FMatrix ViewMatrix;
+    FMatrix ProjectionMatrix;
+    FMatrix ViewProjectionMatrix;
 
-	FVector CameraPosition;
-	FVector CameraForward;
-	FVector CameraRight;
-	FVector CameraUp;
-	float NearPlane;
-	float FarPlane;
+    FVector CameraPosition;
+    FVector CameraForward;
+    FVector CameraRight;
+    FVector CameraUp;
+    float NearPlane;
+    float FarPlane;
 
-	float CameraOrthoHeight;
+    float CameraOrthoHeight;
 
-	FFrustum CameraFrustum;
+    FFrustum CameraFrustum;
 
-	EViewMode ViewMode = EViewMode::Lit;
+    EViewMode ViewMode = EViewMode::Lit;
 
-	bool bOrthographic = false;
+    bool bOrthographic = false;
 };
 

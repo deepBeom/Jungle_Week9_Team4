@@ -6,38 +6,38 @@
 class UStaticMeshComponent : public UMeshComponent
 {
 public:
-	DECLARE_CLASS(UStaticMeshComponent, UMeshComponent)
-	UStaticMeshComponent();
-	
-	virtual void PostDuplicate(UObject* Original) override;
+    DECLARE_CLASS(UStaticMeshComponent, UMeshComponent)
+    UStaticMeshComponent();
+    
+    virtual void PostDuplicate(UObject* Original) override;
 
-	virtual void Serialize(FArchive& Ar) override;
+    virtual void Serialize(FArchive& Ar) override;
 
-	void SetStaticMesh(UStaticMesh* InStaticMesh);
-	UStaticMesh* GetStaticMesh() const;
-	bool HasValidMesh() const;
+    void SetStaticMesh(UStaticMesh* InStaticMesh);
+    UStaticMesh* GetStaticMesh() const;
+    bool HasValidMesh() const;
 
-	void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
-	void PostEditProperty(const char * PropertyName) override;
+    void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
+    void PostEditProperty(const char * PropertyName) override;
 
-	void UpdateWorldAABB() const override;
-	bool RaycastMesh(const FRay& Ray, FHitResult& OutHitResult) override;
-	EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_StaticMesh; }
+    void UpdateWorldAABB() const override;
+    bool RaycastMesh(const FRay& Ray, FHitResult& OutHitResult) override;
+    EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_StaticMesh; }
 
-	const FAABB& GetWorldAABB() const override;
+    const FAABB& GetWorldAABB() const override;
 
-	bool ConsumeRenderStateDirty();
-
-private:
-	void MarkBoundsDirty();
-	void MarkRenderStateDirty();
-	void EnsureBoundsUpdated() const;
+    bool ConsumeRenderStateDirty();
 
 private:
-	UStaticMesh* StaticMeshAsset = nullptr;
-	FString StaticMeshAssetPath;
-	bool bNormalizeOnImport = false;
+    void MarkBoundsDirty();
+    void MarkRenderStateDirty();
+    void EnsureBoundsUpdated() const;
 
-	mutable bool bBoundsDirty = true;
-	bool bRenderStateDirty = true;
+private:
+    UStaticMesh* StaticMeshAsset = nullptr;
+    FString StaticMeshAssetPath;
+    bool bNormalizeOnImport = false;
+
+    mutable bool bBoundsDirty = true;
+    bool bRenderStateDirty = true;
 };

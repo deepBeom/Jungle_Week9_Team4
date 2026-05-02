@@ -1,57 +1,57 @@
-#include "ShadowPass.h"
+﻿#include "ShadowPass.h"
 
 #include "Core/ResourceManager.h"
 #include "UI/EditorConsoleWidget.h"
 
 namespace
 {
-	float GetShadowMomentClearValue(uint32 ShadowFilterType)
-	{
-		static constexpr uint32 ShadowFilterTypeESM = 2u;
-		static constexpr float ShadowESMExponentClearValue = 2.3538527e17f; // exp(40)
-		return ShadowFilterType == ShadowFilterTypeESM ? ShadowESMExponentClearValue : 1.0f;
-	}
+    float GetShadowMomentClearValue(uint32 ShadowFilterType)
+    {
+        static constexpr uint32 ShadowFilterTypeESM = 2u;
+        static constexpr float ShadowESMExponentClearValue = 2.3538527e17f; // exp(40)
+        return ShadowFilterType == ShadowFilterTypeESM ? ShadowESMExponentClearValue : 1.0f;
+    }
 
-	// AtlasRect(0~1 정규화 UV)를 실제 D3D viewport 픽셀 좌표로 바꿉니다.
-	D3D11_VIEWPORT MakeViewportFromAtlasRect(const FVector4& AtlasRect, float AtlasResolution)
-	{
-		D3D11_VIEWPORT Viewport = {};
-		Viewport.TopLeftX = AtlasRect.X * AtlasResolution;
-		Viewport.TopLeftY = AtlasRect.Y * AtlasResolution;
-		Viewport.Width    = AtlasRect.Z * AtlasResolution;
-		Viewport.Height   = AtlasRect.W * AtlasResolution;
-		Viewport.MinDepth = 0.0f;
-		Viewport.MaxDepth = 1.0f;
-		return Viewport;
-	}
+    // AtlasRect(0~1 정규화 UV)를 실제 D3D viewport 픽셀 좌표로 바꿉니다.
+    D3D11_VIEWPORT MakeViewportFromAtlasRect(const FVector4& AtlasRect, float AtlasResolution)
+    {
+        D3D11_VIEWPORT Viewport = {};
+        Viewport.TopLeftX = AtlasRect.X * AtlasResolution;
+        Viewport.TopLeftY = AtlasRect.Y * AtlasResolution;
+        Viewport.Width    = AtlasRect.Z * AtlasResolution;
+        Viewport.Height   = AtlasRect.W * AtlasResolution;
+        Viewport.MinDepth = 0.0f;
+        Viewport.MaxDepth = 1.0f;
+        return Viewport;
+    }
 }
 
 bool FShadowPass::Initialize()
 {
-	return true;
+    return true;
 }
 
 bool FShadowPass::Release()
 {
-	DirectionalShaderBinding.reset();
-	ShaderBinding.reset();
+    DirectionalShaderBinding.reset();
+    ShaderBinding.reset();
     PointShaderBinding.reset();
-	ShadowBackCullRasterizerState.Reset();
-	ShadowNoCullRasterizerState.Reset();
-	ShadowAtlasManager.Release();
+    ShadowBackCullRasterizerState.Reset();
+    ShadowNoCullRasterizerState.Reset();
+    ShadowAtlasManager.Release();
 
-	return true;
+    return true;
 }
 
 bool FShadowPass::Begin(const FRenderPassContext* Context)
 {
-	OutSRV = PrevPassSRV;
-	OutRTV = PrevPassRTV;
+    OutSRV = PrevPassSRV;
+    OutRTV = PrevPassRTV;
 
-	if (Context == nullptr)
-	{
-		return false;
-	}
+    if (Context == nullptr)
+    {
+        return false;
+    }
 
     if (Context->RenderTargets != nullptr)
     {
@@ -63,12 +63,12 @@ bool FShadowPass::Begin(const FRenderPassContext* Context)
         Context->RenderTargets->PointShadowVSMSRV = nullptr;
     }
 
-	if (!EnsureDirectionalShadowResources(Context->Device, MAX_CASCADE_COUNT))
-	{
-		return false;
-	}
+    if (!EnsureDirectionalShadowResources(Context->Device, MAX_CASCADE_COUNT))
+    {
+        return false;
+    }
 
-	if (!EnsureSpotShadowResources(Context->Device))
+    if (!EnsureSpotShadowResources(Context->Device))
     {
         return false;
     }
@@ -78,125 +78,125 @@ bool FShadowPass::Begin(const FRenderPassContext* Context)
         return false;
     }
 
-	return true;
+    return true;
 }
 
 bool FShadowPass::DrawCommand(const FRenderPassContext* Context)
 {
-	if (Context == nullptr || Context->RenderBus == nullptr || Context->DeviceContext == nullptr)
-	{
-		return false;
-	}
+    if (Context == nullptr || Context->RenderBus == nullptr || Context->DeviceContext == nullptr)
+    {
+        return false;
+    }
 
-	const TArray<FRenderCommand>& Commands = Context->RenderBus->GetCommands(ERenderPass::ShadowCasters);
+    const TArray<FRenderCommand>& Commands = Context->RenderBus->GetCommands(ERenderPass::ShadowCasters);
 
-	// ─────────────────── Directional Shadow ───────────────────
-	const FDirectionalShadowConstants* DirShadow = Context->RenderBus->GetDirectionalShadow();
-	if (DirShadow != nullptr && DirectionalShaderBinding)
-	{
-		// 이전 프레임에 shader stage에서 directional shadow array를 읽고 있었을 수 있으니
-		// depth target으로 다시 쓰기 전에 SRV 바인딩을 끊어준다.
-		ID3D11ShaderResourceView* NullDirectionalShadowSRV = nullptr;
-		Context->DeviceContext->PSSetShaderResources(13, 1, &NullDirectionalShadowSRV);
-		Context->DeviceContext->VSSetShaderResources(13, 1, &NullDirectionalShadowSRV);
+    // ─────────────────── Directional Shadow ───────────────────
+    const FDirectionalShadowConstants* DirShadow = Context->RenderBus->GetDirectionalShadow();
+    if (DirShadow != nullptr && DirectionalShaderBinding)
+    {
+        // 이전 프레임에 shader stage에서 directional shadow array를 읽고 있었을 수 있으니
+        // depth target으로 다시 쓰기 전에 SRV 바인딩을 끊어준다.
+        ID3D11ShaderResourceView* NullDirectionalShadowSRV = nullptr;
+        Context->DeviceContext->PSSetShaderResources(13, 1, &NullDirectionalShadowSRV);
+        Context->DeviceContext->VSSetShaderResources(13, 1, &NullDirectionalShadowSRV);
 
-		Context->DeviceContext->PSSetShaderResources(16, 1, &NullDirectionalShadowSRV);
-		Context->DeviceContext->VSSetShaderResources(16, 1, &NullDirectionalShadowSRV);
+        Context->DeviceContext->PSSetShaderResources(16, 1, &NullDirectionalShadowSRV);
+        Context->DeviceContext->VSSetShaderResources(16, 1, &NullDirectionalShadowSRV);
 
-		ID3D11DepthStencilView* AtlasDSV = ShadowAtlasManager.GetDirectionalAtlasDSV();
-		ID3D11RenderTargetView* AtlasRTV = ShadowAtlasManager.GetDirectionalVSMAtlasRTV();
+        ID3D11DepthStencilView* AtlasDSV = ShadowAtlasManager.GetDirectionalAtlasDSV();
+        ID3D11RenderTargetView* AtlasRTV = ShadowAtlasManager.GetDirectionalVSMAtlasRTV();
 
-		if (AtlasDSV == nullptr)
-		{
-			return false;
-		}
-		Context->DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        if (AtlasDSV == nullptr)
+        {
+            return false;
+        }
+        Context->DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		ID3D11DepthStencilState* DSState =
-			FResourceManager::Get().GetOrCreateDepthStencilState(EDepthStencilType::Default, Context->Device);
-		Context->DeviceContext->OMSetDepthStencilState(DSState, 0);
-		ID3D11RasterizerState* DirectionalRS = GetOrCreateShadowRasterizerState(
-			Context->Device,
-			DirShadow->ShadowMode == DirectionalShadowModeValue::PSM);
-		if (DirectionalRS == nullptr)
-		{
-			return false;
-		}
-		Context->DeviceContext->RSSetState(DirectionalRS);
-		Context->DeviceContext->OMSetRenderTargets(1, &AtlasRTV, AtlasDSV);
-		Context->DeviceContext->ClearDepthStencilView(AtlasDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
+        ID3D11DepthStencilState* DSState =
+            FResourceManager::Get().GetOrCreateDepthStencilState(EDepthStencilType::Default, Context->Device);
+        Context->DeviceContext->OMSetDepthStencilState(DSState, 0);
+        ID3D11RasterizerState* DirectionalRS = GetOrCreateShadowRasterizerState(
+            Context->Device,
+            DirShadow->ShadowMode == DirectionalShadowModeValue::PSM);
+        if (DirectionalRS == nullptr)
+        {
+            return false;
+        }
+        Context->DeviceContext->RSSetState(DirectionalRS);
+        Context->DeviceContext->OMSetRenderTargets(1, &AtlasRTV, AtlasDSV);
+        Context->DeviceContext->ClearDepthStencilView(AtlasDSV, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
-		const float ShadowMomentClearValue =
-			GetShadowMomentClearValue(static_cast<uint32>(Context->RenderBus->GetShadowFilterType()));
-		float ClearColor[4] = { ShadowMomentClearValue, ShadowMomentClearValue, 1.0f, 1.0f };
-		Context->DeviceContext->ClearRenderTargetView(AtlasRTV, ClearColor);
+        const float ShadowMomentClearValue =
+            GetShadowMomentClearValue(static_cast<uint32>(Context->RenderBus->GetShadowFilterType()));
+        float ClearColor[4] = { ShadowMomentClearValue, ShadowMomentClearValue, 1.0f, 1.0f };
+        Context->DeviceContext->ClearRenderTargetView(AtlasRTV, ClearColor);
 
-		const TArray<FDirectionalAtlasSlotDesc>& CascadeSlots = FShadowAtlasManager::GetDirectionalCascadeSlots();
-		const uint32 CascadeCount = static_cast<uint32>(CascadeSlots.size());
-		const uint32 DirectionalPassCount =
-			(DirShadow->ShadowMode == DirectionalShadowModeValue::PSM && CascadeCount > 0u) ? 1u : CascadeCount;
-		
-		for (uint32 CascadeIndex = 0; CascadeIndex < DirectionalPassCount; ++CascadeIndex)
-		{
-			const FDirectionalAtlasSlotDesc& Slot = CascadeSlots[CascadeIndex];
-			const D3D11_VIEWPORT DirShadowViewport = 
-				MakeViewportFromAtlasRect(Slot.AtlasRect, static_cast<float>(FShadowAtlasManager::DirectionalAtlasResolution ));
-			Context->DeviceContext->RSSetViewports(1, &DirShadowViewport);
+        const TArray<FDirectionalAtlasSlotDesc>& CascadeSlots = FShadowAtlasManager::GetDirectionalCascadeSlots();
+        const uint32 CascadeCount = static_cast<uint32>(CascadeSlots.size());
+        const uint32 DirectionalPassCount =
+            (DirShadow->ShadowMode == DirectionalShadowModeValue::PSM && CascadeCount > 0u) ? 1u : CascadeCount;
+        
+        for (uint32 CascadeIndex = 0; CascadeIndex < DirectionalPassCount; ++CascadeIndex)
+        {
+            const FDirectionalAtlasSlotDesc& Slot = CascadeSlots[CascadeIndex];
+            const D3D11_VIEWPORT DirShadowViewport = 
+                MakeViewportFromAtlasRect(Slot.AtlasRect, static_cast<float>(FShadowAtlasManager::DirectionalAtlasResolution ));
+            Context->DeviceContext->RSSetViewports(1, &DirShadowViewport);
 
-			DirectionalShaderBinding->SetMatrix4("LightViewProj", DirShadow->LightViewProj[CascadeIndex]);
+            DirectionalShaderBinding->SetMatrix4("LightViewProj", DirShadow->LightViewProj[CascadeIndex]);
             DirectionalShaderBinding->SetUInt("ShadowFilterType", static_cast<uint32>(Context->RenderBus->GetShadowFilterType()));
 
-			for (const FRenderCommand& Cmd : Commands)
-			{
-				if (Cmd.Type == ERenderCommandType::PostProcessOutline)
-				{
-					continue;
-				}
+            for (const FRenderCommand& Cmd : Commands)
+            {
+                if (Cmd.Type == ERenderCommandType::PostProcessOutline)
+                {
+                    continue;
+                }
 
-				if (Cmd.MeshBuffer == nullptr || !Cmd.MeshBuffer->IsValid())
-				{
-					continue;
-				}
+                if (Cmd.MeshBuffer == nullptr || !Cmd.MeshBuffer->IsValid())
+                {
+                    continue;
+                }
 
-				ID3D11Buffer* VertexBuffer = Cmd.MeshBuffer->GetVertexBuffer().GetBuffer();
-				if (VertexBuffer == nullptr)
-				{
-					continue;
-				}
+                ID3D11Buffer* VertexBuffer = Cmd.MeshBuffer->GetVertexBuffer().GetBuffer();
+                if (VertexBuffer == nullptr)
+                {
+                    continue;
+                }
 
-				const uint32 VertexCount = Cmd.MeshBuffer->GetVertexBuffer().GetVertexCount();
-				const uint32 Stride = Cmd.MeshBuffer->GetVertexBuffer().GetStride();
-				if (VertexCount == 0 || Stride == 0)
-				{
-					continue;
-				}
-			
-				uint32 Offset = 0;
-				DirectionalShaderBinding->SetMatrix4("World", Cmd.PerObjectConstants.Model);
-				DirectionalShaderBinding->Bind(Context->DeviceContext);
+                const uint32 VertexCount = Cmd.MeshBuffer->GetVertexBuffer().GetVertexCount();
+                const uint32 Stride = Cmd.MeshBuffer->GetVertexBuffer().GetStride();
+                if (VertexCount == 0 || Stride == 0)
+                {
+                    continue;
+                }
+            
+                uint32 Offset = 0;
+                DirectionalShaderBinding->SetMatrix4("World", Cmd.PerObjectConstants.Model);
+                DirectionalShaderBinding->Bind(Context->DeviceContext);
 
-				Context->DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+                Context->DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
 
-				ID3D11Buffer* IndexBuffer = Cmd.MeshBuffer->GetIndexBuffer().GetBuffer();
-				if (IndexBuffer != nullptr)
-				{
-					Context->DeviceContext->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-					Context->DeviceContext->DrawIndexed(Cmd.SectionIndexCount, Cmd.SectionIndexStart, 0);
-				}
-				else
-				{
-					Context->DeviceContext->Draw(VertexCount, 0);
-				}
-			}
-		}
+                ID3D11Buffer* IndexBuffer = Cmd.MeshBuffer->GetIndexBuffer().GetBuffer();
+                if (IndexBuffer != nullptr)
+                {
+                    Context->DeviceContext->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+                    Context->DeviceContext->DrawIndexed(Cmd.SectionIndexCount, Cmd.SectionIndexStart, 0);
+                }
+                else
+                {
+                    Context->DeviceContext->Draw(VertexCount, 0);
+                }
+            }
+        }
 
-		if (Context->RenderTargets != nullptr)
-		{
-			Context->RenderTargets->DirectionalShadowSRV = ShadowAtlasManager.GetDirectionalAtlasSRV();
+        if (Context->RenderTargets != nullptr)
+        {
+            Context->RenderTargets->DirectionalShadowSRV = ShadowAtlasManager.GetDirectionalAtlasSRV();
 
-			Context->RenderTargets->DirectionalShadowVSMSRV = ShadowAtlasManager.GetDirectionalVSMAtlasSRV();
-		}
-	}
+            Context->RenderTargets->DirectionalShadowVSMSRV = ShadowAtlasManager.GetDirectionalVSMAtlasSRV();
+        }
+    }
 
     // ─────────────────── Spot Shadow ───────────────────
     const TArray<FSpotShadowConstants>& SpotShadows = Context->RenderBus->GetCastShadowSpotLights();
@@ -247,17 +247,17 @@ bool FShadowPass::DrawCommand(const FRenderPassContext* Context)
             MakeViewportFromAtlasRect(SpotShadow.AtlasRect, static_cast<float>(FShadowAtlasManager::SpotAtlasResolution));
         Context->DeviceContext->RSSetViewports(1, &ShadowViewport);
 
-		ShaderBinding->SetMatrix4("LightViewProj", SpotShadow.LightViewProj);
-		ShaderBinding->SetFloat("ShadowBias", SpotShadow.ShadowBias);
-		ShaderBinding->SetFloat("ShadowFarPlane", SpotShadow.ShadowFarPlane);
+        ShaderBinding->SetMatrix4("LightViewProj", SpotShadow.LightViewProj);
+        ShaderBinding->SetFloat("ShadowBias", SpotShadow.ShadowBias);
+        ShaderBinding->SetFloat("ShadowFarPlane", SpotShadow.ShadowFarPlane);
         ShaderBinding->SetUInt("ShadowFilterType", static_cast<uint32>(Context->RenderBus->GetShadowFilterType()));
-		
-		for (const FRenderCommand& Cmd : Commands)
-		{
-			if (Cmd.Type == ERenderCommandType::PostProcessOutline)
-			{
-				continue;
-			}
+        
+        for (const FRenderCommand& Cmd : Commands)
+        {
+            if (Cmd.Type == ERenderCommandType::PostProcessOutline)
+            {
+                continue;
+            }
 
             if (Cmd.MeshBuffer == nullptr || !Cmd.MeshBuffer->IsValid())
             {
@@ -303,7 +303,7 @@ bool FShadowPass::DrawCommand(const FRenderPassContext* Context)
         Context->RenderTargets->SpotShadowSRV = ShadowAtlasManager.GetSpotAtlasSRV();
         Context->RenderTargets->SpotShadowCount = RenderedSpotShadowCount;
 
-		Context->RenderTargets->SpotShadowVSMSRV = ShadowAtlasManager.GetSpotVSMAtlasSRV();
+        Context->RenderTargets->SpotShadowVSMSRV = ShadowAtlasManager.GetSpotVSMAtlasSRV();
     }
 
     }
@@ -423,38 +423,38 @@ bool FShadowPass::DrawCommand(const FRenderPassContext* Context)
 
 bool FShadowPass::End(const FRenderPassContext* Context)
 {
-	if (Context != nullptr && Context->DeviceContext != nullptr)
-	{
-		Context->DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
+    if (Context != nullptr && Context->DeviceContext != nullptr)
+    {
+        Context->DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
 
-		if (Context->RenderTargets != nullptr)
-		{
-			D3D11_VIEWPORT Viewport = {};
-			Viewport.TopLeftX = 0.0f;
-			Viewport.TopLeftY = 0.0f;
-			Viewport.Width = Context->RenderTargets->Width;
-			Viewport.Height = Context->RenderTargets->Height;
-			Viewport.MinDepth = 0.0f;
-			Viewport.MaxDepth = 1.0f;
-			Context->DeviceContext->RSSetViewports(1, &Viewport);
-		}
-	}
+        if (Context->RenderTargets != nullptr)
+        {
+            D3D11_VIEWPORT Viewport = {};
+            Viewport.TopLeftX = 0.0f;
+            Viewport.TopLeftY = 0.0f;
+            Viewport.Width = Context->RenderTargets->Width;
+            Viewport.Height = Context->RenderTargets->Height;
+            Viewport.MinDepth = 0.0f;
+            Viewport.MaxDepth = 1.0f;
+            Context->DeviceContext->RSSetViewports(1, &Viewport);
+        }
+    }
 
-	return true;
+    return true;
 }
 
 bool FShadowPass::EnsureDirectionalShadowResources(ID3D11Device* Device, uint32 CascadeCount)
 {
-	if (Device == nullptr || CascadeCount == 0)
-	{
-		return false;
-	}
+    if (Device == nullptr || CascadeCount == 0)
+    {
+        return false;
+    }
 
-	if (!ShadowAtlasManager.InitializeDirectionalAtlas(Device))
-	{
-		UE_LOG("Failed to initialize directional shadow atlas");
-		return false;
-	}
+    if (!ShadowAtlasManager.InitializeDirectionalAtlas(Device))
+    {
+        UE_LOG("Failed to initialize directional shadow atlas");
+        return false;
+    }
 
     if (!DirectionalShaderBinding)
     {
@@ -487,22 +487,22 @@ bool FShadowPass::EnsureDirectionalShadowResources(ID3D11Device* Device, uint32 
             return false;
         }
     }
-	
-	return true;
+    
+    return true;
 }
 
 bool FShadowPass::EnsureSpotShadowResources(ID3D11Device* Device)
 {
-	if (Device == nullptr)
-	{
-		return false;
-	}
+    if (Device == nullptr)
+    {
+        return false;
+    }
 
-	if (!ShadowAtlasManager.Initialize(Device))
-	{
-		UE_LOG("Failed to initialize spot shadow atlas manager");
-		return false;
-	}
+    if (!ShadowAtlasManager.Initialize(Device))
+    {
+        UE_LOG("Failed to initialize spot shadow atlas manager");
+        return false;
+    }
 
     if (!ShaderBinding)
     {
@@ -528,43 +528,43 @@ bool FShadowPass::EnsureSpotShadowResources(ID3D11Device* Device)
             }
         }
 
-		ShaderBinding = SoptShadowShader->CreateBindingInstance(Device);
-		if (!ShaderBinding)
-		{
-			UE_LOG("Failed to create directional shadow shader binding");
-			return false;
-		}
-	}
+        ShaderBinding = SoptShadowShader->CreateBindingInstance(Device);
+        if (!ShaderBinding)
+        {
+            UE_LOG("Failed to create directional shadow shader binding");
+            return false;
+        }
+    }
 
-	return true;
+    return true;
 }
 
 ID3D11RasterizerState* FShadowPass::GetOrCreateShadowRasterizerState(ID3D11Device* Device, bool bNoCull)
 {
-	if (Device == nullptr)
-	{
-		return nullptr;
-	}
+    if (Device == nullptr)
+    {
+        return nullptr;
+    }
 
-	TComPtr<ID3D11RasterizerState>* State =
-		bNoCull ? &ShadowNoCullRasterizerState : &ShadowBackCullRasterizerState;
-	if (State->Get() != nullptr)
-	{
-		return State->Get();
-	}
+    TComPtr<ID3D11RasterizerState>* State =
+        bNoCull ? &ShadowNoCullRasterizerState : &ShadowBackCullRasterizerState;
+    if (State->Get() != nullptr)
+    {
+        return State->Get();
+    }
 
-	D3D11_RASTERIZER_DESC Desc = {};
-	Desc.FillMode = D3D11_FILL_SOLID;
-	Desc.CullMode = bNoCull ? D3D11_CULL_NONE : D3D11_CULL_BACK;
-	Desc.DepthClipEnable = TRUE;
+    D3D11_RASTERIZER_DESC Desc = {};
+    Desc.FillMode = D3D11_FILL_SOLID;
+    Desc.CullMode = bNoCull ? D3D11_CULL_NONE : D3D11_CULL_BACK;
+    Desc.DepthClipEnable = TRUE;
 
-	if (FAILED(Device->CreateRasterizerState(&Desc, State->GetAddressOf())))
-	{
-		UE_LOG("Failed to create shadow rasterizer state");
-		return nullptr;
-	}
+    if (FAILED(Device->CreateRasterizerState(&Desc, State->GetAddressOf())))
+    {
+        UE_LOG("Failed to create shadow rasterizer state");
+        return nullptr;
+    }
 
-	return State->Get();
+    return State->Get();
 }
 
 bool FShadowPass::EnsurePointShadowResources(ID3D11Device* Device)

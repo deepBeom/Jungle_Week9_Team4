@@ -193,7 +193,7 @@ void InputSystem::LockMouse(bool bLock, float x, float y, float w, float h)
     if (bIsMouseLocked)
     {
         auto WarpX = x + w * 0.5f;
-		auto WarpY = y + h * 0.5f;
+        auto WarpY = y + h * 0.5f;
         LockedCenterScreen = {static_cast<LONG>(WarpX), static_cast<LONG>(WarpY)};
         SetCursorPos(LockedCenterScreen.x, LockedCenterScreen.y);
     }

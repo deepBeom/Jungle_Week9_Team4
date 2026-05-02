@@ -18,289 +18,289 @@
 
 void FEditorViewportClient::Initialize(FWindowsWindow* InWindow, UEditorEngine* InEditor)
 {
-	FViewportClient::Initialize(InWindow);
-	Editor = InEditor;
-	InputRouter.SetActiveController(EActiveEditorController::EditorWorldController);
+    FViewportClient::Initialize(InWindow);
+    Editor = InEditor;
+    InputRouter.SetActiveController(EActiveEditorController::EditorWorldController);
 }
 
 void FEditorViewportClient::SetWorld(UWorld* InWorld)
 {
-	World = InWorld;
-	InputRouter.GetEditorWorldController().SetWorld(InWorld);
+    World = InWorld;
+    InputRouter.GetEditorWorldController().SetWorld(InWorld);
 }
 
 void FEditorViewportClient::StartPIE(UWorld* InWorld)
 {
-	World = InWorld;
+    World = InWorld;
     InputRouter.GetPIEController().SetCamera(&Camera); // re-sync Yaw/Pitch
     InputRouter.GetPIEController().SetTargetLocation(InputRouter.GetEditorWorldController().GetTargetLocation());
-	InputRouter.SetActiveController(EActiveEditorController::PIEController);
+    InputRouter.SetActiveController(EActiveEditorController::PIEController);
 }
 
 void FEditorViewportClient::EndPIE(UWorld* InWorld)
 {
-	World = InWorld;
+    World = InWorld;
     InputRouter.GetEditorWorldController().SetTargetLocation(InputRouter.GetPIEController().GetTargetLocation());
-	InputRouter.GetEditorWorldController().SetWorld(InWorld);
-	InputRouter.SetActiveController(EActiveEditorController::EditorWorldController);
-	InputRouter.GetEditorWorldController().ResetTargetLocation();
-	ClearEndPIECallback();
-	InputSystem::Get().LockMouse(false);
-	bControlLocked = false;
+    InputRouter.GetEditorWorldController().SetWorld(InWorld);
+    InputRouter.SetActiveController(EActiveEditorController::EditorWorldController);
+    InputRouter.GetEditorWorldController().ResetTargetLocation();
+    ClearEndPIECallback();
+    InputSystem::Get().LockMouse(false);
+    bControlLocked = false;
 }
 
 void FEditorViewportClient::SetSelectionManager(FSelectionManager* InSelectionManager)
 {
-	SelectionManager = InSelectionManager;
-	InputRouter.GetEditorWorldController().SetSelectionManager(InSelectionManager);
+    SelectionManager = InSelectionManager;
+    InputRouter.GetEditorWorldController().SetSelectionManager(InSelectionManager);
 }
 
 void FEditorViewportClient::CreateCamera()
 {
-	bHasCamera = true;
-	Camera = FViewportCamera();
-	Camera.OnResize(static_cast<uint32>(WindowWidth), static_cast<uint32>(WindowHeight));
-	InputRouter.GetEditorWorldController().SetCamera(&Camera);
-	InputRouter.GetPIEController().SetCamera(&Camera);
-	InputRouter.GetEditorWorldController().ResetTargetLocation();
-	InputRouter.GetPIEController().ResetTargetLocation();
+    bHasCamera = true;
+    Camera = FViewportCamera();
+    Camera.OnResize(static_cast<uint32>(WindowWidth), static_cast<uint32>(WindowHeight));
+    InputRouter.GetEditorWorldController().SetCamera(&Camera);
+    InputRouter.GetPIEController().SetCamera(&Camera);
+    InputRouter.GetEditorWorldController().ResetTargetLocation();
+    InputRouter.GetPIEController().ResetTargetLocation();
 }
 
 void FEditorViewportClient::DestroyCamera()
 {
-	bHasCamera = false;
-	InputRouter.GetEditorWorldController().NullifyCamera();
+    bHasCamera = false;
+    InputRouter.GetEditorWorldController().NullifyCamera();
 }
 
 void FEditorViewportClient::ResetCamera()
 {
-	if (!bHasCamera || !Settings)
-		return;
+    if (!bHasCamera || !Settings)
+        return;
 
-	Camera.SetLocation(Settings->InitViewPos);
+    Camera.SetLocation(Settings->InitViewPos);
 
-	const FVector Forward = (Settings->InitLookAt - Settings->InitViewPos).GetSafeNormal();
-	if (!Forward.IsNearlyZero())
-	{
-		FVector Right = FVector::CrossProduct(FVector::UpVector, Forward).GetSafeNormal();
-		if (!Right.IsNearlyZero())
-		{
-			FVector Up = FVector::CrossProduct(Forward, Right).GetSafeNormal();
-			FMatrix RotationMatrix = FMatrix::Identity;
-			RotationMatrix.SetAxes(Forward, Right, Up);
+    const FVector Forward = (Settings->InitLookAt - Settings->InitViewPos).GetSafeNormal();
+    if (!Forward.IsNearlyZero())
+    {
+        FVector Right = FVector::CrossProduct(FVector::UpVector, Forward).GetSafeNormal();
+        if (!Right.IsNearlyZero())
+        {
+            FVector Up = FVector::CrossProduct(Forward, Right).GetSafeNormal();
+            FMatrix RotationMatrix = FMatrix::Identity;
+            RotationMatrix.SetAxes(Forward, Right, Up);
 
-			FQuat NewRotation(RotationMatrix);
-			NewRotation.Normalize();
-			Camera.SetRotation(NewRotation);
-		}
-	}
-	InputRouter.GetEditorWorldController().ResetTargetLocation();
+            FQuat NewRotation(RotationMatrix);
+            NewRotation.Normalize();
+            Camera.SetRotation(NewRotation);
+        }
+    }
+    InputRouter.GetEditorWorldController().ResetTargetLocation();
 }
 
 void FEditorViewportClient::SetViewportSize(float InWidth, float InHeight)
 {
-	FViewportClient::SetViewportSize(InWidth, InHeight);
+    FViewportClient::SetViewportSize(InWidth, InHeight);
 
-	if (bHasCamera)
-		Camera.OnResize(static_cast<uint32>(WindowWidth), static_cast<uint32>(WindowHeight));
+    if (bHasCamera)
+        Camera.OnResize(static_cast<uint32>(WindowWidth), static_cast<uint32>(WindowHeight));
 }
 
 void FEditorViewportClient::Tick(float DeltaTime)
 {
-	if (State && !State->bHovered)
-		return;
+    if (State && !State->bHovered)
+        return;
 
-	TickInput(DeltaTime);
-	TickInteraction(DeltaTime);
+    TickInput(DeltaTime);
+    TickInteraction(DeltaTime);
 }
 
 void FEditorViewportClient::BuildSceneView(FSceneView& OutView) const
 {
-	if (!bHasCamera) return;
+    if (!bHasCamera) return;
 
-	OutView.ViewMatrix           = Camera.GetViewMatrix();
-	OutView.ProjectionMatrix     = Camera.GetProjectionMatrix();
-	OutView.ViewProjectionMatrix = OutView.ViewMatrix * OutView.ProjectionMatrix;
+    OutView.ViewMatrix           = Camera.GetViewMatrix();
+    OutView.ProjectionMatrix     = Camera.GetProjectionMatrix();
+    OutView.ViewProjectionMatrix = OutView.ViewMatrix * OutView.ProjectionMatrix;
 
-	OutView.CameraPosition = Camera.GetLocation();
-	OutView.CameraForward  = Camera.GetForwardVector();
-	OutView.CameraRight    = Camera.GetRightVector();
-	OutView.CameraUp       = Camera.GetUpVector();
+    OutView.CameraPosition = Camera.GetLocation();
+    OutView.CameraForward  = Camera.GetForwardVector();
+    OutView.CameraRight    = Camera.GetRightVector();
+    OutView.CameraUp       = Camera.GetUpVector();
 
-	OutView.NearPlane = Camera.GetNearPlane();
-	OutView.FarPlane = Camera.GetFarPlane();
+    OutView.NearPlane = Camera.GetNearPlane();
+    OutView.FarPlane = Camera.GetFarPlane();
 
-	OutView.bOrthographic = Camera.IsOrthographic();
+    OutView.bOrthographic = Camera.IsOrthographic();
 
     OutView.CameraOrthoHeight = Camera.GetOrthoHeight();
 
-	OutView.CameraFrustum = Camera.GetFrustum();
+    OutView.CameraFrustum = Camera.GetFrustum();
 
-	if (State)
-	{
-		OutView.ViewRect = Viewport->GetRect();
-		OutView.ViewMode = State->ViewMode;
-	}
+    if (State)
+    {
+        OutView.ViewRect = Viewport->GetRect();
+        OutView.ViewMode = State->ViewMode;
+    }
 }
 
 void FEditorViewportClient::ApplyCameraMode()
 {
-	// Orthographic views reset rotation so the existing value doesn't interfere with LookAt.
-	Camera.SetRotation(FRotator(0.f, 0.f, 0.f));
+    // Orthographic views reset rotation so the existing value doesn't interfere with LookAt.
+    Camera.SetRotation(FRotator(0.f, 0.f, 0.f));
 
-	switch (ViewportType)
-	{
-	case EVT_Perspective:
-		Camera.SetProjectionType(EViewportProjectionType::Perspective);
-		Camera.ClearCustomLookDir();
-		Camera.SetLocation(FVector(5.f, 3.f, 5.f));
-		Camera.SetLookAt(FVector(0.f, 0.f, 0.f));
-		break;
+    switch (ViewportType)
+    {
+    case EVT_Perspective:
+        Camera.SetProjectionType(EViewportProjectionType::Perspective);
+        Camera.ClearCustomLookDir();
+        Camera.SetLocation(FVector(5.f, 3.f, 5.f));
+        Camera.SetLookAt(FVector(0.f, 0.f, 0.f));
+        break;
 
-	// Orthographic views (X=Forward, Y=Right, Z=Up)
+    // Orthographic views (X=Forward, Y=Right, Z=Up)
 
-	case EVT_OrthoTop:			// top-down (-Z), screen-up = +X
-		Camera.SetProjectionType(EViewportProjectionType::Orthographic);
-		Camera.SetLocation(FVector(0.f, 0.f, 1000.f));
-		Camera.SetCustomLookDir(FVector(0.f, 0.f, -1.f), FVector(1.f, 0.f, 0.f));
-		break;
+    case EVT_OrthoTop:			// top-down (-Z), screen-up = +X
+        Camera.SetProjectionType(EViewportProjectionType::Orthographic);
+        Camera.SetLocation(FVector(0.f, 0.f, 1000.f));
+        Camera.SetCustomLookDir(FVector(0.f, 0.f, -1.f), FVector(1.f, 0.f, 0.f));
+        break;
 
-	case EVT_OrthoBottom:		// bottom-up (+Z), screen-up = +X
-		Camera.SetProjectionType(EViewportProjectionType::Orthographic);
-		Camera.SetLocation(FVector(0.f, 0.f, -1000.f));
-		Camera.SetCustomLookDir(FVector(0.f, 0.f, 1.f), FVector(1.f, 0.f, 0.f));
-		break;
+    case EVT_OrthoBottom:		// bottom-up (+Z), screen-up = +X
+        Camera.SetProjectionType(EViewportProjectionType::Orthographic);
+        Camera.SetLocation(FVector(0.f, 0.f, -1000.f));
+        Camera.SetCustomLookDir(FVector(0.f, 0.f, 1.f), FVector(1.f, 0.f, 0.f));
+        break;
 
-	case EVT_OrthoFront:		// front (-X->+X), screen-up = +Z
-		Camera.SetProjectionType(EViewportProjectionType::Orthographic);
-		Camera.SetLocation(FVector(1000.f, 0.f, 0.f));
-		Camera.SetCustomLookDir(FVector(-1.f, 0.f, 0.f), FVector(0.f, 0.f, 1.f));
-		break;
+    case EVT_OrthoFront:		// front (-X->+X), screen-up = +Z
+        Camera.SetProjectionType(EViewportProjectionType::Orthographic);
+        Camera.SetLocation(FVector(1000.f, 0.f, 0.f));
+        Camera.SetCustomLookDir(FVector(-1.f, 0.f, 0.f), FVector(0.f, 0.f, 1.f));
+        break;
 
-	case EVT_OrthoBack:			// back (+X->-X), screen-up = +Z
-		Camera.SetProjectionType(EViewportProjectionType::Orthographic);
-		Camera.SetLocation(FVector(-1000.f, 0.f, 0.f));
-		Camera.SetCustomLookDir(FVector(1.f, 0.f, 0.f), FVector(0.f, 0.f, 1.f));
-		break;
+    case EVT_OrthoBack:			// back (+X->-X), screen-up = +Z
+        Camera.SetProjectionType(EViewportProjectionType::Orthographic);
+        Camera.SetLocation(FVector(-1000.f, 0.f, 0.f));
+        Camera.SetCustomLookDir(FVector(1.f, 0.f, 0.f), FVector(0.f, 0.f, 1.f));
+        break;
 
-	case EVT_OrthoLeft:			// left (-Y->+Y), screen-up = +Z
-		Camera.SetProjectionType(EViewportProjectionType::Orthographic);
-		Camera.SetLocation(FVector(0.f, -1000.f, 0.f));
-		Camera.SetCustomLookDir(FVector(0.f, 1.f, 0.f), FVector(0.f, 0.f, 1.f));
-		break;
+    case EVT_OrthoLeft:			// left (-Y->+Y), screen-up = +Z
+        Camera.SetProjectionType(EViewportProjectionType::Orthographic);
+        Camera.SetLocation(FVector(0.f, -1000.f, 0.f));
+        Camera.SetCustomLookDir(FVector(0.f, 1.f, 0.f), FVector(0.f, 0.f, 1.f));
+        break;
 
-	case EVT_OrthoRight:		// right (+Y->-Y), screen-up = +Z
-		Camera.SetProjectionType(EViewportProjectionType::Orthographic);
-		Camera.SetLocation(FVector(0.f, 1000.f, 0.f));
-		Camera.SetCustomLookDir(FVector(0.f, -1.f, 0.f), FVector(0.f, 0.f, 1.f));
-		break;
+    case EVT_OrthoRight:		// right (+Y->-Y), screen-up = +Z
+        Camera.SetProjectionType(EViewportProjectionType::Orthographic);
+        Camera.SetLocation(FVector(0.f, 1000.f, 0.f));
+        Camera.SetCustomLookDir(FVector(0.f, -1.f, 0.f), FVector(0.f, 0.f, 1.f));
+        break;
 
-	default:
-		break;
-	}
+    default:
+        break;
+    }
 
-	// Reset lerp target immediately so accumulated TargetLocation doesn't
-	// move the camera on the next Tick after a mode switch.
-	InputRouter.GetEditorWorldController().ResetTargetLocation();
+    // Reset lerp target immediately so accumulated TargetLocation doesn't
+    // move the camera on the next Tick after a mode switch.
+    InputRouter.GetEditorWorldController().ResetTargetLocation();
 }
 
 bool FEditorViewportClient::IsActiveOperation() const
 {
-	const InputSystem& IS = InputSystem::Get();
-	return IS.GetRightDragging() || IS.GetMiddleDragging();
+    const InputSystem& IS = InputSystem::Get();
+    return IS.GetRightDragging() || IS.GetMiddleDragging();
 }
 
 // ── Input tick sub-steps ──────────────────────────────────────────────────────
 
 void FEditorViewportClient::TickInput(float DeltaTime)
 {
-	if (!bHasCamera)
-		return;
+    if (!bHasCamera)
+        return;
 
-	if (Settings)
-	{
-		FEditorWorldController& Controller = InputRouter.GetEditorWorldController();
-		Controller.SetMoveSpeed(Settings->CameraSpeed);
-		Controller.SetMoveSensitivity(Settings->CameraMoveSensitivity);
-		Controller.SetRotateSensitivity(Settings->CameraRotateSensitivity);
-		Controller.SetZoomSpeed(Settings->CameraZoomSpeed);
-	}
+    if (Settings)
+    {
+        FEditorWorldController& Controller = InputRouter.GetEditorWorldController();
+        Controller.SetMoveSpeed(Settings->CameraSpeed);
+        Controller.SetMoveSensitivity(Settings->CameraMoveSensitivity);
+        Controller.SetRotateSensitivity(Settings->CameraRotateSensitivity);
+        Controller.SetZoomSpeed(Settings->CameraZoomSpeed);
+    }
 
-	const float VX = State ? static_cast<float>(Viewport->GetRect().X) : 0.f;
+    const float VX = State ? static_cast<float>(Viewport->GetRect().X) : 0.f;
     const float VY = State ? static_cast<float>(Viewport->GetRect().Y) : 0.f;
 
-	TickCursorCapture();
-	InputRouter.SetViewportDim(VX, VY, WindowWidth, WindowHeight);
-	InputRouter.Tick(DeltaTime);
-	TickKeyboardInput();
-	TickEditorShortcuts();
-	TickPIEShortCuts();
-	TickMouseInput(VX, VY);
+    TickCursorCapture();
+    InputRouter.SetViewportDim(VX, VY, WindowWidth, WindowHeight);
+    InputRouter.Tick(DeltaTime);
+    TickKeyboardInput();
+    TickEditorShortcuts();
+    TickPIEShortCuts();
+    TickMouseInput(VX, VY);
 }
 
 void FEditorViewportClient::TickCursorCapture()
 {
-	// Only the EditorWorldController drives drag-based cursor capture.
-	// PIE cursor behaviour is handled by the PIEController / EndPIE.
-	if (InputRouter.GetActiveController() != EActiveEditorController::EditorWorldController)
-		return;
+    // Only the EditorWorldController drives drag-based cursor capture.
+    // PIE cursor behaviour is handled by the PIEController / EndPIE.
+    if (InputRouter.GetActiveController() != EActiveEditorController::EditorWorldController)
+        return;
 
-	const InputSystem& IS = InputSystem::Get();
-	const bool bCtrlDown = IS.GetKey(VK_CONTROL);
-	const bool bDragBegin = (IS.GetKeyDown(VK_RBUTTON) && !bCtrlDown) || IS.GetKeyDown(VK_MBUTTON);
-	const bool bDragEnd   = IS.GetKeyUp(VK_RBUTTON)   || IS.GetKeyUp(VK_MBUTTON);
+    const InputSystem& IS = InputSystem::Get();
+    const bool bCtrlDown = IS.GetKey(VK_CONTROL);
+    const bool bDragBegin = (IS.GetKeyDown(VK_RBUTTON) && !bCtrlDown) || IS.GetKeyDown(VK_MBUTTON);
+    const bool bDragEnd   = IS.GetKeyUp(VK_RBUTTON)   || IS.GetKeyUp(VK_MBUTTON);
 
-	if (bDragBegin)
-	{
-		InputSystem::Get().SetCursorVisibility(false);
-		LockCursorToViewport();
-	}
-	else if (bDragEnd)
-	{
-		InputSystem::Get().SetCursorVisibility(true);
-		InputSystem::Get().LockMouse(false);
-	}
+    if (bDragBegin)
+    {
+        InputSystem::Get().SetCursorVisibility(false);
+        LockCursorToViewport();
+    }
+    else if (bDragEnd)
+    {
+        InputSystem::Get().SetCursorVisibility(true);
+        InputSystem::Get().LockMouse(false);
+    }
 }
 
 void FEditorViewportClient::TickKeyboardInput()
 {
-	static constexpr int WatchKeys[] = {
-		'W', 'A', 'S', 'D', 'Q', 'E',
-		VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN,
-		VK_SPACE, VK_ESCAPE,
-	};
+    static constexpr int WatchKeys[] = {
+        'W', 'A', 'S', 'D', 'Q', 'E',
+        VK_LEFT, VK_RIGHT, VK_UP, VK_DOWN,
+        VK_SPACE, VK_ESCAPE,
+    };
 
-	if (bControlLocked) return;
-	const InputSystem& IS = InputSystem::Get();
-	for (int VK : WatchKeys)
-	{
-		if (IS.GetKeyDown(VK)) InputRouter.RouteKeyboardInput(EKeyInputType::KeyPressed,  VK);
-		if (IS.GetKey(VK))     InputRouter.RouteKeyboardInput(EKeyInputType::KeyDown,     VK);
-		if (IS.GetKeyUp(VK))   InputRouter.RouteKeyboardInput(EKeyInputType::KeyReleased, VK);
-	}
+    if (bControlLocked) return;
+    const InputSystem& IS = InputSystem::Get();
+    for (int VK : WatchKeys)
+    {
+        if (IS.GetKeyDown(VK)) InputRouter.RouteKeyboardInput(EKeyInputType::KeyPressed,  VK);
+        if (IS.GetKey(VK))     InputRouter.RouteKeyboardInput(EKeyInputType::KeyDown,     VK);
+        if (IS.GetKeyUp(VK))   InputRouter.RouteKeyboardInput(EKeyInputType::KeyReleased, VK);
+    }
 }
 
 void FEditorViewportClient::TickEditorShortcuts()
 {
-	// These shortcuts only apply in the editor world, not during PIE.
-	if (InputRouter.GetActiveController() != EActiveEditorController::EditorWorldController)
-		return;
+    // These shortcuts only apply in the editor world, not during PIE.
+    if (InputRouter.GetActiveController() != EActiveEditorController::EditorWorldController)
+        return;
 
-	const InputSystem& IS        = InputSystem::Get();
-	const bool         bCtrlDown = IS.GetKey(VK_CONTROL);
-	const bool         bAltDown  = IS.GetKey(VK_MENU);
+    const InputSystem& IS        = InputSystem::Get();
+    const bool         bCtrlDown = IS.GetKey(VK_CONTROL);
+    const bool         bAltDown  = IS.GetKey(VK_MENU);
 
-	if (IS.GetKeyUp('X') && Gizmo)
-		Gizmo->SetWorldSpace(!Gizmo->IsWorldSpace());
+    if (IS.GetKeyUp('X') && Gizmo)
+        Gizmo->SetWorldSpace(!Gizmo->IsWorldSpace());
 
-	if (IS.GetKeyUp(VK_DELETE))
-		DeleteSelectedActors();
+    if (IS.GetKeyUp(VK_DELETE))
+        DeleteSelectedActors();
 
-	if (IS.GetKeyDown('A') && bCtrlDown && !bAltDown)
-		SelectAllActors();
+    if (IS.GetKeyDown('A') && bCtrlDown && !bAltDown)
+        SelectAllActors();
 
-	if (IS.GetKeyUp('G'))
-	{
+    if (IS.GetKeyUp('G'))
+    {
         const int GridSizeX = 10;
         const int GridSizeY = 10;
         const int GridSizeZ = 10;
@@ -310,7 +310,7 @@ void FEditorViewportClient::TickEditorShortcuts()
         {
             for (int j = 0; j < GridSizeY; j++)
             {
-				for (int k = 0; k < GridSizeZ; k++)
+                for (int k = 0; k < GridSizeZ; k++)
                 {
                     const float X = (i - GridSizeX * 0.5f) * Spacing;
                     const float Y = (j - GridSizeY * 0.5f) * Spacing;
@@ -327,327 +327,327 @@ void FEditorViewportClient::TickEditorShortcuts()
                     MeshActor->InitDefaultComponents();
                     MeshActor->SetActorLocation(Location);
 
-				}
+                }
             }
         }
-	}
+    }
 }
 
 void FEditorViewportClient::TickPIEShortCuts()
 {
-	if (InputRouter.GetActiveController() != EActiveEditorController::PIEController) return;
+    if (InputRouter.GetActiveController() != EActiveEditorController::PIEController) return;
 
-	InputSystem& IS = InputSystem::Get();
+    InputSystem& IS = InputSystem::Get();
 
-	if (IS.GetKeyDown(VK_F4)) {
-		if (!bControlLocked) {
-			bControlLocked = true;
-			IS.SetCursorVisibility(true);
-			IS.LockMouse(false);
-		} else {
+    if (IS.GetKeyDown(VK_F4)) {
+        if (!bControlLocked) {
+            bControlLocked = true;
+            IS.SetCursorVisibility(true);
+            IS.LockMouse(false);
+        } else {
             bControlLocked = false;
             IS.SetCursorVisibility(false);
             LockCursorToViewport();
-		}
-	}
+        }
+    }
 }
 
 void FEditorViewportClient::TickMouseInput(float VX, float VY)
 {
-	if (bControlLocked) return;
-	const InputSystem& IS = InputSystem::Get();
+    if (bControlLocked) return;
+    const InputSystem& IS = InputSystem::Get();
 
-	POINT MP = IS.GetMousePos();
-	if (Window) MP = Window->ScreenToClientPoint(MP);
-	const float LocalX = static_cast<float>(MP.x) - VX;
-	const float LocalY = static_cast<float>(MP.y) - VY;
-	const float DX     = static_cast<float>(IS.MouseDeltaX());
-	const float DY     = static_cast<float>(IS.MouseDeltaY());
+    POINT MP = IS.GetMousePos();
+    if (Window) MP = Window->ScreenToClientPoint(MP);
+    const float LocalX = static_cast<float>(MP.x) - VX;
+    const float LocalY = static_cast<float>(MP.y) - VY;
+    const float DX     = static_cast<float>(IS.MouseDeltaX());
+    const float DY     = static_cast<float>(IS.MouseDeltaY());
 
-	if (IS.MouseMoved())
-	{
-		InputRouter.RouteMouseInput(EMouseInputType::E_MouseMoved, DX, DY);
-		InputRouter.RouteMouseInput(EMouseInputType::E_MouseMovedAbsolute, LocalX, LocalY);
-	}
+    if (IS.MouseMoved())
+    {
+        InputRouter.RouteMouseInput(EMouseInputType::E_MouseMoved, DX, DY);
+        InputRouter.RouteMouseInput(EMouseInputType::E_MouseMovedAbsolute, LocalX, LocalY);
+    }
 
-	if (IS.GetKeyDown(VK_RBUTTON) && InputRouter.GetActiveController() == EActiveEditorController::EditorWorldController && IS.GetKey(VK_CONTROL))
-	{
-		if (RequestActorPlacement(LocalX, LocalY, VX + LocalX, VY + LocalY))
-			return;
-	}
+    if (IS.GetKeyDown(VK_RBUTTON) && InputRouter.GetActiveController() == EActiveEditorController::EditorWorldController && IS.GetKey(VK_CONTROL))
+    {
+        if (RequestActorPlacement(LocalX, LocalY, VX + LocalX, VY + LocalY))
+            return;
+    }
 
-	if (IS.GetKeyDown(VK_RBUTTON))
-		InputRouter.RouteMouseInput(EMouseInputType::E_RightMouseClicked, LocalX, LocalY);
-	if (IS.GetRightDragging())
-		InputRouter.RouteMouseInput(EMouseInputType::E_RightMouseDragged, DX, DY);
-	if (IS.GetMiddleDragging())
-		InputRouter.RouteMouseInput(EMouseInputType::E_MiddleMouseDragged, DX, DY);
-	if (!MathUtil::IsNearlyZero(IS.GetScrollNotches()))
-		InputRouter.RouteMouseInput(EMouseInputType::E_MouseWheelScrolled, IS.GetScrollNotches(), 0.f);
+    if (IS.GetKeyDown(VK_RBUTTON))
+        InputRouter.RouteMouseInput(EMouseInputType::E_RightMouseClicked, LocalX, LocalY);
+    if (IS.GetRightDragging())
+        InputRouter.RouteMouseInput(EMouseInputType::E_RightMouseDragged, DX, DY);
+    if (IS.GetMiddleDragging())
+        InputRouter.RouteMouseInput(EMouseInputType::E_MiddleMouseDragged, DX, DY);
+    if (!MathUtil::IsNearlyZero(IS.GetScrollNotches()))
+        InputRouter.RouteMouseInput(EMouseInputType::E_MouseWheelScrolled, IS.GetScrollNotches(), 0.f);
 
-	if (IS.GetKeyDown(VK_LBUTTON))
-		InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseClicked, LocalX, LocalY);
-	if (IS.GetLeftDragging())
-		InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseDragged, LocalX, LocalY);
-	if (IS.GetLeftDragEnd())
-		InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseDragEnded, LocalX, LocalY);
-	if (IS.GetKeyUp(VK_LBUTTON) && !IS.GetLeftDragEnd())
-		InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseButtonUp, LocalX, LocalY);
+    if (IS.GetKeyDown(VK_LBUTTON))
+        InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseClicked, LocalX, LocalY);
+    if (IS.GetLeftDragging())
+        InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseDragged, LocalX, LocalY);
+    if (IS.GetLeftDragEnd())
+        InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseDragEnded, LocalX, LocalY);
+    if (IS.GetKeyUp(VK_LBUTTON) && !IS.GetLeftDragEnd())
+        InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseButtonUp, LocalX, LocalY);
 }
 
 // ── Interaction (gizmo scaling + box selection) ───────────────────────────────
 
 void FEditorViewportClient::TickInteraction(float DeltaTime)
 {
-	(void)DeltaTime;
+    (void)DeltaTime;
 
-	if (!bHasCamera || !Gizmo)
-		return;
+    if (!bHasCamera || !Gizmo)
+        return;
 
-	if (World && World->GetWorldType() == EWorldType::PIE)
-		return;
+    if (World && World->GetWorldType() == EWorldType::PIE)
+        return;
 
-	// Gizmo screen-space scaling must happen every frame.
-	if (Camera.IsOrthographic())
-		Gizmo->ApplyScreenSpaceScalingOrtho(Camera.GetOrthoHeight());
-	else
-		Gizmo->ApplyScreenSpaceScaling(Camera.GetLocation());
+    // Gizmo screen-space scaling must happen every frame.
+    if (Camera.IsOrthographic())
+        Gizmo->ApplyScreenSpaceScalingOrtho(Camera.GetOrthoHeight());
+    else
+        Gizmo->ApplyScreenSpaceScaling(Camera.GetLocation());
 
-	if (!World || !SelectionManager)
-		return;
+    if (!World || !SelectionManager)
+        return;
 
-	// ── Box selection (Ctrl+Alt+LMB drag) ────────────────────────────────────
-	POINT MousePoint = InputSystem::Get().GetMousePos();
+    // ── Box selection (Ctrl+Alt+LMB drag) ────────────────────────────────────
+    POINT MousePoint = InputSystem::Get().GetMousePos();
 
-	if (bBoxSelecting)
-	{
-		const FGuiInputState& GuiState = InputSystem::Get().GetGuiInputState();
-		if (!GuiState.IsInViewportHost(MousePoint.x, MousePoint.y))
-		{
-			bBoxSelecting = false;
-			return;
-		}
-	}
+    if (bBoxSelecting)
+    {
+        const FGuiInputState& GuiState = InputSystem::Get().GetGuiInputState();
+        if (!GuiState.IsInViewportHost(MousePoint.x, MousePoint.y))
+        {
+            bBoxSelecting = false;
+            return;
+        }
+    }
 
-	if (Window) MousePoint = Window->ScreenToClientPoint(MousePoint);
+    if (Window) MousePoint = Window->ScreenToClientPoint(MousePoint);
     const float VX = State ? static_cast<float>(Viewport->GetRect().X) : 0.f;
     const float VY = State ? static_cast<float>(Viewport->GetRect().Y) : 0.f;
-	const float LocalX = static_cast<float>(MousePoint.x) - VX;
-	const float LocalY = static_cast<float>(MousePoint.y) - VY;
+    const float LocalX = static_cast<float>(MousePoint.x) - VX;
+    const float LocalY = static_cast<float>(MousePoint.y) - VY;
 
-	if (bBoxSelecting && (LocalX < 0.f || LocalY < 0.f || LocalX > WindowWidth || LocalY > WindowHeight))
-	{
-		bBoxSelecting = false;
-		return;
-	}
+    if (bBoxSelecting && (LocalX < 0.f || LocalY < 0.f || LocalX > WindowWidth || LocalY > WindowHeight))
+    {
+        bBoxSelecting = false;
+        return;
+    }
 
-	const InputSystem& IS        = InputSystem::Get();
-	const bool         bCtrlDown = IS.GetKey(VK_CONTROL);
-	const bool         bAltDown  = IS.GetKey(VK_MENU);
+    const InputSystem& IS        = InputSystem::Get();
+    const bool         bCtrlDown = IS.GetKey(VK_CONTROL);
+    const bool         bAltDown  = IS.GetKey(VK_MENU);
 
-	if (IS.GetKeyDown(VK_LBUTTON) && bCtrlDown && bAltDown)
-	{
-		bBoxSelecting  = true;
-		BoxSelectStart = POINT{ static_cast<LONG>(LocalX), static_cast<LONG>(LocalY) };
-		BoxSelectEnd   = BoxSelectStart;
-		return;
-	}
+    if (IS.GetKeyDown(VK_LBUTTON) && bCtrlDown && bAltDown)
+    {
+        bBoxSelecting  = true;
+        BoxSelectStart = POINT{ static_cast<LONG>(LocalX), static_cast<LONG>(LocalY) };
+        BoxSelectEnd   = BoxSelectStart;
+        return;
+    }
 
-	if (bBoxSelecting)
-	{
-		if (IS.GetLeftDragging())
-			BoxSelectEnd = POINT{ static_cast<LONG>(LocalX), static_cast<LONG>(LocalY) };
-		else if (IS.GetLeftDragEnd())
-		{
-			HandleBoxSelection();
-			bBoxSelecting = false;
-		}
-		else if (IS.GetKeyUp(VK_LBUTTON))
-			bBoxSelecting = false;
-	}
+    if (bBoxSelecting)
+    {
+        if (IS.GetLeftDragging())
+            BoxSelectEnd = POINT{ static_cast<LONG>(LocalX), static_cast<LONG>(LocalY) };
+        else if (IS.GetLeftDragEnd())
+        {
+            HandleBoxSelection();
+            bBoxSelecting = false;
+        }
+        else if (IS.GetKeyUp(VK_LBUTTON))
+            bBoxSelecting = false;
+    }
 }
 
 void FEditorViewportClient::LockCursorToViewport()
 {
-	// State->Rect is in client space; LockMouse needs screen space.
+    // State->Rect is in client space; LockMouse needs screen space.
     POINT Origin = { Viewport->GetRect().X, Viewport->GetRect().Y };
-	if (Window)
-		::ClientToScreen(Window->GetHWND(), &Origin);
-	InputSystem::Get().LockMouse(true, static_cast<float>(Origin.x), static_cast<float>(Origin.y),
+    if (Window)
+        ::ClientToScreen(Window->GetHWND(), &Origin);
+    InputSystem::Get().LockMouse(true, static_cast<float>(Origin.x), static_cast<float>(Origin.y),
                                  static_cast<float>(Viewport->GetRect().Width), static_cast<float>(Viewport->GetRect().Height));
 }
 
 bool FEditorViewportClient::TryProjectWorldToViewport(const FVector& WorldPos, float& OutViewportX, float& OutViewportY, float& OutDepth) const
 {
-	const FVector4 Clip = FMatrix::Identity.TransformVector4(FVector4(WorldPos, 1.0f), Camera.GetViewProjectionMatrix());
-	if (MathUtil::IsNearlyZero(Clip.W))
-		return false;
+    const FVector4 Clip = FMatrix::Identity.TransformVector4(FVector4(WorldPos, 1.0f), Camera.GetViewProjectionMatrix());
+    if (MathUtil::IsNearlyZero(Clip.W))
+        return false;
 
-	const float InvW = 1.0f / Clip.W;
-	const float NdcX = Clip.X * InvW;
-	const float NdcY = Clip.Y * InvW;
-	const float NdcZ = Clip.Z * InvW;
-	if (NdcX < -1.0f || NdcX > 1.0f || NdcY < -1.0f || NdcY > 1.0f)
-		return false;
+    const float InvW = 1.0f / Clip.W;
+    const float NdcX = Clip.X * InvW;
+    const float NdcY = Clip.Y * InvW;
+    const float NdcZ = Clip.Z * InvW;
+    if (NdcX < -1.0f || NdcX > 1.0f || NdcY < -1.0f || NdcY > 1.0f)
+        return false;
 
-	OutViewportX = (NdcX * 0.5f + 0.5f) * WindowWidth;
-	OutViewportY = (1.0f - (NdcY * 0.5f + 0.5f)) * WindowHeight;
-	OutDepth     = NdcZ;
-	return true;
+    OutViewportX = (NdcX * 0.5f + 0.5f) * WindowWidth;
+    OutViewportY = (1.0f - (NdcY * 0.5f + 0.5f)) * WindowHeight;
+    OutDepth     = NdcZ;
+    return true;
 }
 
 void FEditorViewportClient::HandleBoxSelection()
 {
-	if (!SelectionManager || !World)
-		return;
+    if (!SelectionManager || !World)
+        return;
 
-	const int32 MinX   = std::min(BoxSelectStart.x, BoxSelectEnd.x);
-	const int32 MinY   = std::min(BoxSelectStart.y, BoxSelectEnd.y);
-	const int32 MaxX   = std::max(BoxSelectStart.x, BoxSelectEnd.x);
-	const int32 MaxY   = std::max(BoxSelectStart.y, BoxSelectEnd.y);
-	const int32 Width  = MaxX - MinX;
-	const int32 Height = MaxY - MinY;
+    const int32 MinX   = std::min(BoxSelectStart.x, BoxSelectEnd.x);
+    const int32 MinY   = std::min(BoxSelectStart.y, BoxSelectEnd.y);
+    const int32 MaxX   = std::max(BoxSelectStart.x, BoxSelectEnd.x);
+    const int32 MaxY   = std::max(BoxSelectStart.y, BoxSelectEnd.y);
+    const int32 Width  = MaxX - MinX;
+    const int32 Height = MaxY - MinY;
 
-	if (Width < 2 || Height < 2)
-		return;
+    if (Width < 2 || Height < 2)
+        return;
 
-	if (!InputSystem::Get().GetKey(VK_SHIFT))
-		SelectionManager->ClearSelection();
+    if (!InputSystem::Get().GetKey(VK_SHIFT))
+        SelectionManager->ClearSelection();
 
-	TArray<UPrimitiveComponent*> CandidatePrimitives;
-	World->GetSpatialIndex().FrustumQueryPrimitives(Camera.GetFrustum(), CandidatePrimitives, FrustumQueryScratch);
+    TArray<UPrimitiveComponent*> CandidatePrimitives;
+    World->GetSpatialIndex().FrustumQueryPrimitives(Camera.GetFrustum(), CandidatePrimitives, FrustumQueryScratch);
 
-	std::unordered_set<AActor*> SeenActors;
-	SeenActors.reserve(CandidatePrimitives.size());
+    std::unordered_set<AActor*> SeenActors;
+    SeenActors.reserve(CandidatePrimitives.size());
 
-	for (UPrimitiveComponent* Primitive : CandidatePrimitives)
-	{
-		AActor* Actor = (Primitive != nullptr) ? Primitive->GetOwner() : nullptr;
-		if (!Actor || !Actor->GetRootComponent())
-			continue;
+    for (UPrimitiveComponent* Primitive : CandidatePrimitives)
+    {
+        AActor* Actor = (Primitive != nullptr) ? Primitive->GetOwner() : nullptr;
+        if (!Actor || !Actor->GetRootComponent())
+            continue;
 
-		if (!SeenActors.insert(Actor).second)
-			continue;
+        if (!SeenActors.insert(Actor).second)
+            continue;
 
-		float ViewportX = 0.f, ViewportY = 0.f, Depth = 0.f;
-		if (!TryProjectWorldToViewport(Actor->GetActorLocation(), ViewportX, ViewportY, Depth))
-			continue;
+        float ViewportX = 0.f, ViewportY = 0.f, Depth = 0.f;
+        if (!TryProjectWorldToViewport(Actor->GetActorLocation(), ViewportX, ViewportY, Depth))
+            continue;
 
-		if (Depth < 0.f || Depth > 1.f)
-			continue;
+        if (Depth < 0.f || Depth > 1.f)
+            continue;
 
-		const int32 Px = static_cast<int32>(ViewportX);
-		const int32 Py = static_cast<int32>(ViewportY);
-		if (Px >= MinX && Px <= MaxX && Py >= MinY && Py <= MaxY)
-			SelectionManager->AddSelect(Actor);
-	}
+        const int32 Px = static_cast<int32>(ViewportX);
+        const int32 Py = static_cast<int32>(ViewportY);
+        if (Px >= MinX && Px <= MaxX && Py >= MinY && Py <= MaxY)
+            SelectionManager->AddSelect(Actor);
+    }
 }
 
 bool FEditorViewportClient::RequestActorPlacement(float X, float Y, float PopupX, float PopupY)
 {
-	if (!World || !bHasCamera)
-		return false;
+    if (!World || !bHasCamera)
+        return false;
 
-	FRay Ray = Camera.DeprojectScreenToWorld(X, Y, WindowWidth, WindowHeight);
+    FRay Ray = Camera.DeprojectScreenToWorld(X, Y, WindowWidth, WindowHeight);
 
-	FHitResult BestHit{};
-	bool       bHasHit = false;
-	float      ClosestDist = FLT_MAX;
+    FHitResult BestHit{};
+    bool       bHasHit = false;
+    float      ClosestDist = FLT_MAX;
 
-	FWorldSpatialIndex::FPrimitiveRayQueryScratch RayQueryScratch;
-	TArray<UPrimitiveComponent*> CandidatePrimitives;
-	TArray<float>                CandidateTs;
-	World->GetSpatialIndex().RayQueryPrimitives(Ray, CandidatePrimitives, CandidateTs, RayQueryScratch);
+    FWorldSpatialIndex::FPrimitiveRayQueryScratch RayQueryScratch;
+    TArray<UPrimitiveComponent*> CandidatePrimitives;
+    TArray<float>                CandidateTs;
+    World->GetSpatialIndex().RayQueryPrimitives(Ray, CandidatePrimitives, CandidateTs, RayQueryScratch);
 
-	for (int32 CandidateIndex = 0; CandidateIndex < static_cast<int32>(CandidatePrimitives.size()); ++CandidateIndex)
-	{
-		if (CandidateTs[CandidateIndex] > ClosestDist)
-			break;
+    for (int32 CandidateIndex = 0; CandidateIndex < static_cast<int32>(CandidatePrimitives.size()); ++CandidateIndex)
+    {
+        if (CandidateTs[CandidateIndex] > ClosestDist)
+            break;
 
-		UPrimitiveComponent* PrimitiveComp = CandidatePrimitives[CandidateIndex];
-		if (!PrimitiveComp)
-			continue;
+        UPrimitiveComponent* PrimitiveComp = CandidatePrimitives[CandidateIndex];
+        if (!PrimitiveComp)
+            continue;
 
-		FHitResult HitResult{};
-		if (PrimitiveComp->Raycast(Ray, HitResult) && HitResult.Distance < ClosestDist)
-		{
-			ClosestDist = HitResult.Distance;
-			BestHit = HitResult;
-			bHasHit = true;
-		}
-	}
+        FHitResult HitResult{};
+        if (PrimitiveComp->Raycast(Ray, HitResult) && HitResult.Distance < ClosestDist)
+        {
+            ClosestDist = HitResult.Distance;
+            BestHit = HitResult;
+            bHasHit = true;
+        }
+    }
 
-	if (!bHasHit)
-		return false;
+    if (!bHasHit)
+        return false;
 
-	PendingActorPlacementLocation = BestHit.Location;
-	PendingActorPlacementPopupPos = { static_cast<LONG>(PopupX), static_cast<LONG>(PopupY) };
-	bPendingActorPlacement = true;
-	return true;
+    PendingActorPlacementLocation = BestHit.Location;
+    PendingActorPlacementPopupPos = { static_cast<LONG>(PopupX), static_cast<LONG>(PopupY) };
+    bPendingActorPlacement = true;
+    return true;
 }
 
 void FEditorViewportClient::FocusPrimarySelection()
 {
-	if (!SelectionManager || !bHasCamera)
-		return;
+    if (!SelectionManager || !bHasCamera)
+        return;
 
-	AActor* Primary = SelectionManager->GetPrimarySelection();
-	if (!Primary)
-		return;
+    AActor* Primary = SelectionManager->GetPrimarySelection();
+    if (!Primary)
+        return;
 
-	const FVector Target = Primary->GetActorLocation();
+    const FVector Target = Primary->GetActorLocation();
 
-	if (Camera.IsOrthographic())
-	{
-		const FVector Forward  = Camera.GetEffectiveForward().GetSafeNormal();
-		float         Distance = FVector::DotProduct(Camera.GetLocation() - Target, Forward);
-		if (MathUtil::IsNearlyZero(Distance))
-			Distance = 1000.f;
-		Camera.SetLocation(Target + Forward * Distance);
-	}
-	else
-	{
-		const FVector Forward = Camera.GetForwardVector().GetSafeNormal();
-		Camera.SetLocation(Target - Forward * 5.f);
-		Camera.SetLookAt(Target);
-	}
+    if (Camera.IsOrthographic())
+    {
+        const FVector Forward  = Camera.GetEffectiveForward().GetSafeNormal();
+        float         Distance = FVector::DotProduct(Camera.GetLocation() - Target, Forward);
+        if (MathUtil::IsNearlyZero(Distance))
+            Distance = 1000.f;
+        Camera.SetLocation(Target + Forward * Distance);
+    }
+    else
+    {
+        const FVector Forward = Camera.GetForwardVector().GetSafeNormal();
+        Camera.SetLocation(Target - Forward * 5.f);
+        Camera.SetLookAt(Target);
+    }
 
-	InputRouter.GetEditorWorldController().ResetTargetLocation();
+    InputRouter.GetEditorWorldController().ResetTargetLocation();
 }
 
 void FEditorViewportClient::DeleteSelectedActors()
 {
-	if (!SelectionManager)
-		return;
+    if (!SelectionManager)
+        return;
 
-	const TArray<AActor*> SelectedActors = SelectionManager->GetSelectedActors();
-	for (AActor* Actor : SelectedActors)
-	{
-		if (!Actor)
-			continue;
-		if (UWorld* ActorWorld = Actor->GetFocusedWorld())
-			ActorWorld->DestroyActor(Actor);
-	}
-	SelectionManager->ClearSelection();
+    const TArray<AActor*> SelectedActors = SelectionManager->GetSelectedActors();
+    for (AActor* Actor : SelectedActors)
+    {
+        if (!Actor)
+            continue;
+        if (UWorld* ActorWorld = Actor->GetFocusedWorld())
+            ActorWorld->DestroyActor(Actor);
+    }
+    SelectionManager->ClearSelection();
     Editor->GetMainPanel().GetPropertyWidget().ResetSelection();
 }
 
 void FEditorViewportClient::SelectAllActors()
 {
-	if (!SelectionManager || !World)
-		return;
+    if (!SelectionManager || !World)
+        return;
 
-	SelectionManager->ClearSelection();
-	for (TActorIterator<AActor> Iter(World); Iter; ++Iter)
-	{
-		if (AActor* Actor = *Iter)
-			SelectionManager->AddSelect(Actor);
-	}
+    SelectionManager->ClearSelection();
+    for (TActorIterator<AActor> Iter(World); Iter; ++Iter)
+    {
+        if (AActor* Actor = *Iter)
+            SelectionManager->AddSelect(Actor);
+    }
 }
 
 void FEditorViewportClient::SaveCameraSnapshot()
 {
-	FViewportCamera CameraStae;
+    FViewportCamera CameraStae;
 }
 
 void FEditorViewportClient::RestoreCameraSnapshot()

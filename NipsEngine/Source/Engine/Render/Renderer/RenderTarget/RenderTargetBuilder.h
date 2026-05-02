@@ -23,11 +23,11 @@ private:
 public:
     FRenderTargetBuilder& SetSize(uint32 InWidth, uint32 InHeight);
 
-	FRenderTargetBuilder& SetFormat(DXGI_FORMAT InFormat);
+    FRenderTargetBuilder& SetFormat(DXGI_FORMAT InFormat);
 
-	FRenderTargetBuilder& WithSRV();
+    FRenderTargetBuilder& WithSRV();
 
-	FRenderTargetBuilder& WithRTV();
+    FRenderTargetBuilder& WithRTV();
 
-	FRenderTarget Build(ID3D11Device* Device);
+    FRenderTarget Build(ID3D11Device* Device);
 };

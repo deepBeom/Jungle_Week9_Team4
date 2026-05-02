@@ -11,15 +11,15 @@ public:
     // Iterator가 유효한 객체를 가리키고 있는지 확인 (루프 조건문에 사용)
     explicit operator bool() const { return CurrentIndex < GUObjectArray.size(); }
 
-	// 다음 유효한 객체 탐색
+    // 다음 유효한 객체 탐색
     TObjectIterator& operator++()
     {
         CurrentIndex++;
         AdvanceToNextValid();
         return *this;
     }
-	
-	// 역참조 연산자, 멤버 접근 연산자
+    
+    // 역참조 연산자, 멤버 접근 연산자
     T* operator*() const { return static_cast<T*>(GUObjectArray[CurrentIndex]); }
     T* operator->() const { return static_cast<T*>(GUObjectArray[CurrentIndex]); }
 

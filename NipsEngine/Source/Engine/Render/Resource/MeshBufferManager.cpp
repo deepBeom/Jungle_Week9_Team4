@@ -32,7 +32,7 @@ void FMeshBufferManager::Create(ID3D11Device* InDevice)
 
 void FMeshBufferManager::Release()
 {
-	for (auto& pair : MeshBufferMap)
+    for (auto& pair : MeshBufferMap)
     {
         pair.second.Release();
     }
@@ -53,19 +53,19 @@ void FMeshBufferManager::Release()
 //	MeshBuffer는 VB, IB를 모두 포함하고 있습니다.
 FMeshBuffer& FMeshBufferManager::GetMeshBuffer(EPrimitiveType InPrimitiveType)
 {
-	auto it = MeshBufferMap.find(InPrimitiveType);
-	if (it != MeshBufferMap.end())
-	{
-		return it->second;
-	}
-	
-	//	존재하지 않는 PrimitiveType이 요청된 경우, Billboard Quad를 기본 반환합니다.
-	return MeshBufferMap.at(EPrimitiveType::EPT_Billboard);
+    auto it = MeshBufferMap.find(InPrimitiveType);
+    if (it != MeshBufferMap.end())
+    {
+        return it->second;
+    }
+    
+    //	존재하지 않는 PrimitiveType이 요청된 경우, Billboard Quad를 기본 반환합니다.
+    return MeshBufferMap.at(EPrimitiveType::EPT_Billboard);
 }
 
 FMeshBuffer* FMeshBufferManager::GetStaticMeshBuffer(const UStaticMesh* StaticMeshAsset, int32 LODLevel)
 {
-	if (!Device || !StaticMeshAsset || !StaticMeshAsset->HasValidMeshData())
+    if (!Device || !StaticMeshAsset || !StaticMeshAsset->HasValidMeshData())
     {
         return nullptr;
     }

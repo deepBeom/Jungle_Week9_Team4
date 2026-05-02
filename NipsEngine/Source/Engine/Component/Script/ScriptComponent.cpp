@@ -1,4 +1,4 @@
-#include "Core/EnginePCH.h"
+﻿#include "Core/EnginePCH.h"
 #include "Engine/Component/Script/ScriptComponent.h"
 
 #include "Engine/Core/CollisionTypes.h"

@@ -26,14 +26,14 @@ class InputSystem : public TSingleton<InputSystem>
     bool GetKey(int VK) const { return CurrentStates[VK]; }
     bool GetKeyUp(int VK) const { return !CurrentStates[VK] && PrevStates[VK]; }
 
-	// Mouse lock
+    // Mouse lock
     void	 SetCursorVisibility(bool bVisible);
     void	 LockMouse(bool bLock, float x = 0, float y = 0, float w = 0, float h = 0);
 
     // Mouse position
     POINT GetMousePos() const { return MousePos; }
     int MouseDeltaX() const { if (bIsMouseLocked) return MousePos.x - LockedCenterScreen.x; return MousePos.x - PrevMousePos.x; }
-	int MouseDeltaY() const { if (bIsMouseLocked) return MousePos.y - LockedCenterScreen.y; return MousePos.y - PrevMousePos.y; }
+    int MouseDeltaY() const { if (bIsMouseLocked) return MousePos.y - LockedCenterScreen.y; return MousePos.y - PrevMousePos.y; }
     bool  MouseMoved() const { return MouseDeltaX() != 0 || MouseDeltaY() != 0; }
 
     // Left drag
@@ -82,7 +82,7 @@ class InputSystem : public TSingleton<InputSystem>
     POINT MousePos = {0, 0};
     POINT PrevMousePos = {0, 0};
     POINT LockedCenterScreen;
-	bool  bIsMouseLocked = false;
+    bool  bIsMouseLocked = false;
     bool  bIsCursorVisible = false;
 
     bool bLeftDragCandidate = false;

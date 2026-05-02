@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 /**
  * @defgroup LuaScripting Lua Scripting

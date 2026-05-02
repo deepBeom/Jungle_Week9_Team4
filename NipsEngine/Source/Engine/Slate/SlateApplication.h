@@ -12,46 +12,46 @@ class SWindow;
 */
 class FSlateApplication : public TSingleton<FSlateApplication>, public IWindowMessageHandler
 {
-	friend class TSingleton<FSlateApplication>;
+    friend class TSingleton<FSlateApplication>;
 public:
-	void Initialize();
-	void Shutdown();
+    void Initialize();
+    void Shutdown();
 
-	void Tick(float DeltaTime);
-	void Paint();
+    void Tick(float DeltaTime);
+    void Paint();
 
-	bool OnMouseMove(void* hwnd, int32 X, int32 Y) override;
-	bool OnMouseButtonDown(void* hwnd, int32 Button, int32 X, int32 Y) override;
-	bool OnMouseButtonUp(void* hwnd, int32 Button, int32 X, int32 Y) override;
-	bool OnMouseWheel(void* hwnd, int32 Delta, int32 X, int32 Y) override;
-	bool OnKeyDown(void* hwnd, uint32 Key) override;
-	bool OnKeyUp(void* hwnd, uint32 Key) override;
-	bool OnChar(void* hwnd, uint32 Codepoint) override;
-	bool OnResize(void* hwnd, int32 Width, int32 Height) override;
-	bool OnSetFocus(void* hwnd) override;
-	bool OnKillFocus(void* hwnd) override;
+    bool OnMouseMove(void* hwnd, int32 X, int32 Y) override;
+    bool OnMouseButtonDown(void* hwnd, int32 Button, int32 X, int32 Y) override;
+    bool OnMouseButtonUp(void* hwnd, int32 Button, int32 X, int32 Y) override;
+    bool OnMouseWheel(void* hwnd, int32 Delta, int32 X, int32 Y) override;
+    bool OnKeyDown(void* hwnd, uint32 Key) override;
+    bool OnKeyUp(void* hwnd, uint32 Key) override;
+    bool OnChar(void* hwnd, uint32 Codepoint) override;
+    bool OnResize(void* hwnd, int32 Width, int32 Height) override;
+    bool OnSetFocus(void* hwnd) override;
+    bool OnKillFocus(void* hwnd) override;
 
-	// Get Set
-	SWindow* GetRootWindow() const { return RootWindow; }
+    // Get Set
+    SWindow* GetRootWindow() const { return RootWindow; }
 
-	SWidget* GetFocusedWidget() const { return FocusedWidget; }
-	void SetFocusedWidget(SWidget* InWidget) { FocusedWidget = InWidget; }
+    SWidget* GetFocusedWidget() const { return FocusedWidget; }
+    void SetFocusedWidget(SWidget* InWidget) { FocusedWidget = InWidget; }
 
-	SWidget* GetHoveredWidget() const { return HoveredWidget; }
-	void SetHoveredWidget(SWidget* InWidget) { HoveredWidget = InWidget; }
+    SWidget* GetHoveredWidget() const { return HoveredWidget; }
+    void SetHoveredWidget(SWidget* InWidget) { HoveredWidget = InWidget; }
 
-	SWidget* GetCapturedWidget() const { return CapturedWidget; }
-	void SetCapturedWidget(SWidget* InWidget) { CapturedWidget = InWidget; }
+    SWidget* GetCapturedWidget() const { return CapturedWidget; }
+    void SetCapturedWidget(SWidget* InWidget) { CapturedWidget = InWidget; }
 
-	// 위젯 트리가 파괴되기 전에 모든 위젯 참조를 일괄 해제
-	void ClearWidgetRefs();
-
-private:
-	SWidget* HitTest(int32 X, int32 Y);
+    // 위젯 트리가 파괴되기 전에 모든 위젯 참조를 일괄 해제
+    void ClearWidgetRefs();
 
 private:
-	SWindow* RootWindow = nullptr;
-	SWidget* FocusedWidget = nullptr;
-	SWidget* HoveredWidget = nullptr;
-	SWidget* CapturedWidget = nullptr;
+    SWidget* HitTest(int32 X, int32 Y);
+
+private:
+    SWindow* RootWindow = nullptr;
+    SWidget* FocusedWidget = nullptr;
+    SWidget* HoveredWidget = nullptr;
+    SWidget* CapturedWidget = nullptr;
 };

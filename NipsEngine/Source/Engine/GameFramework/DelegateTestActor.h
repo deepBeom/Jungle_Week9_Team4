@@ -11,22 +11,22 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FMultiIntDelegate, int) // void(int) multica
 class ADelegateTestActor : public AActor
 {
 public:
-	DECLARE_CLASS(ADelegateTestActor, AActor)
-	ADelegateTestActor() = default;
-	~ADelegateTestActor() = default;
+    DECLARE_CLASS(ADelegateTestActor, AActor)
+    ADelegateTestActor() = default;
+    ~ADelegateTestActor() = default;
 
 public:
-	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaTime) override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    virtual void BeginPlay() override;
+    virtual void Tick(float DeltaTime) override;
+    virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-	void TestSinglecastDelegate();
-	void TestMulticastDelegate();
+    void TestSinglecastDelegate();
+    void TestMulticastDelegate();
 
-	// BindUObject / AddUObject 테스트용 멤버 함수
-	int  OnSinglecastCallback(int A, int B);
-	void OnMulticastCallback(int Value);
+    // BindUObject / AddUObject 테스트용 멤버 함수
+    int  OnSinglecastCallback(int A, int B);
+    void OnMulticastCallback(int Value);
 
-	int MulticastResult = 0;
+    int MulticastResult = 0;
 };

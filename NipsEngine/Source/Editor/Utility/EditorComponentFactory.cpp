@@ -29,11 +29,11 @@ UActorComponent* FEditorComponentFactory::RegisterComp<USceneComponent>(AActor* 
 {
     auto* Comp = Actor->AddComponent<USceneComponent>();
 
-	UBillboardComponent* Billboard = Actor->AddComponent<UBillboardComponent>();
-	Billboard->AttachToComponent(Comp);
-	Billboard->SetEditorOnly(true);
-	Billboard->SetHiddenInEditor(true);
-	Billboard->SetTexturePath("Asset/Texture/Icons/EmptyActor.PNG");
+    UBillboardComponent* Billboard = Actor->AddComponent<UBillboardComponent>();
+    Billboard->AttachToComponent(Comp);
+    Billboard->SetEditorOnly(true);
+    Billboard->SetHiddenInEditor(true);
+    Billboard->SetTexturePath("Asset/Texture/Icons/EmptyActor.PNG");
     return Comp;
 }
 
@@ -70,11 +70,11 @@ UActorComponent* FEditorComponentFactory::RegisterComp<UHeightFogComponent>(AAct
     auto* Comp = Actor->AddComponent<UHeightFogComponent>();
     Comp->SetFogDensity(0);
     Comp->SetFogInscatteringColor(FVector4(0.72f, 0.8f, 0.9f, 1.0f));
-	
-	UBillboardComponent* Billboard = Actor->AddComponent<UBillboardComponent>();
-	Billboard->AttachToComponent(Comp);
-	Billboard->SetEditorOnly(true);
-	Billboard->SetTexturePath("Asset/Texture/Icons/S_ExpoHeightFog.PNG");
+    
+    UBillboardComponent* Billboard = Actor->AddComponent<UBillboardComponent>();
+    Billboard->AttachToComponent(Comp);
+    Billboard->SetEditorOnly(true);
+    Billboard->SetTexturePath("Asset/Texture/Icons/S_ExpoHeightFog.PNG");
     return Comp;
 }
 

@@ -8,12 +8,12 @@
 
 struct FTextureResource
 {
-	FName	Name;
-	FString Path;
+    FName	Name;
+    FString Path;
 
-	UTexture* Texture;
+    UTexture* Texture;
 
-	bool IsLoaded() const { return Texture != nullptr && Texture->GetSRV() != nullptr;  }
+    bool IsLoaded() const { return Texture != nullptr && Texture->GetSRV() != nullptr;  }
 };
 
 
@@ -22,15 +22,15 @@ struct FTextureResource
 // Columns × Rows 그리드 정보를 함께 보유해 Batcher에서 UV 계산에 활용합니다.
 struct FTextureAtlasResource 
 {
-	FName   Name;
-	FString Path;							// Asset 상대 경로 (Resource.ini에서 로드)
+    FName   Name;
+    FString Path;							// Asset 상대 경로 (Resource.ini에서 로드)
 
-	UTexture* Texture = nullptr;
+    UTexture* Texture = nullptr;
 
-	uint32 Columns = 1;						// 아틀라스 가로 프레임(셀) 수
-	uint32 Rows    = 1;						// 아틀라스 세로 프레임(셀) 수
+    uint32 Columns = 1;						// 아틀라스 가로 프레임(셀) 수
+    uint32 Rows    = 1;						// 아틀라스 세로 프레임(셀) 수
 
-	bool IsLoaded() const { return Texture != nullptr && Texture->GetSRV() != nullptr; }
+    bool IsLoaded() const { return Texture != nullptr && Texture->GetSRV() != nullptr; }
 };
 
 //	StaticMesh 리소스 정보 구조체 (ResourceManager에서 관리, ObjLoader로 전달)
@@ -38,16 +38,16 @@ struct FTextureAtlasResource
 //	사용 계층은 ResourceManager 임 (ObjLoader는 다른 구조체로 옵션을 받아 사용)
 struct FStaticMeshResource
 {
-	FString Name;
-	FString Path;
-	bool bPreload = false;
-	bool bNormalizeToUnitCube = false;
+    FString Name;
+    FString Path;
+    bool bPreload = false;
+    bool bNormalizeToUnitCube = false;
 };
 
 //	ResourceManager -> ObjLoader로 전달되는 옵션 구조체
 struct FStaticMeshLoadOptions
 {
-	bool bNormalizeToUnitCube = false;
+    bool bNormalizeToUnitCube = false;
 };
 
 // 의미론적 별칭 — 타입은 동일하지만 용도를 명시합니다.

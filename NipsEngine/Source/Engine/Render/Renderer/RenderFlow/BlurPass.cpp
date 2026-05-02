@@ -22,11 +22,11 @@ bool FBlurPass::Release()
     ShadowBlurTempSRV.Reset();
     ShadowBlurTempUAV.Reset();
 
-	ShadowBlurFinalTexture.Reset();
+    ShadowBlurFinalTexture.Reset();
     ShadowBlurFinalSRV.Reset();
     ShadowBlurFinalUAV.Reset();
 
-	DirectionalShadowBlurTempTexture.Reset();
+    DirectionalShadowBlurTempTexture.Reset();
     DirectionalShadowBlurTempSRV.Reset();
     DirectionalShadowBlurTempUAV.Reset();
 
@@ -42,7 +42,7 @@ bool FBlurPass::Release()
     PointShadowBlurFinalSRV.Reset();
     PointShadowBlurFinalUAV.Reset();
 
-	ComputeShader.Reset();
+    ComputeShader.Reset();
     ConstantBuffer.Reset();
 
     return true;
@@ -50,13 +50,13 @@ bool FBlurPass::Release()
 
 bool FBlurPass::Begin(const FRenderPassContext* Context)
 {
-	 OutSRV = PrevPassSRV;
-	 OutRTV = PrevPassRTV;
+     OutSRV = PrevPassSRV;
+     OutRTV = PrevPassRTV;
 
-	 if (Context == nullptr)
-	 {
-		 return false;
-	 }
+     if (Context == nullptr)
+     {
+         return false;
+     }
 
      if (!EnsureComputeShader(Context->Device))
      {
@@ -67,8 +67,8 @@ bool FBlurPass::Begin(const FRenderPassContext* Context)
          return false;
      }
      if (!EnsureSpotShadowBlurResources(Context->Device))
-	 {
-		 return false;
+     {
+         return false;
      }
      if (!EnsureDirectionalShadowBlurResources(Context->Device))
      {
@@ -87,18 +87,18 @@ bool FBlurPass::DrawCommand(const FRenderPassContext* Context)
     if (!ComputeShader || !ConstantBuffer)
         return false;
 
-	if (Context->RenderTargets == nullptr)
+    if (Context->RenderTargets == nullptr)
         return true;
 
-	// Spot
-	ShadowVSMInputSRV = Context->RenderTargets->SpotShadowVSMSRV;
+    // Spot
+    ShadowVSMInputSRV = Context->RenderTargets->SpotShadowVSMSRV;
     DrawBlurCommand(Context, 0, 0, SpotShadowResolution, 
-		ShadowBlurTempSRV.Get(), ShadowBlurTempUAV.Get(), 
-		ShadowBlurFinalSRV.Get(), ShadowBlurFinalUAV.Get());
+        ShadowBlurTempSRV.Get(), ShadowBlurTempUAV.Get(), 
+        ShadowBlurFinalSRV.Get(), ShadowBlurFinalUAV.Get());
     Context->RenderTargets->SpotShadowVSMSRV = ShadowBlurFinalSRV.Get();
 
-	// Directional
-	ShadowVSMInputSRV = Context->RenderTargets->DirectionalShadowVSMSRV;
+    // Directional
+    ShadowVSMInputSRV = Context->RenderTargets->DirectionalShadowVSMSRV;
     DrawBlurCommand(Context, 0, 0, DirectionalShadowResolution,
                     DirectionalShadowBlurTempSRV.Get(), DirectionalShadowBlurTempUAV.Get(),
                     DirectionalShadowBlurFinalSRV.Get(), DirectionalShadowBlurFinalUAV.Get());
@@ -132,10 +132,10 @@ bool FBlurPass::DrawCommand(const FRenderPassContext* Context)
 
 void FBlurPass::DrawBlurCommand(const FRenderPassContext* Context, 
     uint32 TileBaseX, uint32 TileBaseY, uint32 TileSize,
-	ID3D11ShaderResourceView* ShadowBlurTempSRV, 
-	ID3D11UnorderedAccessView* ShadowBlurTempUAV, 
-	ID3D11ShaderResourceView* ShadowBlurFinalSRV, 
-	ID3D11UnorderedAccessView* ShadowBlurFinalUAV)
+    ID3D11ShaderResourceView* ShadowBlurTempSRV, 
+    ID3D11UnorderedAccessView* ShadowBlurTempUAV, 
+    ID3D11ShaderResourceView* ShadowBlurFinalSRV, 
+    ID3D11UnorderedAccessView* ShadowBlurFinalUAV)
 {
     ID3D11DeviceContext* DC = Context->DeviceContext;
 
@@ -225,8 +225,8 @@ bool FBlurPass::EnsureComputeShader(ID3D11Device* Device)
         return false;
     }
 
-	ComputeShader = std::move(NewComputeShader);
-	return true;
+    ComputeShader = std::move(NewComputeShader);
+    return true;
 }
 
 bool FBlurPass::ReloadComputeShader(ID3D11Device* Device)
@@ -277,7 +277,7 @@ bool FBlurPass::CompileComputeShader(ID3D11Device* Device, TComPtr<ID3D11Compute
 
     TComPtr<ID3D11ComputeShader> NewComputeShader;
     const HRESULT CreateResult = Device->CreateComputeShader(
-		CSBlob->GetBufferPointer(), CSBlob->GetBufferSize(), nullptr, NewComputeShader.GetAddressOf());
+        CSBlob->GetBufferPointer(), CSBlob->GetBufferSize(), nullptr, NewComputeShader.GetAddressOf());
 
     if (FAILED(CreateResult))
     {
@@ -312,7 +312,7 @@ bool FBlurPass::EnsureSpotShadowBlurResources(ID3D11Device* Device)
         return false;
     }
 
-	if (ShadowBlurTempTexture && ShadowBlurTempSRV && ShadowBlurTempUAV)
+    if (ShadowBlurTempTexture && ShadowBlurTempSRV && ShadowBlurTempUAV)
     {
         return true;
     }
@@ -322,7 +322,7 @@ bool FBlurPass::EnsureSpotShadowBlurResources(ID3D11Device* Device)
         return true;
     }
 
-	D3D11_TEXTURE2D_DESC TexDesc = {};
+    D3D11_TEXTURE2D_DESC TexDesc = {};
     TexDesc.Width = SpotShadowResolution;
     TexDesc.Height = SpotShadowResolution;
     TexDesc.MipLevels = 1;
@@ -341,12 +341,12 @@ bool FBlurPass::EnsureSpotShadowBlurResources(ID3D11Device* Device)
     SRVDesc.Texture2D.MostDetailedMip = 0;
     SRVDesc.Texture2D.MipLevels = 1;
 
-	D3D11_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
+    D3D11_UNORDERED_ACCESS_VIEW_DESC UAVDesc = {};
     UAVDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
     UAVDesc.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
     UAVDesc.Texture2D.MipSlice = 0;
 
-	TComPtr<ID3D11Texture2D> NewBlurTempTexture;
+    TComPtr<ID3D11Texture2D> NewBlurTempTexture;
     if (FAILED(Device->CreateTexture2D(&TexDesc, nullptr, NewBlurTempTexture.GetAddressOf())))
     {
         UE_LOG("Failed to create spot shadow blur texture array");
@@ -360,18 +360,18 @@ bool FBlurPass::EnsureSpotShadowBlurResources(ID3D11Device* Device)
         return false;
     }
 
-	TComPtr<ID3D11UnorderedAccessView> NewBlurTempUAV;
+    TComPtr<ID3D11UnorderedAccessView> NewBlurTempUAV;
     if (FAILED(Device->CreateUnorderedAccessView(NewBlurTempTexture.Get(), &UAVDesc, NewBlurTempUAV.GetAddressOf())))
     {
         UE_LOG("Failed to create spot shadow unordered access view");
         return false;
     }
 
-	ShadowBlurTempTexture = std::move(NewBlurTempTexture);
+    ShadowBlurTempTexture = std::move(NewBlurTempTexture);
     ShadowBlurTempSRV = std::move(NewBlurTempSRV);
     ShadowBlurTempUAV = std::move(NewBlurTempUAV);
 
-	TComPtr<ID3D11Texture2D> NewBlurFinalTexture;
+    TComPtr<ID3D11Texture2D> NewBlurFinalTexture;
     if (FAILED(Device->CreateTexture2D(&TexDesc, nullptr, NewBlurFinalTexture.GetAddressOf())))
     {
         UE_LOG("Failed to create spot shadow blur texture array");
@@ -385,18 +385,18 @@ bool FBlurPass::EnsureSpotShadowBlurResources(ID3D11Device* Device)
         return false;
     }
 
-	TComPtr<ID3D11UnorderedAccessView> NewBlurFinalUAV;
+    TComPtr<ID3D11UnorderedAccessView> NewBlurFinalUAV;
     if (FAILED(Device->CreateUnorderedAccessView(NewBlurFinalTexture.Get(), &UAVDesc, NewBlurFinalUAV.GetAddressOf())))
     {
         UE_LOG("Failed to create spot shadow unordered access view");
         return false;
     }
 
-	ShadowBlurFinalTexture = std::move(NewBlurFinalTexture);
+    ShadowBlurFinalTexture = std::move(NewBlurFinalTexture);
     ShadowBlurFinalSRV = std::move(NewBlurFinalSRV);
     ShadowBlurFinalUAV = std::move(NewBlurFinalUAV);
 
-	return true;
+    return true;
 }
 
 bool FBlurPass::EnsureDirectionalShadowBlurResources(ID3D11Device* Device)

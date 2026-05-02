@@ -33,13 +33,13 @@ void ULevel::PostDuplicate(UObject* Original)
 
 void ULevel::BeginPlay()
 {
-	for (AActor* Actor : Actors)
-	{
-		if (Actor && !Actor->IsPendingDestroy())
-		{
-			Actor->BeginPlay();
-		}
-	}
+    for (AActor* Actor : Actors)
+    {
+        if (Actor && !Actor->IsPendingDestroy())
+        {
+            Actor->BeginPlay();
+        }
+    }
 }
 
 void ULevel::TickEditor(float DeltaTime)
@@ -66,13 +66,13 @@ void ULevel::TickGame(float DeltaTime)
 
 void ULevel::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
-	for (AActor* Actor : Actors)
-	{
-		if (Actor && !Actor->IsBeingDestroyed())
-		{
-			Actor->EndPlay(EndPlayReason);
-		}
-	}
+    for (AActor* Actor : Actors)
+    {
+        if (Actor && !Actor->IsBeingDestroyed())
+        {
+            Actor->EndPlay(EndPlayReason);
+        }
+    }
 }
 
 void ULevel::RemovePendingDestroyActors()

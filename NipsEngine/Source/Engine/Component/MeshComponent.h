@@ -6,28 +6,28 @@ class UMaterialInterface;
 class UMeshComponent : public UPrimitiveComponent
 {
 public:
-	DECLARE_CLASS(UMeshComponent, UPrimitiveComponent)
-	~UMeshComponent() override;
+    DECLARE_CLASS(UMeshComponent, UPrimitiveComponent)
+    ~UMeshComponent() override;
 
-	virtual void Serialize(FArchive& Ar) override;
+    virtual void Serialize(FArchive& Ar) override;
 
-	virtual void SetMaterial(int32 SlotIndex, UMaterialInterface* InMaterial) override;
-	virtual UMaterialInterface* GetMaterial(int32 SlotIndex) const override;
+    virtual void SetMaterial(int32 SlotIndex, UMaterialInterface* InMaterial) override;
+    virtual UMaterialInterface* GetMaterial(int32 SlotIndex) const override;
 
-	const TArray<UMaterialInterface*>& GetOverrideMaterial() const;
-	const std::pair<float, float> GetScroll() const { return ScrollUV; };
+    const TArray<UMaterialInterface*>& GetOverrideMaterial() const;
+    const std::pair<float, float> GetScroll() const { return ScrollUV; };
 
-	virtual int32 GetNumMaterials() const override;
-	void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
-	void PostEditProperty(const char * PropertyName) override;
-	
-	virtual void TickComponent(float DeltaTime) override;
-
-protected:
-	void ReleaseOwnedMaterialInstances();
-	void ReleaseOwnedMaterialSlot(UMaterialInterface*& InOutMaterial);
+    virtual int32 GetNumMaterials() const override;
+    void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
+    void PostEditProperty(const char * PropertyName) override;
+    
+    virtual void TickComponent(float DeltaTime) override;
 
 protected:
-	TArray<UMaterialInterface*> Materials;
-	std::pair<float, float> ScrollUV = { };
+    void ReleaseOwnedMaterialInstances();
+    void ReleaseOwnedMaterialSlot(UMaterialInterface*& InOutMaterial);
+
+protected:
+    TArray<UMaterialInterface*> Materials;
+    std::pair<float, float> ScrollUV = { };
 };

@@ -94,7 +94,7 @@ void UInterpToMovementComponent::PostDuplicate(UObject* Original)
 void UInterpToMovementComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
 {
     UMovementComponent::GetEditableProperties(OutProps);
-	
+    
     OutProps.push_back({ "Velocity", EPropertyType::Vec3, &Velocity });
     OutProps.push_back({ "Auto Activate", EPropertyType::Bool, &bAutoActivate });
     OutProps.push_back({ "Orient To Movement", EPropertyType::Bool, &bFaceTargetDir });

@@ -3,7 +3,7 @@
 
 
 void FPIEController::Tick(float InDeltaTime) {
-	DeltaTime = InDeltaTime;
+    DeltaTime = InDeltaTime;
     if (!Camera)
         return;
     if (!bTargetLocationInitialized)
@@ -19,7 +19,7 @@ void FPIEController::Tick(float InDeltaTime) {
 
 void FPIEController::OnMouseMove(float DeltaX, float DeltaY)
 {
-	if (!Camera)
+    if (!Camera)
         return;
 
     if (Camera->IsOrthographic())
@@ -126,8 +126,8 @@ void FPIEController::OnKeyDown(int VK)
     //    TargetLocation += Forward * Move.X + Right * Move.Y;
     //}
 
-	// Allow flying
-	switch (VK)
+    // Allow flying
+    switch (VK)
     {
     case 'W':
         Move += Camera->GetForwardVector() * MoveSpeed;
@@ -141,7 +141,7 @@ void FPIEController::OnKeyDown(int VK)
     case 'A':
         Move += Camera->GetRightVector() * -MoveSpeed;
         break;
-	}
+    }
 
     if (Move.X != 0.f || Move.Y != 0.f)
     {
@@ -196,7 +196,7 @@ void FPIEController::SetCamera(FViewportCamera* InCamera)
         return;
     Camera = InCamera;
 
-	TargetLocation = Camera->GetLocation();
+    TargetLocation = Camera->GetLocation();
     bTargetLocationInitialized = true;
 
     // Initialize Yaw/Pitch from camera's current orientation so the first

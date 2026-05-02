@@ -6,50 +6,50 @@
 
 bool FFileUtils::FileExists(const FString& FileName)
 {
-	return std::filesystem::exists(std::filesystem::path(FileName));
+    return std::filesystem::exists(std::filesystem::path(FileName));
 }
 
 bool FFileUtils::LoadFileToString(const FString& FileName, FString& OutText)
 {
-	OutText.clear();
-	
-	std::ifstream File(std::filesystem::path(FileName), std::ios::in);
-	if (!File.is_open())
-	{
-		return false;
-	}
-	
-	std::ostringstream Buffer;
-	Buffer << File.rdbuf();
-	
-	const FString Content = Buffer.str();
-	OutText = Content;
-	
-	return true;
+    OutText.clear();
+    
+    std::ifstream File(std::filesystem::path(FileName), std::ios::in);
+    if (!File.is_open())
+    {
+        return false;
+    }
+    
+    std::ostringstream Buffer;
+    Buffer << File.rdbuf();
+    
+    const FString Content = Buffer.str();
+    OutText = Content;
+    
+    return true;
 }
 
 bool FFileUtils::LoadFileToLines(const FString& FileName, TArray<FString>& OutLines)
 {
-	OutLines.clear();
-	
-	std::ifstream File(std::filesystem::path(FPaths::ToWide(FileName)), std::ios::in);
-	if (!File.is_open())
-	{
-		return false;
-	}
-	
-	FString Line;
-	while (std::getline(File, Line))
-	{
-		if (!Line.empty() && Line.back() == '\r')
-		{
-			Line.pop_back();
-		}
-		
-		OutLines.push_back(Line);
-	}
-	
-	return true;
+    OutLines.clear();
+    
+    std::ifstream File(std::filesystem::path(FPaths::ToWide(FileName)), std::ios::in);
+    if (!File.is_open())
+    {
+        return false;
+    }
+    
+    FString Line;
+    while (std::getline(File, Line))
+    {
+        if (!Line.empty() && Line.back() == '\r')
+        {
+            Line.pop_back();
+        }
+        
+        OutLines.push_back(Line);
+    }
+    
+    return true;
 }
 
 /*
@@ -63,40 +63,40 @@ bool FFileUtils::LoadFileToLines(const FString& FileName, TArray<FString>& OutLi
 */
 bool FFileUtils::FindFileRecursively(const FString& SearchRootPath, const FString& TargetFileName, FString& OutFoundPath)
 {
-	std::filesystem::path RootPath = FPaths::ToWide(SearchRootPath);
-	std::filesystem::path TargetName = FPaths::ToWide(TargetFileName);
-	OutFoundPath.clear();
+    std::filesystem::path RootPath = FPaths::ToWide(SearchRootPath);
+    std::filesystem::path TargetName = FPaths::ToWide(TargetFileName);
+    OutFoundPath.clear();
 
-	if (!std::filesystem::exists(RootPath) || !std::filesystem::is_directory(RootPath))
-	{
-		return false;
-	}
+    if (!std::filesystem::exists(RootPath) || !std::filesystem::is_directory(RootPath))
+    {
+        return false;
+    }
 
-	constexpr size_t MaxSearchLimit = 5000;
+    constexpr size_t MaxSearchLimit = 5000;
     size_t CurrentSearchCount = 0;
 
-	for (const auto& Entry : std::filesystem::recursive_directory_iterator(
-		RootPath,
-		std::filesystem::directory_options::skip_permission_denied))
-	{
-		if (!Entry.is_regular_file())
-		{
-			continue;
-		}
+    for (const auto& Entry : std::filesystem::recursive_directory_iterator(
+        RootPath,
+        std::filesystem::directory_options::skip_permission_denied))
+    {
+        if (!Entry.is_regular_file())
+        {
+            continue;
+        }
 
-		if (Entry.path().filename() == TargetName)
-		{
-			std::filesystem::path RelPath = std::filesystem::relative(Entry.path(), RootPath);
-			OutFoundPath = FPaths::ToUtf8(RelPath.generic_wstring());
-			return true;
-		}
+        if (Entry.path().filename() == TargetName)
+        {
+            std::filesystem::path RelPath = std::filesystem::relative(Entry.path(), RootPath);
+            OutFoundPath = FPaths::ToUtf8(RelPath.generic_wstring());
+            return true;
+        }
 
-		// 최대 검색 회수를 초과하면 탐색을 중단하여 무한 루프 방지
-		if (CurrentSearchCount++ > MaxSearchLimit)
+        // 최대 검색 회수를 초과하면 탐색을 중단하여 무한 루프 방지
+        if (CurrentSearchCount++ > MaxSearchLimit)
         {
             return false;
         }
-	}
+    }
 
-	return false;
+    return false;
 }

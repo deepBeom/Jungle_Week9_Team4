@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Engine/Component/ActorComponent.h"
 
@@ -17,7 +17,7 @@ struct FLuaScriptInstance;
 class UScriptComponent : public UActorComponent
 {
 public:
-	DECLARE_CLASS(UScriptComponent, UActorComponent)
+    DECLARE_CLASS(UScriptComponent, UActorComponent)
 
     /**
      * @brief High-level runtime phase for this script component.

@@ -146,7 +146,7 @@ private:
     TComPtr<ID3D11DepthStencilView> SpotAtlasDSV;
     TComPtr<ID3D11ShaderResourceView> SpotAtlasSRV;
 
-	TComPtr<ID3D11Texture2D> SpotVSMAtlasTexture;
+    TComPtr<ID3D11Texture2D> SpotVSMAtlasTexture;
     TComPtr<ID3D11RenderTargetView> SpotVSMAtlasRTV;
     TComPtr<ID3D11ShaderResourceView> SpotVSMAtlasSRV;
 
@@ -160,7 +160,7 @@ private:
     TComPtr<ID3D11DepthStencilView> DirectionalAtlasDSV;
     TComPtr<ID3D11ShaderResourceView> DirectionalAtlasSRV;
 
-	TComPtr<ID3D11Texture2D> DirectionalVSMAtlasTexture;
+    TComPtr<ID3D11Texture2D> DirectionalVSMAtlasTexture;
     TComPtr<ID3D11RenderTargetView> DirectionalVSMAtlasRTV;
     TComPtr<ID3D11ShaderResourceView> DirectionalVSMAtlasSRV;
     

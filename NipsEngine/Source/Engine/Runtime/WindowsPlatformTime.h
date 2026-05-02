@@ -5,15 +5,15 @@
 class FWindowsPlatformTime
 {
 public:
-	static double GSecondsPerCycle; 
-	static bool bInitialized; 
+    static double GSecondsPerCycle; 
+    static bool bInitialized; 
 
-	static void InitTiming();
-	static float GetSecondsPerCycle();
+    static void InitTiming();
+    static float GetSecondsPerCycle();
 
-	static uint64 GetFrequency();
+    static uint64 GetFrequency();
 
-	static double ToMilliseconds(uint64 CycleDiff);
+    static double ToMilliseconds(uint64 CycleDiff);
 
-	static uint64 Cycles64();
+    static uint64 Cycles64();
 };

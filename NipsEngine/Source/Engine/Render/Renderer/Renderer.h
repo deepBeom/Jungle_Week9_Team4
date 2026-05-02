@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 /*
-	실제 렌더링을 담당하는 Class 입니다. (Rendering 최상위 클래스)
+    실제 렌더링을 담당하는 Class 입니다. (Rendering 최상위 클래스)
 */
 
 #include "Render/Common/RenderTypes.h"
@@ -65,7 +65,7 @@ struct FViewportRenderResource
 
     FRenderTargetSet RenderTargetSet;
 
-	FRenderTargetSet& GetView()
+    FRenderTargetSet& GetView()
     {
         RenderTargetSet.SceneColorRTV = ColorRTV.Get();
         RenderTargetSet.SceneColorSRV = ColorSRV.Get();
@@ -94,114 +94,114 @@ struct FViewportRenderResource
         RenderTargetSet.Width = static_cast<float>(Width);
         RenderTargetSet.Height = static_cast<float>(Height);
         return RenderTargetSet;
-	}
+    }
 
 };
 
 // 패스별 Batcher 바인딩 — Clear → Collect 패턴
 struct FPassBatcherBinding
 {
-	std::function<void()> Clear;
-	std::function<void(const FRenderCommand&, const FRenderBus&)> Collect;
+    std::function<void()> Clear;
+    std::function<void(const FRenderCommand&, const FRenderBus&)> Collect;
 
-	explicit operator bool() const { return Clear != nullptr && Collect != nullptr; }
+    explicit operator bool() const { return Clear != nullptr && Collect != nullptr; }
 };
 
 class FRenderer
 {
 public:
-	void Create(HWND hWindow);
-	void CreateResources();
-	void Release();
+    void Create(HWND hWindow);
+    void CreateResources();
+    void Release();
 
-	void PrepareBatchers(const FRenderBus& InRenderBus);
-	void BeginFrame();
-	// Viewport 로부터 RTV, SRV 등 정보를 받아서 세팅
+    void PrepareBatchers(const FRenderBus& InRenderBus);
+    void BeginFrame();
+    // Viewport 로부터 RTV, SRV 등 정보를 받아서 세팅
     void BeginViewportFrame(FRenderTargetSet* InRenderTargetSet);
-	void Render(const FRenderBus& InRenderBus);
-	void EndFrame();
-	void UseBackBufferRenderTargets();
-	
+    void Render(const FRenderBus& InRenderBus);
+    void EndFrame();
+    void UseBackBufferRenderTargets();
+    
     void UseViewportRenderTargets(FRenderTargetSet* InRenderTargetSet);
-	void InvalidateSceneFinalTargets();
+    void InvalidateSceneFinalTargets();
 
-	FD3DDevice& GetFD3DDevice() { return Device; }
-	FRenderResources& GetResources() { return Resources; }
-	FLineBatcher& GetEditorLineBatcher() { return EditorLineBatcher; }
+    FD3DDevice& GetFD3DDevice() { return Device; }
+    FRenderResources& GetResources() { return Resources; }
+    FLineBatcher& GetEditorLineBatcher() { return EditorLineBatcher; }
 
-	const ID3D11RenderTargetView*   GetCurrentSceneRTV() const { return SceneFinalRTV.Get(); }
+    const ID3D11RenderTargetView*   GetCurrentSceneRTV() const { return SceneFinalRTV.Get(); }
     const ID3D11ShaderResourceView* GetCurrentSceneSRV() const { return SceneFinalSRV.Get(); }
 
-	// 현재는 Resource 를 Handle 이 아니라, 고정된 4개의 Viewport 에 대한 Index 를 통해 관리
-	// 추가로 VP 를 받아서 원래 해당하는 Resource 를 찾아야하는데 현재는 Index 로 찾는 중
-	FViewportRenderResource& AcquireViewportResource(FSceneViewport* VP, uint32 W, uint32 H, int32 Index);
+    // 현재는 Resource 를 Handle 이 아니라, 고정된 4개의 Viewport 에 대한 Index 를 통해 관리
+    // 추가로 VP 를 받아서 원래 해당하는 Resource 를 찾아야하는데 현재는 Index 로 찾는 중
+    FViewportRenderResource& AcquireViewportResource(FSceneViewport* VP, uint32 W, uint32 H, int32 Index);
     void InitializeViewportResource(FSceneViewport* VP, uint32 Width, uint32 Height, int32 Index);
     void ReleaseViewportResource(FSceneViewport* VP, int32 Index);
 
 private:
-	void InitializePassBatchers();
-	void UpdateSceneLightBuffer(const FRenderBus& InRenderBus);
+    void InitializePassBatchers();
+    void UpdateSceneLightBuffer(const FRenderBus& InRenderBus);
 
 private:
-	FD3DDevice Device;
-	FRenderTargetSet* CurrentRenderTargets = nullptr;
-	FRenderResources Resources;
-	FLineBatcher   EditorLineBatcher;
-	FLineBatcher   GridLineBatcher;
-	FFontBatcher   FontBatcher;
-	FSubUVBatcher  SubUVBatcher;
-	FStructuredBuffer SceneLightBuffer;
-	TArray<FGPULight> SceneGlobalLightUploadScratch;
+    FD3DDevice Device;
+    FRenderTargetSet* CurrentRenderTargets = nullptr;
+    FRenderResources Resources;
+    FLineBatcher   EditorLineBatcher;
+    FLineBatcher   GridLineBatcher;
+    FFontBatcher   FontBatcher;
+    FSubUVBatcher  SubUVBatcher;
+    FStructuredBuffer SceneLightBuffer;
+    TArray<FGPULight> SceneGlobalLightUploadScratch;
 
-	/** 모든 Render Pass 를 관리할 객체 */
-	FRenderPipeline RenderPipeline;
+    /** 모든 Render Pass 를 관리할 객체 */
+    FRenderPipeline RenderPipeline;
     std::shared_ptr<FRenderPassContext> RenderPassContext;
 
-	// 패스별 커맨드 정렬이 필요한 경우 정렬된 복사본 반환, 아니면 원본 참조
-	const TArray<FRenderCommand>& GetAlignedCommands(ERenderPass Pass, const TArray<FRenderCommand>& Commands);
-	TArray<FRenderCommand> SortedCommandBuffer;  // 재할당 방지용 멤버 버퍼
+    // 패스별 커맨드 정렬이 필요한 경우 정렬된 복사본 반환, 아니면 원본 참조
+    const TArray<FRenderCommand>& GetAlignedCommands(ERenderPass Pass, const TArray<FRenderCommand>& Commands);
+    TArray<FRenderCommand> SortedCommandBuffer;  // 재할당 방지용 멤버 버퍼
 
-	FPassBatcherBinding PassBatchers[(uint32)ERenderPass::MAX];
+    FPassBatcherBinding PassBatchers[(uint32)ERenderPass::MAX];
 
-	//	Primitive and Gizmo Input Layout
-	D3D11_INPUT_ELEMENT_DESC PrimitiveInputLayout[2] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  static_cast<uint32>(offsetof(FVertex, Position)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<uint32>(offsetof(FVertex, Color)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
+    //	Primitive and Gizmo Input Layout
+    D3D11_INPUT_ELEMENT_DESC PrimitiveInputLayout[2] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  static_cast<uint32>(offsetof(FVertex, Position)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<uint32>(offsetof(FVertex, Color)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
 
-	// StaticMesh (FNormalVertex) Input Layout
-	D3D11_INPUT_ELEMENT_DESC NormalVertexInputLayout[6] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, static_cast<uint32>(offsetof(FNormalVertex, Position)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<uint32>(offsetof(FNormalVertex, Color)),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, static_cast<uint32>(offsetof(FNormalVertex, Normal)),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, static_cast<uint32>(offsetof(FNormalVertex, UVs)),      D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, static_cast<uint32>(offsetof(FNormalVertex, Tangent)),  D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "BITANGENT",0, DXGI_FORMAT_R32G32B32_FLOAT,    0, static_cast<uint32>(offsetof(FNormalVertex, Bitangent)),D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
+    // StaticMesh (FNormalVertex) Input Layout
+    D3D11_INPUT_ELEMENT_DESC NormalVertexInputLayout[6] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, static_cast<uint32>(offsetof(FNormalVertex, Position)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<uint32>(offsetof(FNormalVertex, Color)),    D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, static_cast<uint32>(offsetof(FNormalVertex, Normal)),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, static_cast<uint32>(offsetof(FNormalVertex, UVs)),      D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, static_cast<uint32>(offsetof(FNormalVertex, Tangent)),  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "BITANGENT",0, DXGI_FORMAT_R32G32B32_FLOAT,    0, static_cast<uint32>(offsetof(FNormalVertex, Bitangent)),D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
 
-	D3D11_INPUT_ELEMENT_DESC TextureVertexInputLayout[2] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
+    D3D11_INPUT_ELEMENT_DESC TextureVertexInputLayout[2] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
 
-	D3D11_INPUT_ELEMENT_DESC DepthPrepassInputLayout[1] =
-	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<uint32>(offsetof(FNormalVertex, Position)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-	};
+    D3D11_INPUT_ELEMENT_DESC DepthPrepassInputLayout[1] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<uint32>(offsetof(FNormalVertex, Position)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
 
-	FFileWatcher ShaderFileWatcher;
+    FFileWatcher ShaderFileWatcher;
 
-	// FinalRTV 는 Render Pass 구성에 따라 달라지므로 Renderer 내에서 보관
-	TComPtr<ID3D11RenderTargetView> SceneFinalRTV = nullptr;
+    // FinalRTV 는 Render Pass 구성에 따라 달라지므로 Renderer 내에서 보관
+    TComPtr<ID3D11RenderTargetView> SceneFinalRTV = nullptr;
     TComPtr<ID3D11ShaderResourceView> SceneFinalSRV = nullptr;
-	constexpr static uint32 MaxRTVCount = 3;
-	// Directional, Ambient 같은 전역 Light 개수 제한
-	constexpr static uint32 MaxSceneGlobalLightCount = 64;
+    constexpr static uint32 MaxRTVCount = 3;
+    // Directional, Ambient 같은 전역 Light 개수 제한
+    constexpr static uint32 MaxSceneGlobalLightCount = 64;
 
-	// 지금은 4개 Viewport 고정 존재 상황이라 다음과 같이 처리
-	FViewportRenderResource ViewportResources[4];
+    // 지금은 4개 Viewport 고정 존재 상황이라 다음과 같이 처리
+    FViewportRenderResource ViewportResources[4];
 };
 
