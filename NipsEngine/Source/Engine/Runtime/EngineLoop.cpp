@@ -2,7 +2,7 @@
 
 #include "Editor/EditorEngine.h"
 #include "Game/GameEngine.h"
-#define WITH_EDITOR 0
+
 void FEngineLoop::CreateEngine()
 {
 #if WITH_EDITOR
