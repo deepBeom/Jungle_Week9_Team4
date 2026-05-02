@@ -32,6 +32,7 @@ class FHitMapRenderPass;
 class FPostProcessOutlineRenderPass;
 class FOpaqueRenderPass;
 class FLightCullingPass;
+class FUIRenderPass;
 class FBaseRenderPass;
 
 class FRenderPipeline
@@ -66,6 +67,7 @@ private:
     std::shared_ptr<FDepthLessRenderPass> DepthLessRenderPass;
     std::shared_ptr<FPostProcessOutlineRenderPass> PostProcessOutlineRenderPass;
     std::shared_ptr<FToonOutlineRenderPass> ToonOutlineRenderPass;
+    std::shared_ptr<FUIRenderPass>          UIRenderPass;
 
     ID3D11ShaderResourceView* OutSRV = nullptr;
     ID3D11RenderTargetView* OutRTV = nullptr;

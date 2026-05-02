@@ -1,4 +1,4 @@
-#include <d3d11.h>
+﻿#include <d3d11.h>
 #include "UIBatcher.h"
 #include "Core/CoreTypes.h"
 #include "Core/ResourceManager.h"
@@ -76,22 +76,28 @@ void FUIBatcher::Release()
     Device.Reset();
 }
 
-void FUIBatcher::AddQuad(float ScreenX,   float ScreenY,
-                         float Width,     float Height,
-                         float ViewportW, float ViewportH,
-                         UTexture*   Texture,
-                         float R, float G, float B, float A)
+void FUIBatcher::AddQuad(FVector2 ScreenXY,
+                         FVector2 QuadSize,
+                         FVector2 ViewportWH,
+                         UTexture* Texture,
+                         FVector4 Color)
 {
-    // 픽셀 좌표 → NDC 변환
-    // X: 0~ViewportW  →  -1~+1
-    // Y: 0~ViewportH  →  +1~-1  (DirectX는 Y축 위가 +1)
-    auto ToNDCX = [&](float PX) { return  (PX / ViewportW) * 2.f - 1.f; };
-    auto ToNDCY = [&](float PY) { return -(PY / ViewportH) * 2.f + 1.f; };
+    // 픽셀 좌표를 NDC로 변환
+    FVector2 LeftTop = { ScreenXY.X, ScreenXY.Y};
+    FVector2 RightTop = { ScreenXY.X + QuadSize.X, ScreenXY.Y };
+    FVector2 LeftBottom = { ScreenXY.X, ScreenXY.Y + QuadSize.Y };
+    FVector2 RightBottom = { ScreenXY.X + QuadSize.X, ScreenXY.Y + QuadSize.Y };
 
-    const float X0 = ToNDCX(ScreenX);
-    const float X1 = ToNDCX(ScreenX + Width);
-    const float Y0 = ToNDCY(ScreenY);
-    const float Y1 = ToNDCY(ScreenY + Height);
+    auto ScreenToNDC = [&](FVector2 ScreenPos) -> FVector2 {
+        float ndc_x = ScreenPos.X / ViewportWH.X * 2 - 1;
+        float ndc_y = -ScreenPos.Y / ViewportWH.Y * 2 + 1;
+        return FVector2(ndc_x, ndc_y);
+        };
+
+    LeftTop = ScreenToNDC(LeftTop);
+    RightTop = ScreenToNDC(RightTop);
+    LeftBottom = ScreenToNDC(LeftBottom);
+    RightBottom = ScreenToNDC(RightBottom);
 
     // 텍스처가 바뀌면 새 배치 시작 — SubUVBatcher와 동일한 배치 분류 방식
     if (Batches.empty() || Batches.back().Texture != Texture)
@@ -107,14 +113,19 @@ void FUIBatcher::AddQuad(float ScreenX,   float ScreenY,
     const uint32 LocalBase = static_cast<uint32>(Vertices.size())
         - static_cast<uint32>(Batches.back().BaseVertex);
 
-    // 좌상 → 우상 → 좌하 → 우하
-    Vertices.push_back({ X0, Y0,  0.f, 0.f,  R, G, B, A });
-    Vertices.push_back({ X1, Y0,  1.f, 0.f,  R, G, B, A });
-    Vertices.push_back({ X0, Y1,  0.f, 1.f,  R, G, B, A });
-    Vertices.push_back({ X1, Y1,  1.f, 1.f,  R, G, B, A });
+    // 좌상 -> 우상 -> 좌하 -> 우하
+    Vertices.push_back({ LeftTop, {0, 0}, Color });
+    Vertices.push_back({ RightTop, {0, 1}, Color });
+    Vertices.push_back({ LeftBottom, {1, 0}, Color });
+    Vertices.push_back({ RightBottom, {1, 1}, Color });
 
-    Indices.push_back(LocalBase + 0); Indices.push_back(LocalBase + 1); Indices.push_back(LocalBase + 2);
-    Indices.push_back(LocalBase + 1); Indices.push_back(LocalBase + 3); Indices.push_back(LocalBase + 2);
+    Indices.push_back(LocalBase + 0); 
+    Indices.push_back(LocalBase + 1); 
+    Indices.push_back(LocalBase + 2);
+
+    Indices.push_back(LocalBase + 1); 
+    Indices.push_back(LocalBase + 3); 
+    Indices.push_back(LocalBase + 2);
 
     Batches.back().IndexCount += 6;
 }
@@ -161,13 +172,14 @@ void FUIBatcher::Flush(ID3D11DeviceContext* Context, const FRenderBus* RenderBus
     {
         if (Batch.IndexCount == 0) continue;
 
-        // Texture == nullptr 이면 흰 SRV로 단색 처리
-        ID3D11ShaderResourceView* SRV = (Batch.Texture)
+        // Bind 먼저 — 셰이더/샘플러/상수버퍼 세팅
+        Material->Bind(Context, RenderBus);
+
+        // Bind 이후에 텍스처 덮어쓰기 — Bind 내부의 BindTextures가 덮어쓰기 전에 설정하면 소용없음
+        ID3D11ShaderResourceView* SRV = Batch.Texture
             ? Batch.Texture->GetSRV()
             : WhiteSRV.Get();
-
         Context->PSSetShaderResources(0, 1, &SRV);
-        Material->Bind(Context, RenderBus);
 
         Context->DrawIndexed(Batch.IndexCount, Batch.IndexStart, Batch.BaseVertex);
     }

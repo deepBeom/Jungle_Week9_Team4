@@ -24,6 +24,7 @@ enum class EDepthStencilType
     DepthReadOnly,
     StencilWrite,
     StencilWriteOnlyEqual,
+    NoDepth,
 
     // --- 기즈모 전용 ---
     GizmoInside,

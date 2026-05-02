@@ -2712,6 +2712,12 @@ ID3D11DepthStencilState* FResourceManager::GetOrCreateDepthStencilState(EDepthSt
         Desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_KEEP;
         Desc.BackFace = Desc.FrontFace;
         break;
+    case EDepthStencilType::NoDepth:
+        Desc.DepthEnable = FALSE;
+        Desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        Desc.DepthFunc = D3D11_COMPARISON_LESS;
+        Desc.StencilEnable = FALSE;
+        break;
     case EDepthStencilType::GizmoInside:
         Desc.DepthEnable = TRUE;
         Desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;

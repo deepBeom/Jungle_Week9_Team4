@@ -244,6 +244,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\SoundManager.cpp" />
+    <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.cpp" />
+    <ClCompile Include="Source\Engine\Render\UIBatcher.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaScriptSubsystem.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaBinder.cpp" />
     <ClCompile Include="Source\Engine\Component\Script\ScriptComponent.cpp" />
@@ -330,7 +332,6 @@
     <ClCompile Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.cpp" />
     <ClCompile Include="Source\Engine\Input\Controller\EditorController\EditorWorldController.cpp" />
     <ClCompile Include="Source\Engine\Input\Controller\EditorController\PIEController.cpp" />
-    <ClCompile Include="Source\Engine\UI\UIBatcher.cpp" />
     <ClCompile Include="Source\Engine\UI\UIElement.cpp" />
     <ClCompile Include="Source\Engine\UI\UIManager.cpp" />
     <ClCompile Include="Source\Game\GameCameraController.cpp" />
@@ -568,6 +569,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Core\SoundManager.h" />
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.h" />
+    <ClInclude Include="Source\Engine\Render\UIBatcher.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptSubsystem.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptInstance.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaBinder.h" />
@@ -685,7 +688,6 @@
     <ClInclude Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.h" />
     <ClInclude Include="Source\Engine\Input\Controller\EditorController\EditorWorldController.h" />
     <ClInclude Include="Source\Engine\Input\Controller\EditorController\PIEController.h" />
-    <ClInclude Include="Source\Engine\UI\UIBatcher.h" />
     <ClInclude Include="Source\Engine\UI\UIElement.h" />
     <ClInclude Include="Source\Engine\UI\UIManager.h" />
     <ClInclude Include="Source\Game\GameCameraController.h" />

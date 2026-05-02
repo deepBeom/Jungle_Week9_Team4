@@ -22,6 +22,7 @@
 #include "BlurPass.h"
 #include "HitMapRenderPass.h"
 #include "ToonOutlineRenderPass.h"
+#include "UIRenderPass.h"
 #include "UI/EditorConsoleWidget.h"
 
 #include <algorithm>
@@ -124,6 +125,9 @@ bool FRenderPipeline::Initialize()
     ToonOutlineRenderPass = std::make_shared<FToonOutlineRenderPass>();
     ToonOutlineRenderPass->Initialize();
 
+    UIRenderPass = std::make_shared<FUIRenderPass>();
+    UIRenderPass->Initialize();
+
     FogRenderPass->SetSkipWireframe(true);
     FXAARenderPass->SetSkipWireframe(true);
 
@@ -152,6 +156,7 @@ bool FRenderPipeline::Initialize()
     RenderPasses.push_back(TranslucentRenderPass);
     RenderPasses.push_back(SelectionMaskRenderPass);
     RenderPasses.push_back(GridRenderPass);
+    RenderPasses.push_back(UIRenderPass);      // 게임 UI — 그리드 뒤, 에디터 앞
     RenderPasses.push_back(EditorRenderPass);
     RenderPasses.push_back(DepthLessRenderPass);
     RenderPasses.push_back(PostProcessOutlineRenderPass);
@@ -345,5 +350,11 @@ void FRenderPipeline::Release()
     {
         PostProcessOutlineRenderPass->Release();
         PostProcessOutlineRenderPass.reset();
+    }
+
+    if (UIRenderPass)
+    {
+        UIRenderPass->Release();
+        UIRenderPass.reset();
     }
 }

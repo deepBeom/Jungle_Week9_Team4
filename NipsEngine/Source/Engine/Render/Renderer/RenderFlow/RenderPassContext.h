@@ -8,6 +8,7 @@ class FRenderBus;
 class FFontBatcher;
 class FSubUVBatcher;
 class FLineBatcher;
+class FUIManager;
 
 struct FRenderPassContext
 {
@@ -20,6 +21,7 @@ struct FRenderPassContext
     FSubUVBatcher* SubUVBatcher = nullptr;
     FLineBatcher* GridLineBatcher = nullptr;
     FLineBatcher* EditorLineBatcher = nullptr;
+    FUIManager*   UIManager = nullptr;
     ID3D11ShaderResourceView* SceneGlobalLightBufferSRV = nullptr;
     uint32 SceneGlobalLightCount = 0;
 };

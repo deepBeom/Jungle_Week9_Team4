@@ -893,7 +893,8 @@
     <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
     <ClCompile Include="Source\Engine\UI\UIManager.cpp" />
     <ClCompile Include="Source\Engine\UI\UIElement.cpp" />
-    <ClCompile Include="Source\Engine\UI\UIBatcher.cpp" />
+    <ClCompile Include="Source\Engine\Render\UIBatcher.cpp" />
+    <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -1683,6 +1684,7 @@
     <ClInclude Include="Source\Engine\Core\GameObjectTypes.h" />
     <ClInclude Include="Source\Engine\UI\UIManager.h" />
     <ClInclude Include="Source\Engine\UI\UIElement.h" />
-    <ClInclude Include="Source\Engine\UI\UIBatcher.h" />
+    <ClInclude Include="Source\Engine\Render\UIBatcher.h" />
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.h" />
   </ItemGroup>
 </Project>

@@ -12,6 +12,7 @@
 #include "Render/Renderer/RenderTarget/RenderTargetFactory.h"
 #include "Render/Renderer/RenderTarget/DepthStencilFactory.h"
 #include "Render/Renderer/RenderFlow/RenderPassContext.h"
+#include "Engine/UI/UIManager.h"
 
 #include <set>
 
@@ -49,6 +50,7 @@ void FRenderer::Create(HWND hWindow)
     FResourceManager::Get().LoadShader("Shaders/Multipass/FogPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/FXAAPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderFont.hlsl", "VS", "PS", TextureVertexInputLayout, ARRAYSIZE(TextureVertexInputLayout), nullptr);
+    FResourceManager::Get().LoadShader("Shaders/ShaderUI.hlsl",   "VS", "PS", UIVertexInputLayout,      ARRAYSIZE(UIVertexInputLayout),      nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderLine.hlsl", "mainVS", "mainPS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderGrid.hlsl", "GridVS", "GridPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderAxis.hlsl", "VS", "PS", nullptr, 0, nullptr);
@@ -73,6 +75,7 @@ void FRenderer::CreateResources()
     // 텍스처는 ResourceManager가 소유 — Batcher 는 셰이더/버퍼만 초기화
     FontBatcher.Create(Device.GetDevice());
     SubUVBatcher.Create(Device.GetDevice());
+    FUIManager::Get().Initialize(Device.GetDevice());
     SceneLightBuffer.Create(Device.GetDevice(), sizeof(FGPULight), MaxSceneGlobalLightCount);
     SceneGlobalLightUploadScratch.reserve(MaxSceneGlobalLightCount);
 
@@ -101,6 +104,7 @@ void FRenderer::Release()
     GridLineBatcher.Release();
     FontBatcher.Release();
     SubUVBatcher.Release();
+    FUIManager::Get().Release();
     SceneLightBuffer.Release();
     SceneGlobalLightUploadScratch.clear();
 
@@ -285,7 +289,14 @@ void FRenderer::Render(const FRenderBus& InRenderBus)
     RenderPassContext->SubUVBatcher = &SubUVBatcher;
     RenderPassContext->GridLineBatcher = &GridLineBatcher;
     RenderPassContext->EditorLineBatcher = &EditorLineBatcher;
+    RenderPassContext->UIManager = &FUIManager::Get();
     UpdateSceneLightBuffer(InRenderBus);
+
+    // UI 배처 업데이트 — Element 트리를 순회해 버텍스 누적 (Flush는 UIRenderPass에서)
+    const float ViewportW = static_cast<float>(CurrentRenderTargets->Width);
+    const float ViewportH = static_cast<float>(CurrentRenderTargets->Height);
+    FUIManager::Get().Update(ViewportW, ViewportH);
+
     RenderPipeline.Render(RenderPassContext.get());
     
     SceneFinalSRV = RenderPipeline.GetOutSRV();

@@ -5,6 +5,8 @@
 
 void FEngineLoop::CreateEngine()
 {
+#define WITH_EDITOR 0 
+
 #if WITH_EDITOR
     GEngine = UObjectManager::Get().CreateObject<UEditorEngine>();
 #else
