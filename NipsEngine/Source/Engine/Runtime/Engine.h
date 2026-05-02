@@ -55,6 +55,8 @@ public:
 	FRenderer& GetRenderer() { return Renderer; }
 	IRenderPipeline* GetRenderPipeline() const { return RenderPipeline.get(); }
 
+	virtual void ApplySpatialIndexMaintenanceSettings(UWorld* TargetWorld);
+
 	FLuaScriptSubsystem& GetLuaScriptSubsystem() { return LuaScriptSubsystem; }
 
 protected:

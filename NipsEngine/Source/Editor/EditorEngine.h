@@ -40,7 +40,7 @@ public:
 	void ResetViewport();
 	void CloseScene();
 	void NewScene();
-	void ApplySpatialIndexMaintenanceSettings(UWorld* TargetWorld = nullptr);
+	virtual void ApplySpatialIndexMaintenanceSettings(UWorld* TargetWorld) override;
 
 	FEditorSettings& GetSettings() { return FEditorSettings::Get(); }
 	const FEditorSettings& GetSettings() const { return FEditorSettings::Get(); }

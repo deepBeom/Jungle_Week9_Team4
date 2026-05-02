@@ -417,7 +417,7 @@ void FEditorViewportOverlayWidget::RenderViewportSettings(float DeltaTime)
 
 		if (bPolicyChanged && EditorEngine)
 		{
-			EditorEngine->ApplySpatialIndexMaintenanceSettings();
+			EditorEngine->ApplySpatialIndexMaintenanceSettings(EditorEngine->GetWorld());
 		}
 	}
 

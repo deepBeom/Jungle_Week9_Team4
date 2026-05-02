@@ -5,10 +5,10 @@
 class FEditorViewportClient;
 class FEditorSettings;
 
-class IBaseEditorController
+class IViewportInputController
 {
-  public:
-    virtual ~IBaseEditorController() = default;
+public:
+    virtual ~IViewportInputController() = default;
     virtual void OnMouseMove(float DeltaX, float DeltaY) = 0;
     virtual void OnMouseMoveAbsolute(float X, float Y) {}
     virtual void OnLeftMouseClick(float X, float Y) = 0;    // LMB down
@@ -22,17 +22,17 @@ class IBaseEditorController
     virtual void OnKeyDown(int VK) = 0;
     virtual void OnKeyReleased(int VK) = 0;
     virtual void OnWheelScrolled(float Notch) = 0;
-	virtual void Tick(float InDeltaTime) { DeltaTime = InDeltaTime; }
+    virtual void Tick(float InDeltaTime) { DeltaTime = InDeltaTime; }
 
     void SetViewportDim(float X, float Y, float Width, float Height);
 
-  protected:
-    IBaseEditorController() = default;
+protected:
+    IViewportInputController() = default;
     float ViewportX = 0;
     float ViewportY = 0;
     float ViewportWidth = 0;
     float ViewportHeight = 0;
 
-  protected:
+protected:
     float DeltaTime = 0;
 };
