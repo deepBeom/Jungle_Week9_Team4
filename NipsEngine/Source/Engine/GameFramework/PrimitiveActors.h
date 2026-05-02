@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Actor.h"
+#include "Engine/Core/SoundManager.h"
 
 class UTextRenderComponent;
 class UDecalComponent;
@@ -21,6 +22,8 @@ public:
     AStaticMeshActor() = default;
 
     void InitDefaultComponents();
+public:
+    virtual void BeginPlay() override;
 };
 
 class ASubUVActor : public AActor

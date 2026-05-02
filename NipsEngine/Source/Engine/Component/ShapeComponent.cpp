@@ -133,26 +133,17 @@ void UShapeComponent::ClearOverlapInfos()
 
 void UShapeComponent::DispatchBeginOverlap(const FCollisionEvent& Event)
 {
-    if (OnComponentBeginOverlap)
-    {
-        OnComponentBeginOverlap(Event); // OnComponentBeginOverlap.Broadcast(Event);
-    }
+    OnComponentBeginOverlap.Broadcast(Event);
 }
 
 void UShapeComponent::DispatchEndOverlap(const FCollisionEvent& Event)
 {
-    if (OnComponentEndOverlap)
-    {
-        OnComponentEndOverlap(Event);
-    }
+    OnComponentEndOverlap.Broadcast(Event);
 }
 
 void UShapeComponent::DispatchHit(const FCollisionEvent& Event)
 {
-    if (OnComponentHit)
-    {
-        OnComponentHit(Event);
-    }
+    OnComponentHit.Broadcast(Event);
 }
 
 // --- Box ---
