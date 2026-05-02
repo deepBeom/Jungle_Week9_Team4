@@ -231,13 +231,15 @@ bool FBlurPass::EnsureComputeShader(ID3D11Device* Device)
 
 bool FBlurPass::ReloadComputeShader(ID3D11Device* Device)
 {
-    TComPtr<ID3D11ComputeShader> NewComputeShader;
-    if (!CompileComputeShader(Device, NewComputeShader))
+    TComPtr<ID3D11ComputeShader> ReplacementShader;
+    if (!CompileComputeShader(Device, ReplacementShader))
     {
         return false;
     }
 
-    ComputeShader = std::move(NewComputeShader);
+    // Keep the currently bound compute shader alive until the replacement has fully compiled and
+    // CreateComputeShader succeeded. A bad edit must not null out the active pass shader.
+    ComputeShader = std::move(ReplacementShader);
     UE_LOG("[ShaderHotReload] Reloaded compute shader: %s", ComputeShaderPath);
     return true;
 }
@@ -275,9 +277,11 @@ bool FBlurPass::CompileComputeShader(ID3D11Device* Device, TComPtr<ID3D11Compute
         return false;
     }
 
-    TComPtr<ID3D11ComputeShader> NewComputeShader;
+    // The compiled blob is only used to create the runtime CS object. If compilation fails we drop
+    // the temporary blob and leave the existing pass state untouched.
+    TComPtr<ID3D11ComputeShader> ReplacementShader;
     const HRESULT CreateResult = Device->CreateComputeShader(
-        CSBlob->GetBufferPointer(), CSBlob->GetBufferSize(), nullptr, NewComputeShader.GetAddressOf());
+        CSBlob->GetBufferPointer(), CSBlob->GetBufferSize(), nullptr, ReplacementShader.GetAddressOf());
 
     if (FAILED(CreateResult))
     {
@@ -285,7 +289,7 @@ bool FBlurPass::CompileComputeShader(ID3D11Device* Device, TComPtr<ID3D11Compute
         return false;
     }
 
-    OutShader = std::move(NewComputeShader);
+    OutShader = std::move(ReplacementShader);
     return true;
 }
 

@@ -21,6 +21,8 @@ public:
     TArray<FWString> DequeueChangedFiles();
 
 private:
+    // The watcher thread only collects changed file paths.
+    // Compilation/reload happens later on the render thread with the engine's D3D device access pattern.
     void WatchLoop();
     void EnqueueChangedFile(const FWString& InFilePath);
 

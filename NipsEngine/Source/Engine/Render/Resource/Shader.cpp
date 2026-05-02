@@ -153,6 +153,8 @@ bool UShader::CreateInputLayoutFromReflection(ID3DBlob* ShaderBlob, ID3D11Device
         ShaderData.InputLayout = nullptr;
     }
 
+    // Vertex shader reload can change the input signature even when the source file path stays the same.
+    // Rebuilding the layout from the new blob keeps IA validation in sync with the newly compiled VS.
     const HRESULT Hr = Device->CreateInputLayout(
         InputLayoutDesc.data(),
         static_cast<UINT>(InputLayoutDesc.size()),
@@ -272,6 +274,8 @@ void UShader::AdoptCompiledState(UShader& SourceShader)
         return;
     }
 
+    // We only release the currently bound D3D objects after the replacement shader has already compiled,
+    // reflected, and created its own resources. That keeps the previous valid shader alive on reload failure.
     ShaderData.Release();
     ShaderData = SourceShader.ShaderData;
     SourceShader.ShaderData = {};

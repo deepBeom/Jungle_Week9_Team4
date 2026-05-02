@@ -110,6 +110,8 @@ public:
     bool LoadShader(const FShaderCompileKey& CompileKey);
     bool LoadShader(const FShaderCompileKey& CompileKey,
                     const D3D11_INPUT_ELEMENT_DESC* InputElements, UINT InputElementCount);
+    // Returns the debounced set of changed shader files that are safe to reload this frame.
+    // The actual recompilation still happens on the render thread so D3D device access stays serialized.
     std::set<FWString> ProcessShaderHotReloads(const TArray<FWString>& ChangedFiles);
     //ID3DBlob* CompileShaderWithDefines(const WCHAR* filename,
     //                                   const D3D_SHADER_MACRO* defines,
@@ -165,12 +167,21 @@ private:
                             const D3D11_INPUT_ELEMENT_DESC* InputElements,
                             UINT InputElementCount,
                             bool bRegisterPathAlias);
+    // Rebuilds one VS/PS shader variant from the metadata we stored at initial load time:
+    // source file path, entry points, macros, and optional input-layout description.
     bool CompileShaderVariant(const FShaderCompileKey& NormalizedKey,
                               const D3D11_INPUT_ELEMENT_DESC* InputElements,
                               UINT InputElementCount,
                               UShader* OutShader,
                               FString* OutFailureMessage = nullptr,
                               bool bLogFailures = true);
+    bool IsShaderVariantAffectedByDirtyFiles(const FShaderCompileKey& CompileKey,
+                                             const std::set<FWString>& DirtyFiles,
+                                             TMap<FWString, TSet<FWString>>& DependencyCache) const;
+    bool CompileReplacementShaderVariant(const FShaderCompileKey& CompileKey,
+                                         UShader*& OutReplacementShader,
+                                         FString& OutFailureMessage);
+    void DestroyTemporaryShaders(const TArray<UShader*>& TemporaryShaders);
     void CacheShaderVariantInputLayout(const FShaderCompileKey& NormalizedKey,
                                        const D3D11_INPUT_ELEMENT_DESC* InputElements,
                                        UINT InputElementCount);
@@ -179,7 +190,7 @@ private:
     void ReloadShaders(const std::set<FWString>& DirtyFiles);
     void CollectShaderDependencies(const FWString& ShaderFilePath,
                                    TSet<FWString>& OutDependencies,
-                                   TMap<FWString, TSet<FWString>>& Cache);
+                                   TMap<FWString, TSet<FWString>>& Cache) const;
     FWString NormalizeShaderPath(const FWString& InPath) const;
     FWString NormalizeShaderPath(const FString& InPath) const;
     bool IsShaderSourceFile(const FWString& InPath) const;
@@ -224,7 +235,11 @@ private:
     {
         TArray<FShaderInputElementStorage> Elements;
     };
+    // Vertex input-layout creation needs stable semantic-name storage during reload, so we keep
+    // a copied description per shader variant instead of depending on the original caller's array.
     TMap<FShaderCompileKey, FShaderVariantInputLayout> ShaderVariantInputLayouts;
+    // File saves often arrive as a burst of change notifications. We debounce them before compiling
+    // so we do not rebuild from a half-written file or compile the same edit several times per frame.
     TMap<FWString, std::chrono::steady_clock::time_point> PendingShaderFiles;
 
     TMap<FString, UTexture*> Textures;

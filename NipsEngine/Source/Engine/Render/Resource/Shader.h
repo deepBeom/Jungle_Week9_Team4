@@ -65,6 +65,8 @@ struct FShaderMacro
 
 struct FShaderCompileKey
 {
+    // Hot reload uses the same metadata captured at startup load time to rebuild each variant:
+    // source file path, per-stage entry points, and the macro set that selected this permutation.
     FString FilePath;
     FString VSEntryPoint;
     FString PSEntryPoint;
@@ -123,6 +125,8 @@ public:
         Context->PSSetShader(ShaderData.PS, nullptr, 0);
     }
 
+    // Replaces the live D3D objects only after a full recompile succeeds so external pointers to
+    // this UShader stay valid and a failed hot reload never leaves the renderer with null shaders.
     void AdoptCompiledState(UShader& SourceShader);
     bool ReflectShader(ID3DBlob* ShaderBlob, ID3D11Device* Device, EShaderStage Stage);
     std::shared_ptr<FShaderBindingInstance> CreateBindingInstance(ID3D11Device* Device) const;

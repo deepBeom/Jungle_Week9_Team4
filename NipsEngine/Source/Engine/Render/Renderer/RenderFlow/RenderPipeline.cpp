@@ -176,6 +176,9 @@ void FRenderPipeline::ProcessShaderHotReloads(const std::set<FWString>& DirtyFil
         return bAnyIncludeChanged || DirtyFiles.contains(NormalizeShaderHotReloadPath(RelativePath));
     };
 
+    // These compute passes are not registered through FResourceManager's shader-variant system.
+    // A changed .hlsli therefore conservatively reloads both passes instead of trying to build a
+    // separate include graph here.
     if (BlurPass && ShouldReload(FBlurPass::ComputeShaderPath))
     {
         if (!BlurPass->ReloadComputeShader(Device))

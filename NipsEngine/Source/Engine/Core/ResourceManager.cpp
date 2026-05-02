@@ -1174,6 +1174,8 @@ bool FResourceManager::CompileShaderVariant(const FShaderCompileKey& NormalizedK
             *OutFailureMessage = Message;
         }
 
+        // Hot reload failure still needs to surface the compiler text even though the previous
+        // runtime shader remains active. The caller decides whether to log immediately or dedupe.
         if (bLogFailures)
         {
             UE_LOG("[Shader] %s", Message.c_str());
@@ -1186,59 +1188,68 @@ bool FResourceManager::CompileShaderVariant(const FShaderCompileKey& NormalizedK
     const FCompiledShaderMacroData MacroData = BuildCompiledShaderMacroData(NormalizedKey.Macros);
     const D3D_SHADER_MACRO* RawMacros = MacroData.Macros.empty() ? nullptr : MacroData.Macros.data();
     const FString MacroLog = BuildShaderMacroLogString(NormalizedKey.Macros);
+    auto CompileStageBlob = [&](const char* StageLogLabel,
+                                const char* FailureStageLabel,
+                                const FString& EntryPoint,
+                                const char* ShaderModel,
+                                TComPtr<ID3DBlob>& OutBlob) -> bool
+    {
+        const std::string CacheKey = ComputeShaderCacheKey(NormalizedKey, EntryPoint.c_str(), ShaderModel);
 
-    const std::string VSCacheKey = ComputeShaderCacheKey(NormalizedKey, NormalizedKey.VSEntryPoint.c_str(), "vs_5_0");
-    HRESULT hr = S_OK;
-    bool bVSFromCache = false;
-    {
         ID3DBlob* CachedBlob = nullptr;
-        if (TryLoadCachedShaderBlob(VSCacheKey, &CachedBlob))
+        if (TryLoadCachedShaderBlob(CacheKey, &CachedBlob))
         {
-            VSBlob.Attach(CachedBlob);
-            bVSFromCache = true;
-            UE_LOG("[ShaderCompile] VS cache-hit %s entry=%s key=%s",
+            OutBlob.Attach(CachedBlob);
+            UE_LOG("[ShaderCompile] %s cache-hit %s entry=%s key=%s",
+                StageLogLabel,
                 NormalizedKey.FilePath.c_str(),
-                NormalizedKey.VSEntryPoint.c_str(),
-                VSCacheKey.c_str());
+                EntryPoint.c_str(),
+                CacheKey.c_str());
+            return true;
         }
-    }
-    if (!bVSFromCache)
-    {
-        const auto VSBegin = std::chrono::steady_clock::now();
-        hr = D3DCompileFromFile(
+
+        const auto CompileBegin = std::chrono::steady_clock::now();
+        const HRESULT CompileResult = D3DCompileFromFile(
             FPaths::ToWide(NormalizedKey.FilePath).c_str(),
             RawMacros,
             D3D_COMPILE_STANDARD_FILE_INCLUDE,
-            NormalizedKey.VSEntryPoint.c_str(),
-            "vs_5_0",
+            EntryPoint.c_str(),
+            ShaderModel,
             0,
             0,
-            &VSBlob,
-            &ErrorBlob);
-        const auto VSMs = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - VSBegin).count();
-        UE_LOG("[ShaderCompile] VS %lldms %s [%s] entry=%s",
-            static_cast<long long>(VSMs),
+            OutBlob.GetAddressOf(),
+            ErrorBlob.GetAddressOf());
+        const auto CompileMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - CompileBegin).count();
+
+        UE_LOG("[ShaderCompile] %s %lldms %s [%s] entry=%s",
+            StageLogLabel,
+            static_cast<long long>(CompileMs),
             NormalizedKey.FilePath.c_str(),
             MacroLog.c_str(),
-            NormalizedKey.VSEntryPoint.c_str());
-        if (SUCCEEDED(hr))
+            EntryPoint.c_str());
+
+        if (FAILED(CompileResult))
         {
-            SaveCachedShaderBlob(VSCacheKey, VSBlob.Get());
+            if (ErrorBlob)
+            {
+                ReportFailure(
+                    FString(FailureStageLabel) + " Shader Compile Error (" + NormalizedKey.FilePath + "): " +
+                    FString(static_cast<const char*>(ErrorBlob->GetBufferPointer())));
+            }
+            else
+            {
+                ReportFailure("Failed to compile " + FString(FailureStageLabel) + " shader: " + NormalizedKey.FilePath);
+            }
+            return false;
         }
-    }
-    if (FAILED(hr))
+
+        SaveCachedShaderBlob(CacheKey, OutBlob.Get());
+        return true;
+    };
+
+    if (!CompileStageBlob("VS", "Vertex", NormalizedKey.VSEntryPoint, "vs_5_0", VSBlob))
     {
-        if (ErrorBlob)
-        {
-            ReportFailure(
-                "Vertex Shader Compile Error (" + NormalizedKey.FilePath + "): " +
-                FString(static_cast<const char*>(ErrorBlob->GetBufferPointer())));
-        }
-        else
-        {
-            ReportFailure("Failed to compile vertex shader: " + NormalizedKey.FilePath);
-        }
         return false;
     }
 
@@ -1250,58 +1261,8 @@ bool FResourceManager::CompileShaderVariant(const FShaderCompileKey& NormalizedK
 
     ErrorBlob.Reset();
 
-    const std::string PSCacheKey = ComputeShaderCacheKey(NormalizedKey, NormalizedKey.PSEntryPoint.c_str(), "ps_5_0");
-    hr = S_OK;
-    bool bPSFromCache = false;
+    if (!CompileStageBlob("PS", "Pixel", NormalizedKey.PSEntryPoint, "ps_5_0", PSBlob))
     {
-        ID3DBlob* CachedBlob = nullptr;
-        if (TryLoadCachedShaderBlob(PSCacheKey, &CachedBlob))
-        {
-            PSBlob.Attach(CachedBlob);
-            bPSFromCache = true;
-            UE_LOG("[ShaderCompile] PS cache-hit %s entry=%s key=%s",
-                NormalizedKey.FilePath.c_str(),
-                NormalizedKey.PSEntryPoint.c_str(),
-                PSCacheKey.c_str());
-        }
-    }
-    if (!bPSFromCache)
-    {
-        const auto PSBegin = std::chrono::steady_clock::now();
-        hr = D3DCompileFromFile(
-            FPaths::ToWide(NormalizedKey.FilePath).c_str(),
-            RawMacros,
-            D3D_COMPILE_STANDARD_FILE_INCLUDE,
-            NormalizedKey.PSEntryPoint.c_str(),
-            "ps_5_0",
-            0,
-            0,
-            &PSBlob,
-            &ErrorBlob);
-        const auto PSMs = std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - PSBegin).count();
-        UE_LOG("[ShaderCompile] PS %lldms %s [%s] entry=%s",
-            static_cast<long long>(PSMs),
-            NormalizedKey.FilePath.c_str(),
-            MacroLog.c_str(),
-            NormalizedKey.PSEntryPoint.c_str());
-        if (SUCCEEDED(hr))
-        {
-            SaveCachedShaderBlob(PSCacheKey, PSBlob.Get());
-        }
-    }
-    if (FAILED(hr))
-    {
-        if (ErrorBlob)
-        {
-            ReportFailure(
-                "Pixel Shader Compile Error (" + NormalizedKey.FilePath + "): " +
-                FString(static_cast<const char*>(ErrorBlob->GetBufferPointer())));
-        }
-        else
-        {
-            ReportFailure("Failed to compile pixel shader: " + NormalizedKey.FilePath);
-        }
         return false;
     }
 
@@ -1311,7 +1272,7 @@ bool FResourceManager::CompileShaderVariant(const FShaderCompileKey& NormalizedK
         return false;
     }
 
-    hr = CachedDevice->CreateVertexShader(
+    HRESULT hr = CachedDevice->CreateVertexShader(
         VSBlob->GetBufferPointer(),
         VSBlob->GetBufferSize(),
         nullptr,
@@ -1341,6 +1302,8 @@ bool FResourceManager::CompileShaderVariant(const FShaderCompileKey& NormalizedK
             OutShader->ShaderData.InputLayout = nullptr;
         }
 
+        // The vertex shader blob defines the current input signature, so an explicit layout must be
+        // recreated from the newly compiled VS before we replace the live shader state.
         hr = CachedDevice->CreateInputLayout(
             InputElements,
             InputElementCount,
@@ -1404,6 +1367,8 @@ bool FResourceManager::BuildCachedInputLayout(const FShaderCompileKey& Normalize
         return false;
     }
 
+    // D3D11_INPUT_ELEMENT_DESC stores raw semantic-name pointers, so this array must be built from
+    // stable FString storage and consumed immediately by CreateInputLayout.
     OutInputElements.reserve(Layout.Elements.size());
     for (const FShaderInputElementStorage& Element : Layout.Elements)
     {
@@ -1419,6 +1384,64 @@ bool FResourceManager::BuildCachedInputLayout(const FShaderCompileKey& Normalize
     }
 
     return !OutInputElements.empty();
+}
+
+bool FResourceManager::IsShaderVariantAffectedByDirtyFiles(const FShaderCompileKey& CompileKey,
+                                                           const std::set<FWString>& DirtyFiles,
+                                                           TMap<FWString, TSet<FWString>>& DependencyCache) const
+{
+    const FWString ShaderSourcePath = NormalizeShaderPath(CompileKey.FilePath);
+    if (DirtyFiles.contains(ShaderSourcePath))
+    {
+        return true;
+    }
+
+    TSet<FWString> Dependencies;
+    CollectShaderDependencies(ShaderSourcePath, Dependencies, DependencyCache);
+    for (const FWString& DirtyFile : DirtyFiles)
+    {
+        if (Dependencies.contains(DirtyFile))
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool FResourceManager::CompileReplacementShaderVariant(const FShaderCompileKey& CompileKey,
+                                                       UShader*& OutReplacementShader,
+                                                       FString& OutFailureMessage)
+{
+    OutReplacementShader = UObjectManager::Get().CreateObject<UShader>();
+
+    TArray<D3D11_INPUT_ELEMENT_DESC> CachedInputElements;
+    const bool bHasCachedInputLayout = BuildCachedInputLayout(CompileKey, CachedInputElements);
+    if (CompileShaderVariant(
+        CompileKey,
+        bHasCachedInputLayout ? CachedInputElements.data() : nullptr,
+        bHasCachedInputLayout ? static_cast<UINT>(CachedInputElements.size()) : 0,
+        OutReplacementShader,
+        &OutFailureMessage,
+        false))
+    {
+        return true;
+    }
+
+    UObjectManager::Get().DestroyObject(OutReplacementShader);
+    OutReplacementShader = nullptr;
+    return false;
+}
+
+void FResourceManager::DestroyTemporaryShaders(const TArray<UShader*>& TemporaryShaders)
+{
+    for (UShader* TemporaryShader : TemporaryShaders)
+    {
+        if (TemporaryShader != nullptr)
+        {
+            UObjectManager::Get().DestroyObject(TemporaryShader);
+        }
+    }
 }
 
 std::set<FWString> FResourceManager::ProcessShaderHotReloads(const TArray<FWString>& ChangedFiles)
@@ -1437,6 +1460,8 @@ std::set<FWString> FResourceManager::ProcessShaderHotReloads(const TArray<FWStri
             continue;
         }
 
+        // Saving from an editor often produces several notifications in quick succession.
+        // We keep only the last timestamp and wait a short grace period before compiling.
         PendingShaderFiles[NormalizeShaderPath(ChangedFile)] = Now;
     }
 
@@ -1496,23 +1521,7 @@ void FResourceManager::ReloadShaders(const std::set<FWString>& DirtyFiles)
         }
 
         const FWString ShaderSourcePath = NormalizeShaderPath(CompileKey.FilePath);
-        bool bAffected = DirtyFiles.contains(ShaderSourcePath);
-
-        if (!bAffected)
-        {
-            TSet<FWString> Dependencies;
-            CollectShaderDependencies(ShaderSourcePath, Dependencies, DependencyCache);
-            for (const FWString& DirtyFile : DirtyFiles)
-            {
-                if (Dependencies.contains(DirtyFile))
-                {
-                    bAffected = true;
-                    break;
-                }
-            }
-        }
-
-        if (!bAffected)
+        if (!IsShaderVariantAffectedByDirtyFiles(CompileKey, DirtyFiles, DependencyCache))
         {
             continue;
         }
@@ -1538,28 +1547,18 @@ void FResourceManager::ReloadShaders(const std::set<FWString>& DirtyFiles)
 
     for (auto& [ShaderSourcePath, Variants] : AffectedShadersBySource)
     {
-        TArray<UShader*> PendingCompiledShaders;
-        PendingCompiledShaders.reserve(Variants.size());
+        TArray<UShader*> ReplacementShaders;
+        ReplacementShaders.reserve(Variants.size());
 
-        bool bSourceFailed = false;
+        bool bReloadFailed = false;
         for (const FAffectedShaderVariant& Variant : Variants)
         {
-            UShader* CompiledShader = UObjectManager::Get().CreateObject<UShader>();
-            TArray<D3D11_INPUT_ELEMENT_DESC> CachedInputElements;
-            const bool bHasCachedInputLayout = BuildCachedInputLayout(Variant.CompileKey, CachedInputElements);
-
+            UShader* ReplacementShader = nullptr;
             FString FailureMessage;
-            if (!CompileShaderVariant(
-                Variant.CompileKey,
-                bHasCachedInputLayout ? CachedInputElements.data() : nullptr,
-                bHasCachedInputLayout ? static_cast<UINT>(CachedInputElements.size()) : 0,
-                CompiledShader,
-                &FailureMessage,
-                false))
+            if (!CompileReplacementShaderVariant(Variant.CompileKey, ReplacementShader, FailureMessage))
             {
-                bSourceFailed = true;
+                bReloadFailed = true;
                 ReloadStatsBySource[ShaderSourcePath].FailureCount = Variants.size();
-                UObjectManager::Get().DestroyObject(CompiledShader);
 
                 const FString FailureLogKey = FPaths::ToUtf8(ShaderSourcePath) + "|" + FailureMessage;
                 if (LoggedFailureMessages.insert(FailureLogKey).second)
@@ -1570,23 +1569,24 @@ void FResourceManager::ReloadShaders(const std::set<FWString>& DirtyFiles)
                 break;
             }
 
-            PendingCompiledShaders.push_back(CompiledShader);
+            ReplacementShaders.push_back(ReplacementShader);
         }
 
-        if (bSourceFailed)
+        if (bReloadFailed)
         {
-            for (UShader* CompiledShader : PendingCompiledShaders)
-            {
-                UObjectManager::Get().DestroyObject(CompiledShader);
-            }
+            // A single source file can back multiple macro variants. We only publish the reload when
+            // every affected variant compiles successfully, otherwise we keep the previous valid set.
+            DestroyTemporaryShaders(ReplacementShaders);
             continue;
         }
 
         for (SIZE_T ShaderIndex = 0; ShaderIndex < Variants.size(); ++ShaderIndex)
         {
-            Variants[ShaderIndex].Shader->AdoptCompiledState(*PendingCompiledShaders[ShaderIndex]);
-            UObjectManager::Get().DestroyObject(PendingCompiledShaders[ShaderIndex]);
+            // AdoptCompiledState swaps fully-created D3D resources into the existing UShader object.
+            // That keeps material/pass references valid while still preserving failure rollback above.
+            Variants[ShaderIndex].Shader->AdoptCompiledState(*ReplacementShaders[ShaderIndex]);
         }
+        DestroyTemporaryShaders(ReplacementShaders);
 
         ReloadStatsBySource[ShaderSourcePath].SuccessCount = Variants.size();
         bAnySuccessfulReload = true;
@@ -1620,6 +1620,8 @@ void FResourceManager::ReloadShaders(const std::set<FWString>& DirtyFiles)
 
 void FResourceManager::InvalidateAllMaterialShaderBindings()
 {
+    // Reflection data can change after a successful reload. Clearing cached bindings forces the
+    // next use to rebuild constant-buffer/texture mappings against the updated shader metadata.
     for (auto& [Key, Material] : Materials)
     {
         if (Material != nullptr)
@@ -1639,7 +1641,7 @@ void FResourceManager::InvalidateAllMaterialShaderBindings()
 
 void FResourceManager::CollectShaderDependencies(const FWString& ShaderFilePath,
                                                  TSet<FWString>& OutDependencies,
-                                                 TMap<FWString, TSet<FWString>>& Cache)
+                                                 TMap<FWString, TSet<FWString>>& Cache) const
 {
     TSet<FWString> ActiveStack;
 
@@ -1689,6 +1691,8 @@ void FResourceManager::CollectShaderDependencies(const FWString& ShaderFilePath,
                 const FWString IncludeFullPath = NormalizeShaderPath(
                     (ParentDirectory / std::filesystem::path(IncludePathWide)).lexically_normal().generic_wstring());
 
+                // Hot reload tracks direct and transitive quoted includes. This keeps dependency
+                // handling simple, but it does not try to resolve macro-generated include paths.
                 if (LocalDependencies.insert(IncludeFullPath).second)
                 {
                     Self(Self, IncludeFullPath, LocalDependencies, CurrentActiveStack);

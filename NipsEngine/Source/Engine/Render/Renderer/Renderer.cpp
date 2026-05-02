@@ -148,6 +148,8 @@ const TArray<FRenderCommand>& FRenderer::GetAlignedCommands(ERenderPass Pass, co
 void FRenderer::BeginFrame()
 {
     const TArray<FWString> ChangedShaderFiles = ShaderFileWatcher.DequeueChangedFiles();
+    // FileWatcher only reports paths. The render thread owns the actual shader recompilation so
+    // D3D object creation/replacement still follows the renderer's normal lifetime rules.
     const std::set<FWString> ReadyShaderFiles = FResourceManager::Get().ProcessShaderHotReloads(ChangedShaderFiles);
     RenderPipeline.ProcessShaderHotReloads(ReadyShaderFiles, Device.GetDevice());
 
