@@ -890,6 +890,10 @@
     <ClCompile Include="Source\Game\GameViewportClient.cpp">
       <Filter>Source\Game</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Core\SoundManager.cpp" />
+    <ClCompile Include="Source\Engine\Collision\CollisionSystem.cpp" />
+    <ClCompile Include="Source\Engine\Component\ObjectTypeComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -1675,5 +1679,10 @@
     <ClInclude Include="Source\Game\GameViewportClient.h">
       <Filter>Source\Game</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Core\SoundManager.h" />
+    <ClInclude Include="Source\Engine\Collision\CollisionSystem.h" />
+    <ClInclude Include="Source\Engine\Component\ObjectTypeComponent.h" />
+    <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
+    <ClInclude Include="Source\Engine\Core\GameObjectTypes.h" />
   </ItemGroup>
 </Project>
