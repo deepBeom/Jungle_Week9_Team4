@@ -10,6 +10,7 @@ class UActorComponent : public UObject
 public:
     DECLARE_CLASS(UActorComponent, UObject)
     
+    // Gameplay lifecycle: BeginPlay/EndPlay pair is controlled by AActor.
     virtual void BeginPlay();
     virtual void EndPlay() {};
 
@@ -48,9 +49,10 @@ public:
     void SetHiddenInEditor(bool bInHidden) { bHiddenInEditor = bInHidden; }
     bool IsHiddenInEditor() const { return bHiddenInEditor; }
 
-    // AActor에 추가될 때 호출. 컴포넌트가 월드 시스템(SpatialIndex 등)에 자신을 등록하는 곳.
+    // World registration lifecycle: driven by AActor::SetWorld() transition.
+    // Register world-facing resources (SpatialIndex, light slots, etc.) here.
     virtual void OnRegister() {}
-    // AActor에서 제거될 때 호출. OnRegister에서 등록한 내용을 정리하는 곳.
+    // Undo what was done in OnRegister().
     virtual void OnUnregister() {}
     bool IsRegistered() const { return bRegistered; }
 
