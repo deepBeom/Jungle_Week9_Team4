@@ -1,9 +1,13 @@
 ﻿#include "GameFramework/World.h"
+
+#include "Collision/CollisionSystem.h"
 #include "Component/Light/LightComponent.h"
 
 
 //test
 #include "DelegateTestActor.h"
+#include "Engine/Core/SoundManager.h"
+
 
 DEFINE_CLASS(UWorld, UObject)
 REGISTER_FACTORY(UWorld)
@@ -71,8 +75,10 @@ void UWorld::BeginPlay()
     PersistentLevel->BeginPlay();
     RebuildSpatialIndex();
 
+    ///* test
     SpawnActor<ADelegateTestActor>();
-
+    FSoundManager::Get().PlayBGM("Menu.mp3");
+    //*/
 }
 
 void UWorld::Tick(float DeltaTime)
@@ -85,7 +91,7 @@ void UWorld::Tick(float DeltaTime)
     else
         PersistentLevel->TickGame(DeltaTime);
 
-    FlushPendingDestroyActors();
+    CollisionSystem.Tick(this, DeltaTime);
     SyncSpatialIndex();
 }
 
@@ -96,6 +102,9 @@ void UWorld::EndPlay(EEndPlayReason::Type EndPlayReason)
         bHasBegunPlay = false;
         PersistentLevel->EndPlay(EndPlayReason);
     }
+	///* test
+	FSoundManager::Get().StopBGM();
+	//*/
 }
 
 void UWorld::RebuildSpatialIndex()

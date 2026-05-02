@@ -112,6 +112,7 @@ public:
     const TArray<UPrimitiveComponent*>& GetPrimitiveComponents() const;
     void MarkPendingDestroy() { bPendingDestroy = true; }
     void MarkBeingDestroyed() { bBeingDestroyed = true; }
+    bool IsOverlappingActor(const AActor* Other) const;
 
 protected:
     void MarkPrimitiveComponentsDirty();

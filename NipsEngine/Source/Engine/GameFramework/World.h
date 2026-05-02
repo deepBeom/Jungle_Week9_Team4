@@ -3,6 +3,7 @@
 #include "GameFramework/Actor.h"
 #include "Level.h"
 #include "Spatial/WorldSpatialIndex.h"
+#include "Collision/CollisionSystem.h"
 
 class UCameraComponent;
 class ULineBatchComponent;
@@ -121,6 +122,9 @@ public:
     FLightHandle RegisterLight(ULightComponentBase* Comp);
     void UnregisterLight(ULightComponentBase* Comp);
     const TArray<FLightSlot>& GetWorldLightSlots() const { return WorldLightSlots; }
+    
+    FCollisionSystem& GetCollisionSystem() { return CollisionSystem; }
+    const FCollisionSystem& GetCollisionSystem() const { return CollisionSystem; }
 
 private:
     EWorldType WorldType = EWorldType::Editor;
@@ -132,4 +136,5 @@ private:
     TArray<FLightSlot> WorldLightSlots;
     TArray<uint32> FreeLightSlotList;  // 삭제된 Light 의 Index 만 Free 로 등록
     TArray<AActor*> PendingDestroyActors;
+    FCollisionSystem CollisionSystem;
 };

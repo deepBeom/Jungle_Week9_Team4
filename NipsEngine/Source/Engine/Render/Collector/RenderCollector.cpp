@@ -1,6 +1,8 @@
 ﻿#include "RenderCollector.h"
 
 #include "Render/LineBatcher.h"
+#include "Collision/CollisionSystem.h"
+#include "Render/Renderer/RenderFlow/ShadowAtlasManager.h"
 #include "GameFramework/World.h"
 #include "GameFramework/Actor.h"
 #include "Object/ActorIterator.h"
@@ -79,6 +81,8 @@ namespace
     bool UsesCameraDependentRenderBounds(const UPrimitiveComponent* PrimitiveComponent);
     FAABB BuildQuadAABB(const FMatrix& WorldMatrix);
     FAABB BuildRenderAABB(const UPrimitiveComponent* PrimitiveComponent, const FRenderBus& RenderBus);
+    void DrawDebugOverlap(FLineBatcher* LineBatcher, const FCollisionDebugContact& Contact);
+	void DrawDebugContactPoint(FLineBatcher* LineBatcher, const FVector& Location, float Size);
 } // namespace
 
 void FRenderCollector::ResetCullingStats()
@@ -191,6 +195,13 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
             CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
         }
     }
+    if (World->GetWorldType() == EWorldType::Editor && ShowFlags.bCollisionDebug && LineBatcher != nullptr)
+	{
+		for (const FCollisionDebugContact& Contact : World->GetCollisionSystem().GetDebugContacts())
+		{
+			DrawDebugOverlap(LineBatcher, Contact);
+		}
+	}
 }
 
 // ─────────────────── Sub Collects ────────────────────────────────────────────────────────────
@@ -279,6 +290,46 @@ namespace
             return false;
         }
     }
+
+    void DrawDebugOverlap(FLineBatcher* LineBatcher, const FCollisionDebugContact& Contact)
+	{
+		if (LineBatcher == nullptr)
+		{
+			return;
+		}
+
+		if (Contact.bHasOverlapBounds)
+		{
+			LineBatcher->AddAABB(Contact.OverlapBounds, FColor::Yellow());
+		}
+
+		DrawDebugContactPoint(LineBatcher, Contact.Location, 4.0f);
+	}
+
+	void DrawDebugContactPoint(FLineBatcher* LineBatcher, const FVector& Location, float Size)
+	{
+		if (LineBatcher == nullptr)
+		{
+			return;
+		}
+
+		const FVector4 Color = FColor::Yellow().ToVector4();
+
+		LineBatcher->AddLine(
+			Location - FVector(Size, 0.0f, 0.0f),
+			Location + FVector(Size, 0.0f, 0.0f),
+			Color);
+
+		LineBatcher->AddLine(
+			Location - FVector(0.0f, Size, 0.0f),
+			Location + FVector(0.0f, Size, 0.0f),
+			Color);
+
+		LineBatcher->AddLine(
+			Location - FVector(0.0f, 0.0f, Size),
+			Location + FVector(0.0f, 0.0f, Size),
+			Color);
+	}
 
     FMatrix MakeViewSubUVSelectionMatrix(const USubUVComponent* SubUVComp, const FRenderBus& RenderBus)
     {
