@@ -22,6 +22,10 @@ void UScriptComponent::BeginPlay()
     RuntimeState = EScriptRuntimeState::Idle;
     ConsecutiveRuntimeErrorCount = 0;
 
+    // Keep runtime active state aligned with serialized toggle at PIE/Game start.
+    // This prevents stale runtime-only bIsActive values from silently blocking updates.
+    SetActive(bSerializedEnabled);
+
     if (!EnsureScriptInstance())
     {
         return;
@@ -213,11 +217,13 @@ bool UScriptComponent::ReloadScript()
         return false;
     }
 
-    if (bHasBegunPlay && IsActive())
+    if (bHasBegunPlay)
     {
-        StartScriptIfNeeded();
+        // Re-sync active state from serialized toggle for deterministic reload behavior.
+        SetActive(bSerializedEnabled);
         if (IsActive())
         {
+            StartScriptIfNeeded();
             NotifyScriptEnabled();
         }
     }

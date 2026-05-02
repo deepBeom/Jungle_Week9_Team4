@@ -587,6 +587,25 @@ void FEditorPropertyWidget::RenderComponentProperties()
 		RenderInterpControlPoints(InterpComp);
 	}
 
+    // Special: Script component utilities
+	if (UScriptComponent* ScriptComp = Cast<UScriptComponent>(SelectedComponent))
+	{
+		ImGui::Spacing();
+		ImGui::Separator();
+		if (ImGui::Button("Reload Script", ImVec2(-1, 0)))
+        {
+            ScriptComp->ReloadScript();
+        }
+        if (ImGui::Button("Refresh Script List", ImVec2(-1, 0)))
+		{
+			EditorEngine->GetLuaScriptSubsystem().RefreshAvailableScriptPaths();
+		}
+		ImGui::TextDisabled("Loaded: %s", ScriptComp->IsScriptLoaded() ? "Yes" : "No");
+		ImGui::TextDisabled("Active: %s", ScriptComp->IsActive() ? "Yes" : "No");
+		ImGui::TextDisabled("Tick Enabled: %s", ScriptComp->IsComponentTickEnabled() ? "Yes" : "No");
+		ImGui::TextDisabled("Editor Only: %s", ScriptComp->IsEditorOnly() ? "Yes" : "No");
+	}
+
 	// Special: Light component — override camera with light's perspective
 	if (SelectedComponent->IsA<ULightComponent>())
 	{
