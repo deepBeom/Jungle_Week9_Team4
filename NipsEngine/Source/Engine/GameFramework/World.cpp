@@ -6,6 +6,8 @@
 
 //test
 #include "DelegateTestActor.h"
+#include "Engine/Core/SoundManager.h"
+
 
 DEFINE_CLASS(UWorld, UObject)
 REGISTER_FACTORY(UWorld)
@@ -73,7 +75,10 @@ void UWorld::BeginPlay()
     PersistentLevel->BeginPlay();
     RebuildSpatialIndex();
 
+	///* test
 	SpawnActor<ADelegateTestActor>();
+	FSoundManager::Get().PlayBGM("Menu.mp3");
+	//*/
 
 }
 
@@ -98,6 +103,9 @@ void UWorld::EndPlay(EEndPlayReason::Type EndPlayReason)
         bHasBegunPlay = false;
         PersistentLevel->EndPlay(EndPlayReason);
     }
+	///* test
+	FSoundManager::Get().StopBGM();
+	//*/
 }
 
 void UWorld::RebuildSpatialIndex()

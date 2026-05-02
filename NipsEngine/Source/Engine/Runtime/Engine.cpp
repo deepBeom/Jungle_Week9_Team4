@@ -3,6 +3,7 @@
 #include "Core/Paths.h"
 #include "Core/Logging/Stats.h"
 #include "Engine/Input/InputSystem.h"
+#include "Engine/Core/SoundManager.h"
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Core/ResourceManager.h"
 #include "Render/Renderer/DefaultRenderPipeline.h"
@@ -19,11 +20,13 @@ void UEngine::Init(FWindowsWindow* InWindow)
 	// 싱글턴 초기화 순서 보장
 	FNamePool::Get();
 	FObjectFactory::Get();
+	FSoundManager::Get();
 
 	InputSystem::Get().SetOwnerWindow(Window->GetHWND());
 	Renderer.Create(Window->GetHWND());
 
 	FResourceManager::Get().LoadFromAssetDirectory(FPaths::ToUtf8(FPaths::AssetDirectoryPath()));
+	FSoundManager::Get().Initialize();
 
 	Renderer.CreateResources();
 
@@ -34,6 +37,8 @@ void UEngine::Shutdown()
 {
 	RenderPipeline.reset();
 	FResourceManager::Get().ReleaseGPUResources();
+	FSoundManager::Get().Release();
+
 	Renderer.Release();
 }
 

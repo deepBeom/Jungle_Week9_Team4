@@ -99,22 +99,22 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;$(ProjectDir)ThirdParty\FMOD\inc;Source\Editor;.;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)ThirdParty\FMOD\lib\x64;$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;$(ProjectDir)ThirdParty\FMOD\inc;Source\Editor;.;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)ThirdParty\FMOD\lib\x64;$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ObjViewer|x64'">
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
-    <LibraryPath>$(LibraryPath)</LibraryPath>
+    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;$(ProjectDir)ThirdParty\FMOD\inc;Source\Editor;.;$(IncludePath)</IncludePath>
+    <LibraryPath>$(ProjectDir)ThirdParty\FMOD\lib\x64;$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -173,12 +173,15 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\FMOD/inc;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command> copy /Y "$(ProjectDir)ThirdParty\FMOD\lib\x64\fmod.dll" "$(OutDir)fmod.dll"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -196,12 +199,15 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\FMOD/inc;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command> copy /Y "$(ProjectDir)ThirdParty\FMOD\lib\x64\fmod.dll" "$(OutDir)fmod.dll"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ObjViewer|x64'">
     <ClCompile>
@@ -219,12 +225,15 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)ThirdParty\sol2\include;$(ProjectDir)ThirdParty\FMOD/inc;$(ProjectDir)ThirdParty\Lua;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <PostBuildEvent>
+      <Command> copy /Y "$(ProjectDir)ThirdParty\FMOD\lib\x64\fmod.dll" "$(OutDir)fmod.dll"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="HighPerformanceGpuHint.cpp">
@@ -234,6 +243,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Core\SoundManager.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaScriptSubsystem.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaBinder.cpp" />
     <ClCompile Include="Source\Engine\Component\Script\ScriptComponent.cpp" />
@@ -550,6 +560,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Core\SoundManager.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptSubsystem.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptInstance.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaBinder.h" />
