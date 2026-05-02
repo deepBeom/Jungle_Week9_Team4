@@ -330,6 +330,9 @@
     <ClCompile Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.cpp" />
     <ClCompile Include="Source\Engine\Input\Controller\EditorController\EditorWorldController.cpp" />
     <ClCompile Include="Source\Engine\Input\Controller\EditorController\PIEController.cpp" />
+    <ClCompile Include="Source\Engine\UI\UIBatcher.cpp" />
+    <ClCompile Include="Source\Engine\UI\UIElement.cpp" />
+    <ClCompile Include="Source\Engine\UI\UIManager.cpp" />
     <ClCompile Include="Source\Game\GameCameraController.cpp" />
     <ClCompile Include="Source\Engine\Math\Color.cpp" />
     <ClCompile Include="Source\Engine\Math\Matrix.cpp" />
@@ -682,6 +685,9 @@
     <ClInclude Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.h" />
     <ClInclude Include="Source\Engine\Input\Controller\EditorController\EditorWorldController.h" />
     <ClInclude Include="Source\Engine\Input\Controller\EditorController\PIEController.h" />
+    <ClInclude Include="Source\Engine\UI\UIBatcher.h" />
+    <ClInclude Include="Source\Engine\UI\UIElement.h" />
+    <ClInclude Include="Source\Engine\UI\UIManager.h" />
     <ClInclude Include="Source\Game\GameCameraController.h" />
     <ClInclude Include="Source\Engine\Math\Color.h" />
     <ClInclude Include="Source\Engine\Math\Edge.h" />

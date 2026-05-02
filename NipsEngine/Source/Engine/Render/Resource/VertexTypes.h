@@ -45,3 +45,10 @@ struct FMeshData
     TArray<FVertex> Vertices;
     TArray<uint32> Indices;
 };
+
+struct FUIVertex
+{
+    FVector2 XY; // 스크린 좌표 
+    FVector2 UV;
+    FVector4 Color
+};
