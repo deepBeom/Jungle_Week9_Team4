@@ -5,12 +5,16 @@
 #include <utility>
 
 #include "Component/Movement/MovementComponent.h"
+#include "Component/Script/ScriptComponent.h"
+#include "Core/ActorTags.h"
 #include "UI/EditorConsoleWidget.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 
 namespace
 {
+    FVector ComputeAABBDepenetration(const FAABB& MovingBox, const FAABB& BlockingBox);
+
     struct FOrientedBoxData
     {
         FVector Center = FVector::ZeroVector;
@@ -44,6 +48,176 @@ namespace
         }
 
         return false;
+    }
+
+    bool IsFixedCollisionActor(const AActor* Actor)
+    {
+        return Actor && Actor->CompareTag(ActorTags::Rock);
+    }
+
+    bool IsForcedMovableActor(const AActor* Actor)
+    {
+        return Actor && Actor->CompareTag(ActorTags::Boat);
+    }
+
+    bool IsCollisionActorAlive(const AActor* Actor)
+    {
+        return Actor && Actor->IsActive() && !Actor->IsPendingDestroy() && !Actor->IsBeingDestroyed();
+    }
+
+    bool IsCollisionShapeAlive(UShapeComponent* Shape)
+    {
+        return Shape && Shape->IsActive() && IsCollisionActorAlive(Shape->GetOwner());
+    }
+
+    bool IsBoatRockPair(const UShapeComponent* A, const UShapeComponent* B)
+    {
+        const AActor* ActorA = A ? A->GetOwner() : nullptr;
+        const AActor* ActorB = B ? B->GetOwner() : nullptr;
+        if (!ActorA || !ActorB)
+        {
+            return false;
+        }
+
+        return (ActorA->CompareTag(ActorTags::Boat) && ActorB->CompareTag(ActorTags::Rock)) ||
+               (ActorA->CompareTag(ActorTags::Rock) && ActorB->CompareTag(ActorTags::Boat));
+    }
+
+    bool IsCollectibleActor(const AActor* Actor)
+    {
+        return Actor &&
+               (Actor->CompareTag(ActorTags::Trash) ||
+                Actor->CompareTag(ActorTags::Resource) ||
+                Actor->CompareTag(ActorTags::Recyclable) ||
+                Actor->CompareTag(ActorTags::Premium));
+    }
+
+    bool IsBoatCollectiblePair(const UShapeComponent* A, const UShapeComponent* B)
+    {
+        const AActor* ActorA = A ? A->GetOwner() : nullptr;
+        const AActor* ActorB = B ? B->GetOwner() : nullptr;
+        if (!ActorA || !ActorB)
+        {
+            return false;
+        }
+
+        return (ActorA->CompareTag(ActorTags::Boat) && IsCollectibleActor(ActorB)) ||
+               (ActorB->CompareTag(ActorTags::Boat) && IsCollectibleActor(ActorA));
+    }
+
+    AActor* GetCollectibleFromBoatPair(UShapeComponent* A, UShapeComponent* B)
+    {
+        AActor* ActorA = A ? A->GetOwner() : nullptr;
+        AActor* ActorB = B ? B->GetOwner() : nullptr;
+
+        if (ActorA && ActorA->CompareTag(ActorTags::Boat) && IsCollectibleActor(ActorB))
+        {
+            return ActorB;
+        }
+
+        if (ActorB && ActorB->CompareTag(ActorTags::Boat) && IsCollectibleActor(ActorA))
+        {
+            return ActorA;
+        }
+
+        return nullptr;
+    }
+
+    void ApplyBoatRockKnockback(UShapeComponent* A, UShapeComponent* B)
+    {
+        if (!IsBoatRockPair(A, B))
+        {
+            return;
+        }
+
+        AActor* ActorA = A ? A->GetOwner() : nullptr;
+        AActor* ActorB = B ? B->GetOwner() : nullptr;
+        if (!ActorA || !ActorB)
+        {
+            return;
+        }
+
+        UShapeComponent* BoatShape = ActorA->CompareTag(ActorTags::Boat) ? A : B;
+        UShapeComponent* RockShape = ActorA->CompareTag(ActorTags::Rock) ? A : B;
+        AActor* BoatActor = BoatShape ? BoatShape->GetOwner() : nullptr;
+        if (!BoatShape || !RockShape || !BoatActor)
+        {
+            return;
+        }
+
+        FVector PushForA = ComputeAABBDepenetration(A->GetWorldAABB(), B->GetWorldAABB());
+        FVector Knockback = (BoatShape == A) ? PushForA : (PushForA * -1.0f);
+        Knockback = Knockback.GetSafeNormal2D();
+
+        if (Knockback.IsNearlyZero())
+        {
+            Knockback = (BoatShape->GetWorldLocation() - RockShape->GetWorldLocation()).GetSafeNormal2D();
+        }
+
+        if (Knockback.IsNearlyZero())
+        {
+            return;
+        }
+
+        constexpr float BoatRockKnockbackDistance = 2.0f;
+        BoatActor->AddActorWorldOffset(Knockback * BoatRockKnockbackDistance);
+    }
+
+    void CollectBoatOverlapTarget(UShapeComponent* A, UShapeComponent* B)
+    {
+        AActor* Collectible = GetCollectibleFromBoatPair(A, B);
+        if (Collectible && !Collectible->IsPendingDestroy())
+        {
+            Collectible->Destroy();
+        }
+    }
+
+    void DispatchScriptOverlapBegin(const FCollisionEvent& Event)
+    {
+        if (!Event.SelfActor)
+        {
+            return;
+        }
+
+        for (UActorComponent* Component : Event.SelfActor->GetComponents())
+        {
+            if (UScriptComponent* Script = Cast<UScriptComponent>(Component))
+            {
+                Script->OnOverlapBegin(Event.OtherActor);
+            }
+        }
+    }
+
+    void DispatchScriptOverlapEnd(const FCollisionEvent& Event)
+    {
+        if (!Event.SelfActor)
+        {
+            return;
+        }
+
+        for (UActorComponent* Component : Event.SelfActor->GetComponents())
+        {
+            if (UScriptComponent* Script = Cast<UScriptComponent>(Component))
+            {
+                Script->OnOverlapEnd(Event.OtherActor);
+            }
+        }
+    }
+
+    void DispatchScriptHit(const FCollisionEvent& Event)
+    {
+        if (!Event.SelfActor)
+        {
+            return;
+        }
+
+        for (UActorComponent* Component : Event.SelfActor->GetComponents())
+        {
+            if (UScriptComponent* Script = Cast<UScriptComponent>(Component))
+            {
+                Script->OnHit(Event.OtherActor);
+            }
+        }
     }
 
     float Clamp(float Value, float Min, float Max)
@@ -472,11 +646,18 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
     (void)DeltaTime;
 
     DebugContacts.clear();
+    DebugLines.clear();
 
     TArray<UShapeComponent*> Shapes;
     CollectShapeComponents(World, Shapes);
 
     std::unordered_set<FCollisionPair, FCollisionPairHash> CurrentOverlaps;
+    std::unordered_set<UShapeComponent*> LiveShapes;
+    LiveShapes.reserve(Shapes.size());
+    for (UShapeComponent* Shape : Shapes)
+    {
+        LiveShapes.insert(Shape);
+    }
 
     for (int32 i = 0; i < static_cast<int32>(Shapes.size()); ++i)
     {
@@ -505,7 +686,7 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
                 }
             }
 
-            if (A->GetBlockComponent() && B->GetBlockComponent())
+            if ((A->GetBlockComponent() && B->GetBlockComponent()) || IsBoatRockPair(A, B))
             {
                 ResolveBlockingOverlap(A, B);
             }
@@ -514,13 +695,40 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
 
     for (const FCollisionPair& Pair : PreviousOverlaps)
     {
+        const bool bAAlive = LiveShapes.find(Pair.A) != LiveShapes.end();
+        const bool bBAlive = LiveShapes.find(Pair.B) != LiveShapes.end();
+
+        if (!bAAlive && !bBAlive)
+        {
+            continue;
+        }
+
+        if (!bAAlive)
+        {
+            Pair.B->RemoveOverlap(Pair.A);
+            continue;
+        }
+
+        if (!bBAlive)
+        {
+            Pair.A->RemoveOverlap(Pair.B);
+            continue;
+        }
+
         if (CurrentOverlaps.find(Pair) == CurrentOverlaps.end())
         {
             HandleEndOverlap(Pair.A, Pair.B);
         }
     }
 
-    PreviousOverlaps = std::move(CurrentOverlaps);
+    PreviousOverlaps.clear();
+    for (const FCollisionPair& Pair : CurrentOverlaps)
+    {
+        if (IsCollisionShapeAlive(Pair.A) && IsCollisionShapeAlive(Pair.B))
+        {
+            PreviousOverlaps.insert(Pair);
+        }
+    }
 }
 
 void FCollisionSystem::CollectShapeComponents(UWorld* World, TArray<UShapeComponent*>& OutShapes)
@@ -534,7 +742,7 @@ void FCollisionSystem::CollectShapeComponents(UWorld* World, TArray<UShapeCompon
 
     for (AActor* Actor : World->GetActors())
     {
-        if (!Actor || !Actor->IsActive())
+        if (!IsCollisionActorAlive(Actor))
         {
             continue;
         }
@@ -565,7 +773,8 @@ bool FCollisionSystem::ShouldTestPair(const UShapeComponent* A, const UShapeComp
     }
 
     return A->GetGenerateOverlapEvents() || B->GetGenerateOverlapEvents() ||
-           A->GetBlockComponent() || B->GetBlockComponent();
+           A->GetBlockComponent() || B->GetBlockComponent() ||
+           IsBoatRockPair(A, B) || IsBoatCollectiblePair(A, B);
 }
 
 bool FCollisionSystem::AreOverlapping(UShapeComponent* A, UShapeComponent* B) const
@@ -741,11 +950,15 @@ void FCollisionSystem::HandleBeginOverlap(UShapeComponent* A, UShapeComponent* B
     A->AddOverlap(B);
     B->AddOverlap(A);
 
+    ApplyBoatRockKnockback(A, B);
+    CollectBoatOverlapTarget(A, B);
+
     if (A->GetGenerateOverlapEvents())
     {
         const FCollisionEvent Event = MakeCollisionEvent(A, B, false);
         LogCollisionEvent("BeginOverlap", Event);
         A->DispatchBeginOverlap(Event);
+        DispatchScriptOverlapBegin(Event);
     }
 
     if (B->GetGenerateOverlapEvents())
@@ -753,6 +966,7 @@ void FCollisionSystem::HandleBeginOverlap(UShapeComponent* A, UShapeComponent* B
         const FCollisionEvent Event = MakeCollisionEvent(B, A, false);
         LogCollisionEvent("BeginOverlap", Event);
         B->DispatchBeginOverlap(Event);
+        DispatchScriptOverlapBegin(Event);
     }
 }
 
@@ -771,6 +985,7 @@ void FCollisionSystem::HandleEndOverlap(UShapeComponent* A, UShapeComponent* B)
         const FCollisionEvent Event = MakeCollisionEvent(A, B, false);
         LogCollisionEvent("EndOverlap", Event);
         A->DispatchEndOverlap(Event);
+        DispatchScriptOverlapEnd(Event);
     }
 
     if (B->GetGenerateOverlapEvents())
@@ -778,6 +993,7 @@ void FCollisionSystem::HandleEndOverlap(UShapeComponent* A, UShapeComponent* B)
         const FCollisionEvent Event = MakeCollisionEvent(B, A, false);
         LogCollisionEvent("EndOverlap", Event);
         B->DispatchEndOverlap(Event);
+        DispatchScriptOverlapEnd(Event);
     }
 }
 
@@ -793,6 +1009,7 @@ void FCollisionSystem::HandleHit(UShapeComponent* A, UShapeComponent* B)
         const FCollisionEvent Event = MakeCollisionEvent(A, B, true);
         LogCollisionEvent("Hit", Event);
         A->DispatchHit(Event);
+        DispatchScriptHit(Event);
     }
 
     if (B->GetBlockComponent())
@@ -800,6 +1017,7 @@ void FCollisionSystem::HandleHit(UShapeComponent* A, UShapeComponent* B)
         const FCollisionEvent Event = MakeCollisionEvent(B, A, true);
         LogCollisionEvent("Hit", Event);
         B->DispatchHit(Event);
+        DispatchScriptHit(Event);
     }
 }
 
@@ -817,8 +1035,14 @@ void FCollisionSystem::ResolveBlockingOverlap(UShapeComponent* A, UShapeComponen
         return;
     }
 
-    const bool bAMovable = HasMovementComponent(ActorA);
-    const bool bBMovable = HasMovementComponent(ActorB);
+    // 두 가지 movable 판정을 OR로 묶음:
+    //   1) MovementComponent가 붙어 있는 액터 (기존 동작)
+    //   2) ShapeComponent의 bMovable 플래그 (수동 지정)
+    // -> Boat에 MovementComponent가 없어도 Shape의 Movable=true면 push 적용.
+    const bool bAMovable = !IsFixedCollisionActor(ActorA) &&
+                           (HasMovementComponent(ActorA) || A->GetMovable() || IsForcedMovableActor(ActorA));
+    const bool bBMovable = !IsFixedCollisionActor(ActorB) &&
+                           (HasMovementComponent(ActorB) || B->GetMovable() || IsForcedMovableActor(ActorB));
     if (!bAMovable && !bBMovable)
     {
         return;
@@ -944,6 +1168,116 @@ FCollisionEvent FCollisionSystem::MakeCollisionEvent(UShapeComponent* Self, USha
     Event.bHasOverlapBounds = ComputeDebugOverlapBounds(Self, Other, Event.OverlapBounds);
 
     return Event;
+}
+
+// ============================================================
+// LineTraceSingle - 마우스 밀치기 / 클릭 판정용 광선 추적
+//
+// 단순 구현: 월드의 모든 액터 → 모든 PrimitiveComponent를 순회하며
+// AABB 1차 컬링 → UPrimitiveComponent::Raycast (정확 판정).
+// 액터 수가 100개 미만이면 충분한 성능. BVH/Octree는 시간 절약 위해 미사용.
+// ============================================================
+bool FCollisionSystem::LineTraceSingle(
+    UWorld* World,
+    const FVector& Start,
+    const FVector& End,
+    FHitResult& OutHit,
+    const FString& IgnoreTag,
+    bool bDrawDebug)
+{
+    OutHit.Reset();
+
+    if (!World)
+    {
+        return false;
+    }
+
+    const FVector Delta = End - Start;
+    const float MaxDistance = Delta.Size();
+    if (MaxDistance <= 0.0001f)
+    {
+        // 시작=끝이면 광선 정의 불가
+        if (bDrawDebug)
+        {
+            AddDebugLine(Start, End, FColor::White());
+        }
+        return false;
+    }
+
+    const FVector Direction = Delta * (1.0f / MaxDistance);
+    FRay Ray(Start, Direction);
+
+    // 가장 가까운 hit을 추적
+    float BestDistance = MaxDistance;
+    FHitResult BestHit;
+
+    for (AActor* Actor : World->GetActors())
+    {
+        if (!Actor || !Actor->IsActive())
+        {
+            continue;
+        }
+
+        // 자기 자신 (또는 지정 태그) 무시
+        if (!IgnoreTag.empty() && Actor->GetTag() == IgnoreTag)
+        {
+            continue;
+        }
+
+        for (UActorComponent* Component : Actor->GetComponents())
+        {
+            UPrimitiveComponent* Prim = Cast<UPrimitiveComponent>(Component);
+            if (!Prim || !Prim->IsActive())
+            {
+                continue;
+            }
+
+            // UPrimitiveComponent::Raycast 가 AABB 1차 컬링 + 도형별 RaycastMesh를 묶어 처리.
+            // (StaticMesh의 경우 삼각형 단위 정확 판정, ShapeComponent는 AABB만)
+            FHitResult LocalHit;
+            if (!Prim->Raycast(Ray, LocalHit))
+            {
+                continue;
+            }
+
+            // 광선 길이 안의 hit만 채택
+            if (!LocalHit.bHit || LocalHit.Distance > BestDistance)
+            {
+                continue;
+            }
+
+            BestDistance = LocalHit.Distance;
+            BestHit = LocalHit;
+            BestHit.HitComponent = Prim;
+        }
+    }
+
+    OutHit = BestHit;
+
+    if (bDrawDebug)
+    {
+        if (OutHit.bHit)
+        {
+            // 시작 → Hit지점은 빨강, Hit지점 → 끝은 옅은 회색
+            AddDebugLine(Start, OutHit.Location, FColor::Red());
+            AddDebugLine(OutHit.Location, End, FColor::Black());
+        }
+        else
+        {
+            AddDebugLine(Start, End, FColor::Green());
+        }
+    }
+
+    return OutHit.bHit;
+}
+
+void FCollisionSystem::AddDebugLine(const FVector& Start, const FVector& End, const FColor& Color)
+{
+    FCollisionDebugLine Line;
+    Line.Start = Start;
+    Line.End   = End;
+    Line.Color = Color;
+    DebugLines.push_back(Line);
 }
 
 void FCollisionSystem::LogCollisionEvent(const char* EventName, const FCollisionEvent& Event) const

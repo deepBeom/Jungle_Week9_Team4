@@ -48,21 +48,58 @@ struct FCollisionDebugContact
     FVector Normal = FVector::ZeroVector;
     FAABB OverlapBounds;
     bool bHasOverlapBounds = false;
-    
+
     UShapeComponent* A = nullptr;
     UShapeComponent* B = nullptr;
+};
+
+// LineTrace 결과 시각화용 — 한 프레임 동안만 유효.
+// CollisionSystem::Tick 시작 시 매 프레임 비워진다.
+struct FCollisionDebugLine
+{
+    FVector Start = FVector::ZeroVector;
+    FVector End = FVector::ZeroVector;
+    FColor Color = FColor::White();
 };
 
 class FCollisionSystem
 {
 public:
     void Tick(UWorld* World, float DeltaTime);
-    
+
     const TArray<FCollisionDebugContact>& GetDebugContacts() const
     {
         return DebugContacts;
     }
-    
+
+    const TArray<FCollisionDebugLine>& GetDebugLines() const
+    {
+        return DebugLines;
+    }
+
+    // --- LineTrace API (Drift Salvage 마우스 밀치기용) ---
+    //
+    // World 안의 모든 PrimitiveComponent를 검사해 가장 가까운 Hit을 OutHit에 채운다.
+    // Block/Overlap 구분 없이 가시적인 모든 PrimitiveComponent를 검사한다 — 마우스 밀치기는
+    // Trash/Hazard/Rock 등 Tag에 무관하게 클릭한 대상을 알아내야 하기 때문.
+    //
+    // @param Start, End  광선의 시작점/끝점 (월드 좌표)
+    // @param OutHit      가장 가까운 Hit 정보가 채워진다. 미스 시 OutHit.bHit == false
+    // @param IgnoreTag   해당 Tag의 액터는 검사에서 제외 (보통 자기 자신 = "Boat")
+    // @param bDrawDebug  true면 1프레임 디버그 라인 추가 (Hit이면 빨강, 미스면 초록)
+    // @return            Hit 발생 여부
+    bool LineTraceSingle(
+        UWorld* World,
+        const FVector& Start,
+        const FVector& End,
+        FHitResult& OutHit,
+        const FString& IgnoreTag = "",
+        bool bDrawDebug = false);
+
+    // 외부에서 디버그 라인을 한 프레임 동안 그리고 싶을 때 사용.
+    // (예: 게임 로직이 자기 진행 방향을 시각화하는 용도)
+    void AddDebugLine(const FVector& Start, const FVector& End, const FColor& Color);
+
 private:
     void CollectShapeComponents(UWorld* World, TArray<UShapeComponent*>& OutShapes);
     
@@ -91,4 +128,5 @@ private:
 private:
     std::unordered_set<FCollisionPair, FCollisionPairHash> PreviousOverlaps;
     TArray<FCollisionDebugContact> DebugContacts;
+    TArray<FCollisionDebugLine>    DebugLines;  // 매 Tick 시작 시 클리어
 };

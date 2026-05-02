@@ -142,7 +142,9 @@ namespace
 			return;
 		}
 
-		const FColor Color = Shape->GetShapeColor();
+		const FColor Color = Shape->GetRuntimeDebugVisible()
+			? Shape->GetRuntimeDebugColor()
+			: Shape->GetShapeColor();
 
 		if (USphereComponent* Sphere = Cast<USphereComponent>(Shape))
 		{
@@ -289,16 +291,18 @@ void FPrimitiveRenderCollector::CollectFromComponent(
     FLineBatcher* LineBatcher)
 {
     if (Primitive == nullptr || MeshBufferManager == nullptr) return;
-    if (!Primitive->IsVisible()) return;
+    UShapeComponent* RuntimeDebugShape = Cast<UShapeComponent>(Primitive);
+    if (!Primitive->IsVisible() && !(RuntimeDebugShape && RuntimeDebugShape->GetRuntimeDebugVisible())) return;
     if (Primitive->IsEditorOnly() && WorldType != EWorldType::Editor) return;
 
     EPrimitiveType PrimType = Primitive->GetPrimitiveType();
 
     if (PrimType == EPrimitiveType::EPT_CollisionShape)
     {
-        if (ShowFlags.bCollisionDebug)
+        UShapeComponent* Shape = RuntimeDebugShape;
+        if (ShowFlags.bCollisionDebug || (Shape && Shape->GetRuntimeDebugVisible()))
         {
-            DrawCollisionShapeDebug(Cast<UShapeComponent>(Primitive), LineBatcher);
+            DrawCollisionShapeDebug(Shape, LineBatcher);
         }
         return;
     }
