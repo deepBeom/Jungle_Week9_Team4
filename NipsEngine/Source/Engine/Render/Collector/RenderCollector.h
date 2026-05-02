@@ -20,56 +20,56 @@ struct FFrustum;
 
 class FRenderCollector {
 private:
-	FMeshBufferManager MeshBufferManager;
-	FLightRenderCollector LightRenderCollector;
-	FOverlayRenderCollector OverlayRenderCollector;
-	FPrimitiveRenderCollector PrimitiveRenderCollector;
-	FLineBatcher* LineBatcher = nullptr;
+    FMeshBufferManager MeshBufferManager;
+    FLightRenderCollector LightRenderCollector;
+    FOverlayRenderCollector OverlayRenderCollector;
+    FPrimitiveRenderCollector PrimitiveRenderCollector;
+    FLineBatcher* LineBatcher = nullptr;
 
-	// ────── Initialize & Release ─────────────────────────────────────────────
+    // ────── Initialize & Release ─────────────────────────────────────────────
 public:
-	void Initialize(ID3D11Device* InDevice);
-	void Release();
-	void SetLineBatcher(FLineBatcher* InLineBatcher) { LineBatcher = InLineBatcher; }
-	void ClearLineBatcher() { LineBatcher = nullptr; }
+    void Initialize(ID3D11Device* InDevice);
+    void Release();
+    void SetLineBatcher(FLineBatcher* InLineBatcher) { LineBatcher = InLineBatcher; }
+    void ClearLineBatcher() { LineBatcher = nullptr; }
 
-	// ────── Main Collects ────────────────────────────────────────────────────
+    // ────── Main Collects ────────────────────────────────────────────────────
 public:
-	void CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, const FFrustum* ViewFrustum = nullptr);
+    void CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, const FFrustum* ViewFrustum = nullptr);
 
-	// ────── Stats ────────────────────────────────────────────────────────────
+    // ────── Stats ────────────────────────────────────────────────────────────
 private:
-	FRenderCollectionStats LastStats;
-	void ResetCullingStats();
-	void ResetDecalStats();
-	void ResetShadowStats();
+    FRenderCollectionStats LastStats;
+    void ResetCullingStats();
+    void ResetDecalStats();
+    void ResetShadowStats();
 
 public:
-	const FRenderCollectionStats& GetLastStats() const { return LastStats; }
-	const FCullingStats& GetLastCullingStats() const { return LastStats.Culling; }
-	const FDecalStats& GetLastDecalStats() const { return LastStats.Decal; }
-	const FShadowStats& GetLastShadowStats() const { return LastStats.Shadow; }
+    const FRenderCollectionStats& GetLastStats() const { return LastStats; }
+    const FCullingStats& GetLastCullingStats() const { return LastStats.Culling; }
+    const FDecalStats& GetLastDecalStats() const { return LastStats.Decal; }
+    const FShadowStats& GetLastShadowStats() const { return LastStats.Shadow; }
 
-	using FCullingStats = ::FCullingStats;
-	using FDecalStats = ::FDecalStats;
-	using FShadowStats = ::FShadowStats;
-	using FRenderCollectionStats = ::FRenderCollectionStats;
+    using FCullingStats = ::FCullingStats;
+    using FDecalStats = ::FDecalStats;
+    using FShadowStats = ::FShadowStats;
+    using FRenderCollectionStats = ::FRenderCollectionStats;
 
-	// ────── Query Buffer ─────────────────────────────────────────────────────
+    // ────── Query Buffer ─────────────────────────────────────────────────────
 private:
-	FWorldSpatialIndex::FPrimitiveFrustumQueryScratch FrustumQueryScratch;
-	TArray<UPrimitiveComponent*> VisiblePrimitiveScratch;	
-	
-	// ────── Sub Collects ─────────────────────────────────────────────────────
+    FWorldSpatialIndex::FPrimitiveFrustumQueryScratch FrustumQueryScratch;
+    TArray<UPrimitiveComponent*> VisiblePrimitiveScratch;	
+    
+    // ────── Sub Collects ─────────────────────────────────────────────────────
 public: 
-	void CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
-	void CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus, bool bIsActiveOperation);
-	void CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus, bool bOrthographic = false, const FGridRenderSettings& GridRenderSettings = MakeDefaultGridRenderSettings());
+    void CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
+    void CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus, bool bIsActiveOperation);
+    void CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus, bool bOrthographic = false, const FGridRenderSettings& GridRenderSettings = MakeDefaultGridRenderSettings());
 
 private:
-	void CollectLight(UWorld* World, const FShowFlags& ShowFlags, FRenderBus& RenderBus, const FFrustum* ViewFrustum = nullptr);
-	void CollectShadowCasters(UWorld* World, FRenderBus& RenderBus);
-	void CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
-	void CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
-	void CollectBVHInternalNodeAABBs(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus, std::unordered_set<int32>& SeenNodeIndices);
+    void CollectLight(UWorld* World, const FShowFlags& ShowFlags, FRenderBus& RenderBus, const FFrustum* ViewFrustum = nullptr);
+    void CollectShadowCasters(UWorld* World, FRenderBus& RenderBus);
+    void CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
+    void CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType);
+    void CollectBVHInternalNodeAABBs(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus, std::unordered_set<int32>& SeenNodeIndices);
 };

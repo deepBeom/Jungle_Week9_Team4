@@ -10,16 +10,16 @@ class FViewportClient;
 class FViewport
 {
 public:
-	virtual ~FViewport() = default;
+    virtual ~FViewport() = default;
 
-	virtual bool ContainsPoint(int32 X, int32 Y) const { return Rect.Contains(X, Y); }
-	virtual void WindowToLocal(int32 X, int32 Y, int32& OutX, int32& OutY) const
-	{ 
-		return Rect.WindowToLocal(X, Y, OutX, OutY); 
-	}
+    virtual bool ContainsPoint(int32 X, int32 Y) const { return Rect.Contains(X, Y); }
+    virtual void WindowToLocal(int32 X, int32 Y, int32& OutX, int32& OutY) const
+    { 
+        return Rect.WindowToLocal(X, Y, OutX, OutY); 
+    }
 
 protected:
-	FViewportRect Rect;
+    FViewportRect Rect;
 };
 
 

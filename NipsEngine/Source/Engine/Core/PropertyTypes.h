@@ -18,8 +18,8 @@ enum class EPropertyType : uint8
     SceneComponentRef, // USceneComponent* 변수의 주소 (MovementComponent를 위한 Enum값
     Vec3Array,         // TArray<FVector>* - variable-length array of FVector
                        // 필요 시 Enum, Color 등 추가
-	Enum,
-	Color,
+    Enum,
+    Color,
 };
 
 // 컴포넌트가 노출하는 편집 가능한 프로퍼티 디스크립터
@@ -34,9 +34,9 @@ struct FPropertyDescriptor
     float Max	= 0.0f;
     float Speed = 0.1f;
 
-	// Enum Metadata
-	const char** EnumNames  = nullptr;
-	uint32		 EnumCount  = 0;
+    // Enum Metadata
+    const char** EnumNames  = nullptr;
+    uint32		 EnumCount  = 0;
 };
 
 /** 각 프로퍼티의 Size 값을 반환합니다. 0을 반환하는 경우 특수 케이스입니다.
@@ -48,6 +48,7 @@ inline SIZE_T GetPropertySize(EPropertyType Type)
     {
     case EPropertyType::Bool:   return sizeof(bool);
     case EPropertyType::Int:    return sizeof(int32);
+    case EPropertyType::Enum:   return sizeof(int32);
     case EPropertyType::Float:  return sizeof(float);
     case EPropertyType::Vec3:   return sizeof(FVector);
     case EPropertyType::Color:	return sizeof(FColor);

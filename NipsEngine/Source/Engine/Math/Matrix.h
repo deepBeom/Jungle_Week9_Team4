@@ -112,337 +112,337 @@ struct FMatrix
                        -M[3][2], -M[3][3]);
     }
 
-	FMatrix operator+(const FMatrix& Other) const noexcept
-	{
-		const DirectX::XMVECTOR R0 =
-			DirectX::XMVectorAdd(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]),
-				DirectX::XMVectorSet(Other.M[0][0], Other.M[0][1], Other.M[0][2],
-					Other.M[0][3]));
-		const DirectX::XMVECTOR R1 =
-			DirectX::XMVectorAdd(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]),
-				DirectX::XMVectorSet(Other.M[1][0], Other.M[1][1], Other.M[1][2],
-					Other.M[1][3]));
-		const DirectX::XMVECTOR R2 =
-			DirectX::XMVectorAdd(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]),
-				DirectX::XMVectorSet(Other.M[2][0], Other.M[2][1], Other.M[2][2],
-					Other.M[2][3]));
-		const DirectX::XMVECTOR R3 =
-			DirectX::XMVectorAdd(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]),
-				DirectX::XMVectorSet(Other.M[3][0], Other.M[3][1], Other.M[3][2],
-					Other.M[3][3]));
+    FMatrix operator+(const FMatrix& Other) const noexcept
+    {
+        const DirectX::XMVECTOR R0 =
+            DirectX::XMVectorAdd(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]),
+                DirectX::XMVectorSet(Other.M[0][0], Other.M[0][1], Other.M[0][2],
+                    Other.M[0][3]));
+        const DirectX::XMVECTOR R1 =
+            DirectX::XMVectorAdd(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]),
+                DirectX::XMVectorSet(Other.M[1][0], Other.M[1][1], Other.M[1][2],
+                    Other.M[1][3]));
+        const DirectX::XMVECTOR R2 =
+            DirectX::XMVectorAdd(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]),
+                DirectX::XMVectorSet(Other.M[2][0], Other.M[2][1], Other.M[2][2],
+                    Other.M[2][3]));
+        const DirectX::XMVECTOR R3 =
+            DirectX::XMVectorAdd(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]),
+                DirectX::XMVectorSet(Other.M[3][0], Other.M[3][1], Other.M[3][2],
+                    Other.M[3][3]));
 
-		DirectX::XMFLOAT4 T0, T1, T2, T3;
-		DirectX::XMStoreFloat4(&T0, R0);
-		DirectX::XMStoreFloat4(&T1, R1);
-		DirectX::XMStoreFloat4(&T2, R2);
-		DirectX::XMStoreFloat4(&T3, R3);
-		return FMatrix(T0.x, T0.y, T0.z, T0.w, T1.x, T1.y, T1.z, T1.w, T2.x, T2.y, T2.z, T2.w,
-			T3.x, T3.y, T3.z, T3.w);
+        DirectX::XMFLOAT4 T0, T1, T2, T3;
+        DirectX::XMStoreFloat4(&T0, R0);
+        DirectX::XMStoreFloat4(&T1, R1);
+        DirectX::XMStoreFloat4(&T2, R2);
+        DirectX::XMStoreFloat4(&T3, R3);
+        return FMatrix(T0.x, T0.y, T0.z, T0.w, T1.x, T1.y, T1.z, T1.w, T2.x, T2.y, T2.z, T2.w,
+            T3.x, T3.y, T3.z, T3.w);
 
-		// FMatrix Result;
-		// for (int32_t Row = 0; Row < 4; ++Row)
-		// {
-		//     for (int32_t Col = 0; Col < 4; ++Col)
-		//     {
-		//         Result.M[Row][Col] = M[Row][Col] + Other.M[Row][Col];
-		//     }
-		// }
-		// return Result;
-	}
+        // FMatrix Result;
+        // for (int32_t Row = 0; Row < 4; ++Row)
+        // {
+        //     for (int32_t Col = 0; Col < 4; ++Col)
+        //     {
+        //         Result.M[Row][Col] = M[Row][Col] + Other.M[Row][Col];
+        //     }
+        // }
+        // return Result;
+    }
 
-	FMatrix operator-(const FMatrix& Other) const noexcept
-	{
-		const DirectX::XMVECTOR R0 =
-			DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]),
-				DirectX::XMVectorSet(Other.M[0][0], Other.M[0][1],
-					Other.M[0][2], Other.M[0][3]));
-		const DirectX::XMVECTOR R1 =
-			DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]),
-				DirectX::XMVectorSet(Other.M[1][0], Other.M[1][1],
-					Other.M[1][2], Other.M[1][3]));
-		const DirectX::XMVECTOR R2 =
-			DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]),
-				DirectX::XMVectorSet(Other.M[2][0], Other.M[2][1],
-					Other.M[2][2], Other.M[2][3]));
-		const DirectX::XMVECTOR R3 =
-			DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]),
-				DirectX::XMVectorSet(Other.M[3][0], Other.M[3][1],
-					Other.M[3][2], Other.M[3][3]));
+    FMatrix operator-(const FMatrix& Other) const noexcept
+    {
+        const DirectX::XMVECTOR R0 =
+            DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]),
+                DirectX::XMVectorSet(Other.M[0][0], Other.M[0][1],
+                    Other.M[0][2], Other.M[0][3]));
+        const DirectX::XMVECTOR R1 =
+            DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]),
+                DirectX::XMVectorSet(Other.M[1][0], Other.M[1][1],
+                    Other.M[1][2], Other.M[1][3]));
+        const DirectX::XMVECTOR R2 =
+            DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]),
+                DirectX::XMVectorSet(Other.M[2][0], Other.M[2][1],
+                    Other.M[2][2], Other.M[2][3]));
+        const DirectX::XMVECTOR R3 =
+            DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]),
+                DirectX::XMVectorSet(Other.M[3][0], Other.M[3][1],
+                    Other.M[3][2], Other.M[3][3]));
 
-		DirectX::XMFLOAT4 T0, T1, T2, T3;
-		DirectX::XMStoreFloat4(&T0, R0);
-		DirectX::XMStoreFloat4(&T1, R1);
-		DirectX::XMStoreFloat4(&T2, R2);
-		DirectX::XMStoreFloat4(&T3, R3);
-		return FMatrix(T0.x, T0.y, T0.z, T0.w, T1.x, T1.y, T1.z, T1.w, T2.x, T2.y, T2.z, T2.w,
-			T3.x, T3.y, T3.z, T3.w);
+        DirectX::XMFLOAT4 T0, T1, T2, T3;
+        DirectX::XMStoreFloat4(&T0, R0);
+        DirectX::XMStoreFloat4(&T1, R1);
+        DirectX::XMStoreFloat4(&T2, R2);
+        DirectX::XMStoreFloat4(&T3, R3);
+        return FMatrix(T0.x, T0.y, T0.z, T0.w, T1.x, T1.y, T1.z, T1.w, T2.x, T2.y, T2.z, T2.w,
+            T3.x, T3.y, T3.z, T3.w);
 
-		// FMatrix Result;
-		// for (int32_t Row = 0; Row < 4; ++Row)
-		// {
-		//     for (int32_t Col = 0; Col < 4; ++Col)
-		//     {
-		//         Result.M[Row][Col] = M[Row][Col] - Other.M[Row][Col];
-		//     }
-		// }
-		// return Result;
-	}
+        // FMatrix Result;
+        // for (int32_t Row = 0; Row < 4; ++Row)
+        // {
+        //     for (int32_t Col = 0; Col < 4; ++Col)
+        //     {
+        //         Result.M[Row][Col] = M[Row][Col] - Other.M[Row][Col];
+        //     }
+        // }
+        // return Result;
+    }
 
-	FMatrix operator*(float Scalar) const noexcept
-	{
-		const DirectX::XMVECTOR S = DirectX::XMVectorReplicate(Scalar);
-		const DirectX::XMVECTOR R0 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]), S);
-		const DirectX::XMVECTOR R1 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]), S);
-		const DirectX::XMVECTOR R2 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]), S);
-		const DirectX::XMVECTOR R3 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]), S);
+    FMatrix operator*(float Scalar) const noexcept
+    {
+        const DirectX::XMVECTOR S = DirectX::XMVectorReplicate(Scalar);
+        const DirectX::XMVECTOR R0 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]), S);
+        const DirectX::XMVECTOR R1 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]), S);
+        const DirectX::XMVECTOR R2 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]), S);
+        const DirectX::XMVECTOR R3 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]), S);
 
-		DirectX::XMFLOAT4 T0, T1, T2, T3;
-		DirectX::XMStoreFloat4(&T0, R0);
-		DirectX::XMStoreFloat4(&T1, R1);
-		DirectX::XMStoreFloat4(&T2, R2);
-		DirectX::XMStoreFloat4(&T3, R3);
-		return FMatrix(T0.x, T0.y, T0.z, T0.w, T1.x, T1.y, T1.z, T1.w, T2.x, T2.y, T2.z, T2.w,
-			T3.x, T3.y, T3.z, T3.w);
+        DirectX::XMFLOAT4 T0, T1, T2, T3;
+        DirectX::XMStoreFloat4(&T0, R0);
+        DirectX::XMStoreFloat4(&T1, R1);
+        DirectX::XMStoreFloat4(&T2, R2);
+        DirectX::XMStoreFloat4(&T3, R3);
+        return FMatrix(T0.x, T0.y, T0.z, T0.w, T1.x, T1.y, T1.z, T1.w, T2.x, T2.y, T2.z, T2.w,
+            T3.x, T3.y, T3.z, T3.w);
 
-		// FMatrix Result;
-		// for (int32_t Row = 0; Row < 4; ++Row)
-		// {
-		//     for (int32_t Col = 0; Col < 4; ++Col)
-		//     {
-		//         Result.M[Row][Col] = M[Row][Col] * Scalar;
-		//     }
-		// }
-		// return Result;
-	}
+        // FMatrix Result;
+        // for (int32_t Row = 0; Row < 4; ++Row)
+        // {
+        //     for (int32_t Col = 0; Col < 4; ++Col)
+        //     {
+        //         Result.M[Row][Col] = M[Row][Col] * Scalar;
+        //     }
+        // }
+        // return Result;
+    }
 
-	FMatrix operator/(float Scalar) const noexcept
-	{
-		assert(Scalar != 0.f);
-		const float InvScalar = 1.0f / Scalar;
-		const DirectX::XMVECTOR S = DirectX::XMVectorReplicate(InvScalar);
-		const DirectX::XMVECTOR R0 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]), S);
-		const DirectX::XMVECTOR R1 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]), S);
-		const DirectX::XMVECTOR R2 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]), S);
-		const DirectX::XMVECTOR R3 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]), S);
+    FMatrix operator/(float Scalar) const noexcept
+    {
+        assert(Scalar != 0.f);
+        const float InvScalar = 1.0f / Scalar;
+        const DirectX::XMVECTOR S = DirectX::XMVectorReplicate(InvScalar);
+        const DirectX::XMVECTOR R0 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]), S);
+        const DirectX::XMVECTOR R1 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]), S);
+        const DirectX::XMVECTOR R2 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]), S);
+        const DirectX::XMVECTOR R3 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]), S);
 
-		DirectX::XMFLOAT4 T0, T1, T2, T3;
-		DirectX::XMStoreFloat4(&T0, R0);
-		DirectX::XMStoreFloat4(&T1, R1);
-		DirectX::XMStoreFloat4(&T2, R2);
-		DirectX::XMStoreFloat4(&T3, R3);
-		return FMatrix(T0.x, T0.y, T0.z, T0.w, T1.x, T1.y, T1.z, T1.w, T2.x, T2.y, T2.z, T2.w,
-			T3.x, T3.y, T3.z, T3.w);
+        DirectX::XMFLOAT4 T0, T1, T2, T3;
+        DirectX::XMStoreFloat4(&T0, R0);
+        DirectX::XMStoreFloat4(&T1, R1);
+        DirectX::XMStoreFloat4(&T2, R2);
+        DirectX::XMStoreFloat4(&T3, R3);
+        return FMatrix(T0.x, T0.y, T0.z, T0.w, T1.x, T1.y, T1.z, T1.w, T2.x, T2.y, T2.z, T2.w,
+            T3.x, T3.y, T3.z, T3.w);
 
-		// FMatrix Result;
-		// for (int32_t Row = 0; Row < 4; ++Row)
-		// {
-		//     for (int32_t Col = 0; Col < 4; ++Col)
-		//     {
-		//         Result.M[Row][Col] = M[Row][Col] / Scalar;
-		//     }
-		// }
-		// return Result;
-	}
+        // FMatrix Result;
+        // for (int32_t Row = 0; Row < 4; ++Row)
+        // {
+        //     for (int32_t Col = 0; Col < 4; ++Col)
+        //     {
+        //         Result.M[Row][Col] = M[Row][Col] / Scalar;
+        //     }
+        // }
+        // return Result;
+    }
 
-	FMatrix& operator+=(const FMatrix& Other) noexcept
-	{
-		const DirectX::XMVECTOR R0 =
-			DirectX::XMVectorAdd(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]),
-				DirectX::XMVectorSet(Other.M[0][0], Other.M[0][1], Other.M[0][2],
-					Other.M[0][3]));
-		const DirectX::XMVECTOR R1 =
-			DirectX::XMVectorAdd(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]),
-				DirectX::XMVectorSet(Other.M[1][0], Other.M[1][1], Other.M[1][2],
-					Other.M[1][3]));
-		const DirectX::XMVECTOR R2 =
-			DirectX::XMVectorAdd(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]),
-				DirectX::XMVectorSet(Other.M[2][0], Other.M[2][1], Other.M[2][2],
-					Other.M[2][3]));
-		const DirectX::XMVECTOR R3 =
-			DirectX::XMVectorAdd(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]),
-				DirectX::XMVectorSet(Other.M[3][0], Other.M[3][1], Other.M[3][2],
-					Other.M[3][3]));
+    FMatrix& operator+=(const FMatrix& Other) noexcept
+    {
+        const DirectX::XMVECTOR R0 =
+            DirectX::XMVectorAdd(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]),
+                DirectX::XMVectorSet(Other.M[0][0], Other.M[0][1], Other.M[0][2],
+                    Other.M[0][3]));
+        const DirectX::XMVECTOR R1 =
+            DirectX::XMVectorAdd(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]),
+                DirectX::XMVectorSet(Other.M[1][0], Other.M[1][1], Other.M[1][2],
+                    Other.M[1][3]));
+        const DirectX::XMVECTOR R2 =
+            DirectX::XMVectorAdd(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]),
+                DirectX::XMVectorSet(Other.M[2][0], Other.M[2][1], Other.M[2][2],
+                    Other.M[2][3]));
+        const DirectX::XMVECTOR R3 =
+            DirectX::XMVectorAdd(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]),
+                DirectX::XMVectorSet(Other.M[3][0], Other.M[3][1], Other.M[3][2],
+                    Other.M[3][3]));
 
-		DirectX::XMFLOAT4 T0, T1, T2, T3;
-		DirectX::XMStoreFloat4(&T0, R0);
-		DirectX::XMStoreFloat4(&T1, R1);
-		DirectX::XMStoreFloat4(&T2, R2);
-		DirectX::XMStoreFloat4(&T3, R3);
-		M[0][0] = T0.x;
-		M[0][1] = T0.y;
-		M[0][2] = T0.z;
-		M[0][3] = T0.w;
-		M[1][0] = T1.x;
-		M[1][1] = T1.y;
-		M[1][2] = T1.z;
-		M[1][3] = T1.w;
-		M[2][0] = T2.x;
-		M[2][1] = T2.y;
-		M[2][2] = T2.z;
-		M[2][3] = T2.w;
-		M[3][0] = T3.x;
-		M[3][1] = T3.y;
-		M[3][2] = T3.z;
-		M[3][3] = T3.w;
+        DirectX::XMFLOAT4 T0, T1, T2, T3;
+        DirectX::XMStoreFloat4(&T0, R0);
+        DirectX::XMStoreFloat4(&T1, R1);
+        DirectX::XMStoreFloat4(&T2, R2);
+        DirectX::XMStoreFloat4(&T3, R3);
+        M[0][0] = T0.x;
+        M[0][1] = T0.y;
+        M[0][2] = T0.z;
+        M[0][3] = T0.w;
+        M[1][0] = T1.x;
+        M[1][1] = T1.y;
+        M[1][2] = T1.z;
+        M[1][3] = T1.w;
+        M[2][0] = T2.x;
+        M[2][1] = T2.y;
+        M[2][2] = T2.z;
+        M[2][3] = T2.w;
+        M[3][0] = T3.x;
+        M[3][1] = T3.y;
+        M[3][2] = T3.z;
+        M[3][3] = T3.w;
 
-		// for (int32_t Row = 0; Row < 4; ++Row)
-		// {
-		//     for (int32_t Col = 0; Col < 4; ++Col)
-		//     {
-		//         M[Row][Col] += Other.M[Row][Col];
-		//     }
-		// }
-		return *this;
-	}
+        // for (int32_t Row = 0; Row < 4; ++Row)
+        // {
+        //     for (int32_t Col = 0; Col < 4; ++Col)
+        //     {
+        //         M[Row][Col] += Other.M[Row][Col];
+        //     }
+        // }
+        return *this;
+    }
 
-	FMatrix& operator-=(const FMatrix& Other) noexcept
-	{
-		const DirectX::XMVECTOR R0 =
-			DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]),
-				DirectX::XMVectorSet(Other.M[0][0], Other.M[0][1],
-					Other.M[0][2], Other.M[0][3]));
-		const DirectX::XMVECTOR R1 =
-			DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]),
-				DirectX::XMVectorSet(Other.M[1][0], Other.M[1][1],
-					Other.M[1][2], Other.M[1][3]));
-		const DirectX::XMVECTOR R2 =
-			DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]),
-				DirectX::XMVectorSet(Other.M[2][0], Other.M[2][1],
-					Other.M[2][2], Other.M[2][3]));
-		const DirectX::XMVECTOR R3 =
-			DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]),
-				DirectX::XMVectorSet(Other.M[3][0], Other.M[3][1],
-					Other.M[3][2], Other.M[3][3]));
+    FMatrix& operator-=(const FMatrix& Other) noexcept
+    {
+        const DirectX::XMVECTOR R0 =
+            DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]),
+                DirectX::XMVectorSet(Other.M[0][0], Other.M[0][1],
+                    Other.M[0][2], Other.M[0][3]));
+        const DirectX::XMVECTOR R1 =
+            DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]),
+                DirectX::XMVectorSet(Other.M[1][0], Other.M[1][1],
+                    Other.M[1][2], Other.M[1][3]));
+        const DirectX::XMVECTOR R2 =
+            DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]),
+                DirectX::XMVectorSet(Other.M[2][0], Other.M[2][1],
+                    Other.M[2][2], Other.M[2][3]));
+        const DirectX::XMVECTOR R3 =
+            DirectX::XMVectorSubtract(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]),
+                DirectX::XMVectorSet(Other.M[3][0], Other.M[3][1],
+                    Other.M[3][2], Other.M[3][3]));
 
-		DirectX::XMFLOAT4 T0, T1, T2, T3;
-		DirectX::XMStoreFloat4(&T0, R0);
-		DirectX::XMStoreFloat4(&T1, R1);
-		DirectX::XMStoreFloat4(&T2, R2);
-		DirectX::XMStoreFloat4(&T3, R3);
-		M[0][0] = T0.x;
-		M[0][1] = T0.y;
-		M[0][2] = T0.z;
-		M[0][3] = T0.w;
-		M[1][0] = T1.x;
-		M[1][1] = T1.y;
-		M[1][2] = T1.z;
-		M[1][3] = T1.w;
-		M[2][0] = T2.x;
-		M[2][1] = T2.y;
-		M[2][2] = T2.z;
-		M[2][3] = T2.w;
-		M[3][0] = T3.x;
-		M[3][1] = T3.y;
-		M[3][2] = T3.z;
-		M[3][3] = T3.w;
+        DirectX::XMFLOAT4 T0, T1, T2, T3;
+        DirectX::XMStoreFloat4(&T0, R0);
+        DirectX::XMStoreFloat4(&T1, R1);
+        DirectX::XMStoreFloat4(&T2, R2);
+        DirectX::XMStoreFloat4(&T3, R3);
+        M[0][0] = T0.x;
+        M[0][1] = T0.y;
+        M[0][2] = T0.z;
+        M[0][3] = T0.w;
+        M[1][0] = T1.x;
+        M[1][1] = T1.y;
+        M[1][2] = T1.z;
+        M[1][3] = T1.w;
+        M[2][0] = T2.x;
+        M[2][1] = T2.y;
+        M[2][2] = T2.z;
+        M[2][3] = T2.w;
+        M[3][0] = T3.x;
+        M[3][1] = T3.y;
+        M[3][2] = T3.z;
+        M[3][3] = T3.w;
 
-		// for (int32_t Row = 0; Row < 4; ++Row)
-		// {
-		//     for (int32_t Col = 0; Col < 4; ++Col)
-		//     {
-		//         M[Row][Col] -= Other.M[Row][Col];
-		//     }
-		// }
-		return *this;
-	}
+        // for (int32_t Row = 0; Row < 4; ++Row)
+        // {
+        //     for (int32_t Col = 0; Col < 4; ++Col)
+        //     {
+        //         M[Row][Col] -= Other.M[Row][Col];
+        //     }
+        // }
+        return *this;
+    }
 
-	FMatrix& operator*=(float Scalar) noexcept
-	{
-		const DirectX::XMVECTOR S = DirectX::XMVectorReplicate(Scalar);
-		const DirectX::XMVECTOR R0 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]), S);
-		const DirectX::XMVECTOR R1 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]), S);
-		const DirectX::XMVECTOR R2 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]), S);
-		const DirectX::XMVECTOR R3 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]), S);
+    FMatrix& operator*=(float Scalar) noexcept
+    {
+        const DirectX::XMVECTOR S = DirectX::XMVectorReplicate(Scalar);
+        const DirectX::XMVECTOR R0 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]), S);
+        const DirectX::XMVECTOR R1 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]), S);
+        const DirectX::XMVECTOR R2 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]), S);
+        const DirectX::XMVECTOR R3 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]), S);
 
-		DirectX::XMFLOAT4 T0, T1, T2, T3;
-		DirectX::XMStoreFloat4(&T0, R0);
-		DirectX::XMStoreFloat4(&T1, R1);
-		DirectX::XMStoreFloat4(&T2, R2);
-		DirectX::XMStoreFloat4(&T3, R3);
-		M[0][0] = T0.x;
-		M[0][1] = T0.y;
-		M[0][2] = T0.z;
-		M[0][3] = T0.w;
-		M[1][0] = T1.x;
-		M[1][1] = T1.y;
-		M[1][2] = T1.z;
-		M[1][3] = T1.w;
-		M[2][0] = T2.x;
-		M[2][1] = T2.y;
-		M[2][2] = T2.z;
-		M[2][3] = T2.w;
-		M[3][0] = T3.x;
-		M[3][1] = T3.y;
-		M[3][2] = T3.z;
-		M[3][3] = T3.w;
+        DirectX::XMFLOAT4 T0, T1, T2, T3;
+        DirectX::XMStoreFloat4(&T0, R0);
+        DirectX::XMStoreFloat4(&T1, R1);
+        DirectX::XMStoreFloat4(&T2, R2);
+        DirectX::XMStoreFloat4(&T3, R3);
+        M[0][0] = T0.x;
+        M[0][1] = T0.y;
+        M[0][2] = T0.z;
+        M[0][3] = T0.w;
+        M[1][0] = T1.x;
+        M[1][1] = T1.y;
+        M[1][2] = T1.z;
+        M[1][3] = T1.w;
+        M[2][0] = T2.x;
+        M[2][1] = T2.y;
+        M[2][2] = T2.z;
+        M[2][3] = T2.w;
+        M[3][0] = T3.x;
+        M[3][1] = T3.y;
+        M[3][2] = T3.z;
+        M[3][3] = T3.w;
 
-		// for (int32_t Row = 0; Row < 4; ++Row)
-		// {
-		//     for (int32_t Col = 0; Col < 4; ++Col)
-		//     {
-		//         M[Row][Col] *= Scalar;
-		//     }
-		// }
-		return *this;
-	}
+        // for (int32_t Row = 0; Row < 4; ++Row)
+        // {
+        //     for (int32_t Col = 0; Col < 4; ++Col)
+        //     {
+        //         M[Row][Col] *= Scalar;
+        //     }
+        // }
+        return *this;
+    }
 
-	FMatrix& operator/=(float Scalar) noexcept
-	{
-		assert(Scalar != 0.f);
-		const float InvScalar = 1.0f / Scalar;
-		const DirectX::XMVECTOR S = DirectX::XMVectorReplicate(InvScalar);
-		const DirectX::XMVECTOR R0 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]), S);
-		const DirectX::XMVECTOR R1 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]), S);
-		const DirectX::XMVECTOR R2 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]), S);
-		const DirectX::XMVECTOR R3 =
-			DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]), S);
+    FMatrix& operator/=(float Scalar) noexcept
+    {
+        assert(Scalar != 0.f);
+        const float InvScalar = 1.0f / Scalar;
+        const DirectX::XMVECTOR S = DirectX::XMVectorReplicate(InvScalar);
+        const DirectX::XMVECTOR R0 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[0][0], M[0][1], M[0][2], M[0][3]), S);
+        const DirectX::XMVECTOR R1 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[1][0], M[1][1], M[1][2], M[1][3]), S);
+        const DirectX::XMVECTOR R2 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[2][0], M[2][1], M[2][2], M[2][3]), S);
+        const DirectX::XMVECTOR R3 =
+            DirectX::XMVectorMultiply(DirectX::XMVectorSet(M[3][0], M[3][1], M[3][2], M[3][3]), S);
 
-		DirectX::XMFLOAT4 T0, T1, T2, T3;
-		DirectX::XMStoreFloat4(&T0, R0);
-		DirectX::XMStoreFloat4(&T1, R1);
-		DirectX::XMStoreFloat4(&T2, R2);
-		DirectX::XMStoreFloat4(&T3, R3);
-		M[0][0] = T0.x;
-		M[0][1] = T0.y;
-		M[0][2] = T0.z;
-		M[0][3] = T0.w;
-		M[1][0] = T1.x;
-		M[1][1] = T1.y;
-		M[1][2] = T1.z;
-		M[1][3] = T1.w;
-		M[2][0] = T2.x;
-		M[2][1] = T2.y;
-		M[2][2] = T2.z;
-		M[2][3] = T2.w;
-		M[3][0] = T3.x;
-		M[3][1] = T3.y;
-		M[3][2] = T3.z;
-		M[3][3] = T3.w;
+        DirectX::XMFLOAT4 T0, T1, T2, T3;
+        DirectX::XMStoreFloat4(&T0, R0);
+        DirectX::XMStoreFloat4(&T1, R1);
+        DirectX::XMStoreFloat4(&T2, R2);
+        DirectX::XMStoreFloat4(&T3, R3);
+        M[0][0] = T0.x;
+        M[0][1] = T0.y;
+        M[0][2] = T0.z;
+        M[0][3] = T0.w;
+        M[1][0] = T1.x;
+        M[1][1] = T1.y;
+        M[1][2] = T1.z;
+        M[1][3] = T1.w;
+        M[2][0] = T2.x;
+        M[2][1] = T2.y;
+        M[2][2] = T2.z;
+        M[2][3] = T2.w;
+        M[3][0] = T3.x;
+        M[3][1] = T3.y;
+        M[3][2] = T3.z;
+        M[3][3] = T3.w;
 
-		// for (int32_t Row = 0; Row < 4; ++Row)
-		// {
-		//     for (int32_t Col = 0; Col < 4; ++Col)
-		//     {
-		//         M[Row][Col] /= Scalar;
-		//     }
-		// }
-		return *this;
-	}
+        // for (int32_t Row = 0; Row < 4; ++Row)
+        // {
+        //     for (int32_t Col = 0; Col < 4; ++Col)
+        //     {
+        //         M[Row][Col] /= Scalar;
+        //     }
+        // }
+        return *this;
+    }
 
     FMatrix operator*(const FMatrix& Other) const noexcept
     {
@@ -504,7 +504,7 @@ struct FMatrix
         return FVector(DirectX::XMVector3TransformCoord(V.ToXMVector(), ToXMMatrix()));
     }
 
-	FVector TransformPositionWithW(const FVector& V) const noexcept
+    FVector TransformPositionWithW(const FVector& V) const noexcept
     {
         return FVector(DirectX::XMVector4Transform(V.ToXMVector(), ToXMMatrix()));
     }
@@ -953,10 +953,10 @@ struct FMatrix
         const float XScale = YScale / AspectRatio;
 
         return FMatrix(
-			0.f, 0.f, FarZ / (FarZ - NearZ), 1.f, 
-			XScale, 0.f, 0.f, 0.f, 
-			0.f, YScale, 0.f, 0.f, 
-			0.f, 0.f, -NearZ * FarZ / (FarZ - NearZ), 0.f);
+            0.f, 0.f, FarZ / (FarZ - NearZ), 1.f, 
+            XScale, 0.f, 0.f, 0.f, 
+            0.f, YScale, 0.f, 0.f, 
+            0.f, 0.f, -NearZ * FarZ / (FarZ - NearZ), 0.f);
     }
 
     // Left-Handed 기준 직교 투영 행렬을 생성함
@@ -968,10 +968,10 @@ struct FMatrix
         assert(FarZ != NearZ);
 
         return FMatrix(
-			0.f, 0.f, 1.f / (FarZ - NearZ), 0.f, 
-			2.f / ViewWidth, 0.f, 0.f, 0.f, 
-			0.f, 2.f / ViewHeight, 0.f, 0.f, 
-			0.f, 0.f, -NearZ / (FarZ - NearZ), 1.f);
+            0.f, 0.f, 1.f / (FarZ - NearZ), 0.f, 
+            2.f / ViewWidth, 0.f, 0.f, 0.f, 
+            0.f, 2.f / ViewHeight, 0.f, 0.f, 
+            0.f, 0.f, -NearZ / (FarZ - NearZ), 1.f);
     }
 
     // Left-Handed 기준 View LookAt 행렬을 생성함
@@ -993,10 +993,10 @@ struct FMatrix
         const FVector NewUp = FVector::CrossProduct(Forward, Right).GetSafeNormal();
 
         return FMatrix(
-			Forward.X, Right.X, NewUp.X, 0.f, 
-			Forward.Y, Right.Y, NewUp.Y, 0.f,
+            Forward.X, Right.X, NewUp.X, 0.f, 
+            Forward.Y, Right.Y, NewUp.Y, 0.f,
             Forward.Z, Right.Z, NewUp.Z, 0.f, 
-			-FVector::DotProduct(Eye, Forward), -FVector::DotProduct(Eye, Right), -FVector::DotProduct(Eye, NewUp), 1.f);
+            -FVector::DotProduct(Eye, Forward), -FVector::DotProduct(Eye, Right), -FVector::DotProduct(Eye, NewUp), 1.f);
     }
 
     // 지정한 위치에서 카메라를 바라보는 Billboard 행렬을 생성함
@@ -1008,7 +1008,7 @@ struct FMatrix
         {
             return MakeTranslation(Position);
         }
-		
+        
         const FVector Right = FVector::CrossProduct(Up, Forward).GetSafeNormal();
         if (Right.IsNearlyZero())
         {
@@ -1018,10 +1018,10 @@ struct FMatrix
         const FVector NewUp = FVector::CrossProduct(Forward, Right).GetSafeNormal();
 
         return FMatrix(
-			Forward.X, Forward.Y, Forward.Z, 0.f, 
-			Right.X, Right.Y, Right.Z, 0.f,
-			NewUp.X, NewUp.Y, NewUp.Z, 0.f,
-			Position.X, Position.Y, Position.Z, 1.f);
+            Forward.X, Forward.Y, Forward.Z, 0.f, 
+            Right.X, Right.Y, Right.Z, 0.f,
+            NewUp.X, NewUp.Y, NewUp.Z, 0.f,
+            Position.X, Position.Y, Position.Z, 1.f);
     }
 
     // 위치, 회전 행렬, 스케일을 이용하여 월드 행렬을 생성함

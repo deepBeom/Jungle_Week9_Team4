@@ -24,15 +24,15 @@ public:
     void ResetSelection();
 
 private:
-	void RenderMaterialEditor(UPrimitiveComponent* PrimitiveComp);
+    void RenderMaterialEditor(UPrimitiveComponent* PrimitiveComp);
 
     void RenderSectionList(UPrimitiveComponent* PrimitiveComp);
     void RenderMaterialDetails(UPrimitiveComponent* PrimitiveComp);
-	void RenderMaterialProperties();
+    void RenderMaterialProperties();
 
 private:
     int32 SelectedSectionIndex    = -1;
     UMaterialInterface* SelectedMaterialPtr = nullptr;  // 원본 포인터 (Apply 대상)
 
-	USceneComponent* SelectedComponent = nullptr;
+    USceneComponent* SelectedComponent = nullptr;
 };

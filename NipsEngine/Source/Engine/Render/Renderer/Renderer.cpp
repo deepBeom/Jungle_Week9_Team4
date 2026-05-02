@@ -17,18 +17,18 @@
 
 void FRenderer::Create(HWND hWindow)
 {
-	Device.Create(hWindow);
+    Device.Create(hWindow);
 
-	if (Device.GetDevice() == nullptr)
-	{
-		std::cout << "Failed to create D3D Device." << std::endl;
-	}
+    if (Device.GetDevice() == nullptr)
+    {
+        std::cout << "Failed to create D3D Device." << std::endl;
+    }
 
-	FResourceManager::Get().SetCachedDevice(Device.GetDevice());
-	FResourceManager::Get().LoadShader("Shaders/Multipass/DirectionalShadowDepth.hlsl", "mainVS", "mainPS", NormalVertexInputLayout, ARRAYSIZE(NormalVertexInputLayout), nullptr);
+    FResourceManager::Get().SetCachedDevice(Device.GetDevice());
+    FResourceManager::Get().LoadShader("Shaders/Multipass/DirectionalShadowDepth.hlsl", "mainVS", "mainPS", NormalVertexInputLayout, ARRAYSIZE(NormalVertexInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/SpotShadowDepth.hlsl", "mainVS", "mainPS", NormalVertexInputLayout, ARRAYSIZE(NormalVertexInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/PointShadowDepth.hlsl", "mainVS", "mainPS", NormalVertexInputLayout, ARRAYSIZE(NormalVertexInputLayout), nullptr);
-	FResourceManager::Get().LoadShader("Shaders/Primitive.hlsl", "VS", "PS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout), nullptr);
+    FResourceManager::Get().LoadShader("Shaders/Primitive.hlsl", "VS", "PS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderSubUV.hlsl", "VS", "PS", TextureVertexInputLayout, ARRAYSIZE(TextureVertexInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/Gizmo.hlsl", "VS", "PS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/Editor.hlsl", "VS", "PS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout), nullptr);
@@ -56,106 +56,108 @@ void FRenderer::Create(HWND hWindow)
     FResourceManager::Get().LoadShader("Shaders/Multipass/ToonOutlinePass.hlsl", "mainVS", "mainPS", NormalVertexInputLayout, ARRAYSIZE(NormalVertexInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/HitMap.hlsl", "HitMapVS", "HitMapPS", nullptr, 0, nullptr);
 
-	if (!ShaderFileWatcher.Start(FPaths::ShaderDir(), true))
-	{
-		UE_LOG("[ShaderHotReload] Failed to start shader file watcher.");
-	}
+    if (!ShaderFileWatcher.Start(FPaths::ShaderDir(), true))
+    {
+        UE_LOG("[ShaderHotReload] Failed to start shader file watcher.");
+    }
 }
 
 void FRenderer::CreateResources()
 {
-	//	MeshManager init
-	FMeshManager::Initialize();
+    //	MeshManager init
+    FMeshManager::Initialize();
 
-	EditorLineBatcher.Create(Device.GetDevice());
-	GridLineBatcher.Create(Device.GetDevice());
+    EditorLineBatcher.Create(Device.GetDevice());
+    GridLineBatcher.Create(Device.GetDevice());
 
-	// 텍스처는 ResourceManager가 소유 — Batcher 는 셰이더/버퍼만 초기화
-	FontBatcher.Create(Device.GetDevice());
-	SubUVBatcher.Create(Device.GetDevice());
-	SceneLightBuffer.Create(Device.GetDevice(), sizeof(FGPULight), MaxSceneGlobalLightCount);
-	SceneGlobalLightUploadScratch.reserve(MaxSceneGlobalLightCount);
+    // 텍스처는 ResourceManager가 소유 — Batcher 는 셰이더/버퍼만 초기화
+    FontBatcher.Create(Device.GetDevice());
+    SubUVBatcher.Create(Device.GetDevice());
+    SceneLightBuffer.Create(Device.GetDevice(), sizeof(FGPULight), MaxSceneGlobalLightCount);
+    SceneGlobalLightUploadScratch.reserve(MaxSceneGlobalLightCount);
 
-	InitializePassBatchers();
-	UseBackBufferRenderTargets();
+    InitializePassBatchers();
+    UseBackBufferRenderTargets();
 
-	// GPU Profiler 초기화
-	FGPUProfiler::Get().Initialize(Device.GetDevice(), Device.GetDeviceContext());
+    // GPU Profiler 초기화
+    FGPUProfiler::Get().Initialize(Device.GetDevice(), Device.GetDeviceContext());
 
-	RenderPipeline.Initialize();
+    RenderPipeline.Initialize();
     RenderPassContext = std::make_shared<FRenderPassContext>();
 }
 
 void FRenderer::Release()
 {
-	ShaderFileWatcher.Stop();
+    ShaderFileWatcher.Stop();
 
-	InvalidateSceneFinalTargets();
+    InvalidateSceneFinalTargets();
 
-	RenderPipeline.Release();
+    RenderPipeline.Release();
     RenderPassContext.reset();
 
-	FGPUProfiler::Get().Shutdown();
+    FGPUProfiler::Get().Shutdown();
 
-	EditorLineBatcher.Release();
-	GridLineBatcher.Release();
-	FontBatcher.Release();
-	SubUVBatcher.Release();
-	SceneLightBuffer.Release();
-	SceneGlobalLightUploadScratch.clear();
+    EditorLineBatcher.Release();
+    GridLineBatcher.Release();
+    FontBatcher.Release();
+    SubUVBatcher.Release();
+    SceneLightBuffer.Release();
+    SceneGlobalLightUploadScratch.clear();
 
     // Device::ReportLiveObjects 이전에 ResourceManager가 잡고 있던 D3D 객체를 먼저 해제한다.
     FResourceManager::Get().ReleaseGPUResources();
 
-	Device.Release();
+    Device.Release();
 }
 
 //	Bus → Batcher 데이터 수집 (CPU). BeginFrame 이전에 호출.
 void FRenderer::PrepareBatchers(const FRenderBus& InRenderBus)
 {
-	for (uint32 i = 0; i < (uint32)ERenderPass::MAX; ++i)
-	{
-		if (!PassBatchers[i]) continue;
+    for (uint32 i = 0; i < (uint32)ERenderPass::MAX; ++i)
+    {
+        if (!PassBatchers[i]) continue;
 
-		const auto& Commands = InRenderBus.GetCommands(static_cast<ERenderPass>(i));
-		const auto& AlignedCommands = GetAlignedCommands(static_cast<ERenderPass>(i), Commands);
+        const auto& Commands = InRenderBus.GetCommands(static_cast<ERenderPass>(i));
+        const auto& AlignedCommands = GetAlignedCommands(static_cast<ERenderPass>(i), Commands);
 
-		PassBatchers[i].Clear();
-		for (const auto& Cmd : AlignedCommands)
-			PassBatchers[i].Collect(Cmd, InRenderBus);
-	}
+        PassBatchers[i].Clear();
+        for (const auto& Cmd : AlignedCommands)
+            PassBatchers[i].Collect(Cmd, InRenderBus);
+    }
 }
 
 const TArray<FRenderCommand>& FRenderer::GetAlignedCommands(ERenderPass Pass, const TArray<FRenderCommand>& Commands)
 {
-	// SubUV 패스: Particle(SRV) 포인터 기준 정렬 → 같은 텍스쳐끼리 연속 배치
-	if (Pass == ERenderPass::SubUV && Commands.size() > 1)
-	{
-		SortedCommandBuffer.assign(Commands.begin(), Commands.end());
+    // SubUV 패스: Particle(SRV) 포인터 기준 정렬 → 같은 텍스쳐끼리 연속 배치
+    if (Pass == ERenderPass::SubUV && Commands.size() > 1)
+    {
+        SortedCommandBuffer.assign(Commands.begin(), Commands.end());
 
-		std::sort(SortedCommandBuffer.begin(), SortedCommandBuffer.end(),
-			[](const FRenderCommand& A, const FRenderCommand& B) {
-				return A.Constants.SubUV.Particle < B.Constants.SubUV.Particle;
-			});
+        std::sort(SortedCommandBuffer.begin(), SortedCommandBuffer.end(),
+            [](const FRenderCommand& A, const FRenderCommand& B) {
+                return A.Constants.SubUV.Particle < B.Constants.SubUV.Particle;
+            });
 
-		return SortedCommandBuffer;
-	}
+        return SortedCommandBuffer;
+    }
 
-	return Commands;
+    return Commands;
 }
 
 //	GPU 프레임 시작. 반드시 Render 이전에 호출되어야 함.
 void FRenderer::BeginFrame()
 {
-	const TArray<FWString> ChangedShaderFiles = ShaderFileWatcher.DequeueChangedFiles();
-	const std::set<FWString> ReadyShaderFiles = FResourceManager::Get().ProcessShaderHotReloads(ChangedShaderFiles);
-	RenderPipeline.ProcessShaderHotReloads(ReadyShaderFiles, Device.GetDevice());
+    const TArray<FWString> ChangedShaderFiles = ShaderFileWatcher.DequeueChangedFiles();
+    // FileWatcher only reports paths. The render thread owns the actual shader recompilation so
+    // D3D object creation/replacement still follows the renderer's normal lifetime rules.
+    const std::set<FWString> ReadyShaderFiles = FResourceManager::Get().ProcessShaderHotReloads(ChangedShaderFiles);
+    RenderPipeline.ProcessShaderHotReloads(ReadyShaderFiles, Device.GetDevice());
 
-	Device.BeginFrame();
-	UseBackBufferRenderTargets();
+    Device.BeginFrame();
+    UseBackBufferRenderTargets();
 
 #if STATS
-	FGPUProfiler::Get().BeginFrame();
+    FGPUProfiler::Get().BeginFrame();
 #endif
 }
 
@@ -171,19 +173,19 @@ void FRenderer::BeginViewportFrame(FRenderTargetSet* InRenderTargetSet)
 
 void FRenderer::UseBackBufferRenderTargets()
 {
-	CurrentRenderTargets = Device.GetBackBufferRenderTargets();
+    CurrentRenderTargets = Device.GetBackBufferRenderTargets();
 
-	if (CurrentRenderTargets && CurrentRenderTargets->IsValid())
-	{
+    if (CurrentRenderTargets && CurrentRenderTargets->IsValid())
+    {
         ID3D11RenderTargetView* RTV =
                 CurrentRenderTargets->SceneColorRTV; // Back Buffer 의 경우 SceneColorRTV 가 FinalRTV 역할
         SceneFinalRTV = RTV;
         
-		Device.GetDeviceContext()->OMSetRenderTargets(1, &RTV, CurrentRenderTargets->DepthStencilView);
-		Device.SetSubViewport(0, 0,
-			static_cast<int32>(CurrentRenderTargets->Width),
-			static_cast<int32>(CurrentRenderTargets->Height));
-	}
+        Device.GetDeviceContext()->OMSetRenderTargets(1, &RTV, CurrentRenderTargets->DepthStencilView);
+        Device.SetSubViewport(0, 0,
+            static_cast<int32>(CurrentRenderTargets->Width),
+            static_cast<int32>(CurrentRenderTargets->Height));
+    }
 }
 
 void FRenderer::UseViewportRenderTargets(FRenderTargetSet* InRenderTargetSet)
@@ -193,8 +195,8 @@ void FRenderer::UseViewportRenderTargets(FRenderTargetSet* InRenderTargetSet)
     if (CurrentRenderTargets == nullptr || !CurrentRenderTargets->IsValid())
     {
         InvalidateSceneFinalTargets();
-		// Back Buffer 아마 쓰이면 안될텐데 여기 중단점 찍히면 확인
-		// 기존 단일 Viewport 구조에서 쓰이던 내용
+        // Back Buffer 아마 쓰이면 안될텐데 여기 중단점 찍히면 확인
+        // 기존 단일 Viewport 구조에서 쓰이던 내용
         UseBackBufferRenderTargets();
         return;
     }
@@ -206,22 +208,22 @@ void FRenderer::UseViewportRenderTargets(FRenderTargetSet* InRenderTargetSet)
 
 void FRenderer::InvalidateSceneFinalTargets()
 {
-	SceneFinalRTV.Reset();
-	SceneFinalSRV.Reset();
-	CurrentRenderTargets = nullptr;
+    SceneFinalRTV.Reset();
+    SceneFinalSRV.Reset();
+    CurrentRenderTargets = nullptr;
 }
 
 void FRenderer::UpdateSceneLightBuffer(const FRenderBus& InRenderBus)
 {
     TArray<FRenderLight> GlobalLights;
-	const TArray<FRenderLight>& SceneLights = InRenderBus.GetLights();
+    const TArray<FRenderLight>& SceneLights = InRenderBus.GetLights();
     GlobalLights.reserve(SceneLights.size());
 
-	/**
-	 * Culling 제외할 Global Light 추출
-	 * 애초에 Global Light 추가 때부터 따로 Array 로 분리한다면 효율적으로 추출 가능
-	 */
-	for (const FRenderLight& Light : SceneLights)
+    /**
+     * Culling 제외할 Global Light 추출
+     * 애초에 Global Light 추가 때부터 따로 Array 로 분리한다면 효율적으로 추출 가능
+     */
+    for (const FRenderLight& Light : SceneLights)
     {
         // 전역 Light 는 Culling X
         if (Light.Type != (uint32)ELightType::LightType_AmbientLight &&
@@ -245,36 +247,36 @@ void FRenderer::UpdateSceneLightBuffer(const FRenderBus& InRenderBus)
         GlobalLights.push_back(GlobalLight);
     }
 
-	// 최대 개수를 넘을 경우 전역 라이트 자름
-	uint32 UploadCount = static_cast<uint32>(GlobalLights.size());
-	if (UploadCount > MaxSceneGlobalLightCount)
-	{
-		UE_LOG("[Renderer] Scene light count exceeded the %u light cap. Clamping %u lights to %u.",
+    // 최대 개수를 넘을 경우 전역 라이트 자름
+    uint32 UploadCount = static_cast<uint32>(GlobalLights.size());
+    if (UploadCount > MaxSceneGlobalLightCount)
+    {
+        UE_LOG("[Renderer] Scene light count exceeded the %u light cap. Clamping %u lights to %u.",
                MaxSceneGlobalLightCount, UploadCount, MaxSceneGlobalLightCount);
         UploadCount = MaxSceneGlobalLightCount;
-	}
+    }
 
-	SceneGlobalLightUploadScratch.clear();
-	if (UploadCount > 0)
-	{
+    SceneGlobalLightUploadScratch.clear();
+    if (UploadCount > 0)
+    {
         SceneGlobalLightUploadScratch.assign(GlobalLights.begin(), GlobalLights.begin() + UploadCount);
-	}
+    }
 
-	SceneLightBuffer.Update(
-		Device.GetDeviceContext(),
-		UploadCount > 0 ? SceneGlobalLightUploadScratch.data() : nullptr,
-		UploadCount);
+    SceneLightBuffer.Update(
+        Device.GetDeviceContext(),
+        UploadCount > 0 ? SceneGlobalLightUploadScratch.data() : nullptr,
+        UploadCount);
 
-	RenderPassContext->SceneGlobalLightBufferSRV = SceneLightBuffer.GetSRV();
-	RenderPassContext->SceneGlobalLightCount = UploadCount;
+    RenderPassContext->SceneGlobalLightBufferSRV = SceneLightBuffer.GetSRV();
+    RenderPassContext->SceneGlobalLightCount = UploadCount;
 }
 
 //	RenderBus에 담긴 모든 RenderCommand에 대해서 Draw Call 수행 (GPU)
 void FRenderer::Render(const FRenderBus& InRenderBus)
 {
-	/** Opaque 만 테스트 */
+    /** Opaque 만 테스트 */
     
-	RenderPassContext->Device = Device.GetDevice();
+    RenderPassContext->Device = Device.GetDevice();
     RenderPassContext->DeviceContext = Device.GetDeviceContext();
     RenderPassContext->RenderBus = &InRenderBus;
     RenderPassContext->RenderTargets = CurrentRenderTargets;
@@ -283,10 +285,10 @@ void FRenderer::Render(const FRenderBus& InRenderBus)
     RenderPassContext->SubUVBatcher = &SubUVBatcher;
     RenderPassContext->GridLineBatcher = &GridLineBatcher;
     RenderPassContext->EditorLineBatcher = &EditorLineBatcher;
-	UpdateSceneLightBuffer(InRenderBus);
-	RenderPipeline.Render(RenderPassContext.get());
-	
-	SceneFinalSRV = RenderPipeline.GetOutSRV();
+    UpdateSceneLightBuffer(InRenderBus);
+    RenderPipeline.Render(RenderPassContext.get());
+    
+    SceneFinalSRV = RenderPipeline.GetOutSRV();
 }
 
 FViewportRenderResource& FRenderer::AcquireViewportResource(FSceneViewport* VP, uint32 Width, uint32 Height, int32 Index)
@@ -423,59 +425,59 @@ void FRenderer::ReleaseViewportResource(FSceneViewport* VP, int32 Index)
 // ============================================================
 void FRenderer::InitializePassBatchers()
 {
-	// --- Grid 패스: ShaderGrid/ShaderAxis가 직접 procedural draw ---
+    // --- Grid 패스: ShaderGrid/ShaderAxis가 직접 procedural draw ---
     PassBatchers[(uint32)ERenderPass::Grid] = {
         /*.Clear   =*/[this]()
         { GridLineBatcher.Clear(); },
         /*.Collect =*/[](const FRenderCommand&, const FRenderBus&) {},
     };
 
-	// --- Font 패스: 텍스트 → FontBatcher ---
-	PassBatchers[(uint32)ERenderPass::Font] = {
-		/*.Clear   =*/ [this]() { FontBatcher.Clear(); },
-		/*.Collect =*/ [this](const FRenderCommand& Cmd, const FRenderBus&) {
-			if (Cmd.Type == ERenderCommandType::Font && Cmd.Constants.Font.Text && !Cmd.Constants.Font.Text->empty())
-			{
-				FontBatcher.AddText(
-					*Cmd.Constants.Font.Text,
-					Cmd.PerObjectConstants.Model,
-					Cmd.Constants.Font.Scale
-				);
-			}
-		}
-	};
+    // --- Font 패스: 텍스트 → FontBatcher ---
+    PassBatchers[(uint32)ERenderPass::Font] = {
+        /*.Clear   =*/ [this]() { FontBatcher.Clear(); },
+        /*.Collect =*/ [this](const FRenderCommand& Cmd, const FRenderBus&) {
+            if (Cmd.Type == ERenderCommandType::Font && Cmd.Constants.Font.Text && !Cmd.Constants.Font.Text->empty())
+            {
+                FontBatcher.AddText(
+                    *Cmd.Constants.Font.Text,
+                    Cmd.PerObjectConstants.Model,
+                    Cmd.Constants.Font.Scale
+                );
+            }
+        }
+    };
 
-	// --- SubUV 패스: 스프라이트 → SubUVBatcher ---
-	PassBatchers[(uint32)ERenderPass::SubUV] = {
-		/*.Clear   =*/ [this]() {
-			SubUVBatcher.Clear();
-		},
-		/*.Collect =*/ [this](const FRenderCommand& Cmd, const FRenderBus& Bus) {
-			if (Cmd.Type == ERenderCommandType::SubUV && Cmd.Constants.SubUV.Particle)
-			{
-				const auto& SubUV = Cmd.Constants.SubUV;
-				SubUVBatcher.AddSprite(
-					SubUV.Particle->Texture,
-					Cmd.PerObjectConstants.Model.GetOrigin(),
-					Bus.GetCameraRight(),
-					Bus.GetCameraUp(),
-					Cmd.PerObjectConstants.Model.GetScaleVector(),
-					SubUV.FrameIndex,
-					SubUV.Particle->Columns,
-					SubUV.Particle->Rows,
-					SubUV.Width,
-					SubUV.Height
-				);
-			}
-		}
-	};
+    // --- SubUV 패스: 스프라이트 → SubUVBatcher ---
+    PassBatchers[(uint32)ERenderPass::SubUV] = {
+        /*.Clear   =*/ [this]() {
+            SubUVBatcher.Clear();
+        },
+        /*.Collect =*/ [this](const FRenderCommand& Cmd, const FRenderBus& Bus) {
+            if (Cmd.Type == ERenderCommandType::SubUV && Cmd.Constants.SubUV.Particle)
+            {
+                const auto& SubUV = Cmd.Constants.SubUV;
+                SubUVBatcher.AddSprite(
+                    SubUV.Particle->Texture,
+                    Cmd.PerObjectConstants.Model.GetOrigin(),
+                    Bus.GetCameraRight(),
+                    Bus.GetCameraUp(),
+                    Cmd.PerObjectConstants.Model.GetScaleVector(),
+                    SubUV.FrameIndex,
+                    SubUV.Particle->Columns,
+                    SubUV.Particle->Rows,
+                    SubUV.Width,
+                    SubUV.Height
+                );
+            }
+        }
+    };
 }
 
 //	Present the rendered frame to the screen. 반드시 Render 이후에 호출되어야 함.
 void FRenderer::EndFrame()
 {
 #if STATS
-	FGPUProfiler::Get().EndFrame();
+    FGPUProfiler::Get().EndFrame();
 #endif
-	Device.EndFrame();
+    Device.EndFrame();
 }

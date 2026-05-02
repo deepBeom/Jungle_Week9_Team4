@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** $Id: ldo.h $
 ** Stack and Call structure of Lua
 ** See Copyright Notice in lua.h
@@ -24,8 +24,8 @@
 ** at every check.
 */
 #define luaD_checkstackaux(L,n,pre,pos)  \
-	if (l_unlikely(L->stack_last.p - L->top.p <= (n))) \
-	  { pre; luaD_growstack(L, n, 1); pos; } \
+    if (l_unlikely(L->stack_last.p - L->top.p <= (n))) \
+      { pre; luaD_growstack(L, n, 1); pos; } \
         else { condmovestack(L,pre,pos); }
 
 /* In general, 'pre'/'pos' are empty (nothing to save) */
@@ -54,7 +54,7 @@
 
 /* macro to check stack size and GC */
 #define checkstackGC(L,fsize)  \
-	luaD_checkstackaux(L, (fsize), luaC_checkGC(L), (void)0)
+    luaD_checkstackaux(L, (fsize), luaC_checkGC(L), (void)0)
 
 
 /* type of protected functions, to be ran by 'runprotected' */

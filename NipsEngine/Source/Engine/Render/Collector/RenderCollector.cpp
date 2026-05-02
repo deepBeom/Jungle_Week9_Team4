@@ -1,6 +1,8 @@
 ﻿#include "RenderCollector.h"
 
 #include "Render/LineBatcher.h"
+#include "Collision/CollisionSystem.h"
+#include "Render/Renderer/RenderFlow/ShadowAtlasManager.h"
 #include "GameFramework/World.h"
 #include "GameFramework/Actor.h"
 #include "Object/ActorIterator.h"
@@ -17,178 +19,187 @@
 
 namespace
 {
-	void AddDebugLightShape(const ULightComponent* LightComponent, FLineBatcher* LineBatcher)
-	{
-		if (LightComponent == nullptr || LineBatcher == nullptr || !LightComponent->IsDebugDrawEnabled() || !LightComponent->IsVisible())
-		{
-			return;
-		}
+    void AddDebugLightShape(const ULightComponent* LightComponent, FLineBatcher* LineBatcher)
+    {
+        if (LightComponent == nullptr || LineBatcher == nullptr || !LightComponent->IsDebugDrawEnabled() || !LightComponent->IsVisible())
+        {
+            return;
+        }
 
-		switch (LightComponent->GetLightType())
-		{
-		case ELightType::LightType_Directional:
-		{
-			const UDirectionalLightComponent* Light = Cast<UDirectionalLightComponent>(LightComponent);
-			if (Light != nullptr)
-			{
-				LineBatcher->AddDirectionalLight(
-					Light->GetWorldLocation(),
-					Light->GetForwardVector(),
-					Light->GetRightVector(),
-					Light->GetLightColor().ToVector4());
-			}
-			break;
-		}
-		case ELightType::LightType_Point:
-		{
-			const UPointLightComponent* Light = Cast<UPointLightComponent>(LightComponent);
-			if (Light != nullptr)
-			{
-				LineBatcher->AddPointLight(
-					Light->GetWorldLocation(),
-					Light->GetAttenuationRadius(),
-					Light->GetRightVector(),
-					Light->GetUpVector());
-			}
-			break;
-		}
-		case ELightType::LightType_Spot:
-		{
-			const USpotLightComponent* Light = Cast<USpotLightComponent>(LightComponent);
-			if (Light != nullptr)
-			{
-				LineBatcher->AddSpotLight(
-					Light->GetWorldLocation(),
-					Light->GetUpVector() * -1.0f,
-					Light->GetRightVector() * -1.0f,
-					Light->GetAttenuationRadius(),
-					Light->GetInnerConeAngle(),
-					Light->GetOuterConeAngle());
-			}
-			break;
-		}
-		default:
-			break;
-		}
-	}
+        switch (LightComponent->GetLightType())
+        {
+        case ELightType::LightType_Directional:
+        {
+            const UDirectionalLightComponent* Light = Cast<UDirectionalLightComponent>(LightComponent);
+            if (Light != nullptr)
+            {
+                LineBatcher->AddDirectionalLight(
+                    Light->GetWorldLocation(),
+                    Light->GetForwardVector(),
+                    Light->GetRightVector(),
+                    Light->GetLightColor().ToVector4());
+            }
+            break;
+        }
+        case ELightType::LightType_Point:
+        {
+            const UPointLightComponent* Light = Cast<UPointLightComponent>(LightComponent);
+            if (Light != nullptr)
+            {
+                LineBatcher->AddPointLight(
+                    Light->GetWorldLocation(),
+                    Light->GetAttenuationRadius(),
+                    Light->GetRightVector(),
+                    Light->GetUpVector());
+            }
+            break;
+        }
+        case ELightType::LightType_Spot:
+        {
+            const USpotLightComponent* Light = Cast<USpotLightComponent>(LightComponent);
+            if (Light != nullptr)
+            {
+                LineBatcher->AddSpotLight(
+                    Light->GetWorldLocation(),
+                    Light->GetUpVector() * -1.0f,
+                    Light->GetRightVector() * -1.0f,
+                    Light->GetAttenuationRadius(),
+                    Light->GetInnerConeAngle(),
+                    Light->GetOuterConeAngle());
+            }
+            break;
+        }
+        default:
+            break;
+        }
+    }
 
-	// ─────────────────── Billboard, SubUV ───────────────────
-	FMatrix MakeViewSubUVSelectionMatrix(const USubUVComponent* SubUVComp, const FRenderBus& RenderBus);
+    // ─────────────────── Billboard, SubUV ───────────────────
+    FMatrix MakeViewSubUVSelectionMatrix(const USubUVComponent* SubUVComp, const FRenderBus& RenderBus);
 
-	// ─────────────────── AABB, BVH ───────────────────
-	bool UsesCameraDependentRenderBounds(const UPrimitiveComponent* PrimitiveComponent);
-	FAABB BuildQuadAABB(const FMatrix& WorldMatrix);
-	FAABB BuildRenderAABB(const UPrimitiveComponent* PrimitiveComponent, const FRenderBus& RenderBus);
+    // ─────────────────── AABB, BVH ───────────────────
+    bool UsesCameraDependentRenderBounds(const UPrimitiveComponent* PrimitiveComponent);
+    FAABB BuildQuadAABB(const FMatrix& WorldMatrix);
+    FAABB BuildRenderAABB(const UPrimitiveComponent* PrimitiveComponent, const FRenderBus& RenderBus);
+    void DrawDebugOverlap(FLineBatcher* LineBatcher, const FCollisionDebugContact& Contact);
+	void DrawDebugContactPoint(FLineBatcher* LineBatcher, const FVector& Location, float Size);
 } // namespace
 
 void FRenderCollector::ResetCullingStats()
 {
-	LastStats.Culling = {};
+    LastStats.Culling = {};
 }
 
 void FRenderCollector::ResetDecalStats()
 {
-	LastStats.Decal = {};
+    LastStats.Decal = {};
 }
 
 void FRenderCollector::ResetShadowStats()
 {
-	LastStats.Shadow = {};
+    LastStats.Shadow = {};
 }
 
 void FRenderCollector::Initialize(ID3D11Device* InDevice)
 {
-	MeshBufferManager.Create(InDevice);
-	LightRenderCollector.Initialize(&MeshBufferManager);
-	OverlayRenderCollector.Initialize(&MeshBufferManager);
-	PrimitiveRenderCollector.Initialize(&MeshBufferManager);
+    MeshBufferManager.Create(InDevice);
+    LightRenderCollector.Initialize(&MeshBufferManager);
+    OverlayRenderCollector.Initialize(&MeshBufferManager);
+    PrimitiveRenderCollector.Initialize(&MeshBufferManager);
 }
 
 void FRenderCollector::Release()
 {
-	LineBatcher = nullptr;
-	LightRenderCollector.Release();
-	OverlayRenderCollector.Release();
-	PrimitiveRenderCollector.Release();
-	MeshBufferManager.Release();
+    LineBatcher = nullptr;
+    LightRenderCollector.Release();
+    OverlayRenderCollector.Release();
+    PrimitiveRenderCollector.Release();
+    MeshBufferManager.Release();
 }
 
 void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus,
-									const FFrustum* ViewFrustum)
+                                    const FFrustum* ViewFrustum)
 {
-	ResetCullingStats();
-	ResetDecalStats();
-	ResetShadowStats();
+    ResetCullingStats();
+    ResetDecalStats();
+    ResetShadowStats();
 
-	if (!World)
-		return;
+    if (!World)
+        return;
 
-	CollectLight(World, ShowFlags, RenderBus, ViewFrustum);
-	if (ShowFlags.bShadow)
+    CollectLight(World, ShowFlags, RenderBus, ViewFrustum);
+    if (ShowFlags.bShadow)
+    {
+        CollectShadowCasters(World, RenderBus);
+    }
+
+    if (ViewFrustum)
+    {
+        VisiblePrimitiveScratch.clear();
+        World->GetSpatialIndex().FrustumQueryPrimitives(*ViewFrustum, VisiblePrimitiveScratch, FrustumQueryScratch);
+
+        for (UPrimitiveComponent* Primitive : VisiblePrimitiveScratch)
+        {
+            if (Primitive == nullptr || UsesCameraDependentRenderBounds(Primitive) || !Primitive->IsEnableCull())
+                continue;
+            ++LastStats.Culling.BVHPassedPrimitiveCount;
+            CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
+        }
+    }
+
+    std::unordered_set<UPrimitiveComponent*> CollectCameraDependentPrimitives;
+    if (ViewFrustum)
+    {
+        CollectCameraDependentPrimitives.reserve(32);
+    }
+
+    // Frustum이 없다면 액터 단위로 통째로 수집하고, 그렇지 않다면 BVH에서 누락된 컴포넌트들을 개별 수집
+    for (TActorIterator<AActor> Iter(World); Iter; ++Iter)
+    {
+        AActor* Actor = *Iter;
+        if (!Actor || !Actor->IsVisible())
+            continue;
+
+        if (!ViewFrustum)
+        {
+            for (UPrimitiveComponent* Primitive : Actor->GetPrimitiveComponents())
+            {
+                if (Primitive != nullptr && !Primitive->IsVisible())
+                {
+                    ++LastStats.Culling.TotalVisiblePrimitiveCount;
+                }
+            }
+            CollectFromActor(Actor, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
+            continue; // early-continue
+        }
+
+        // 이미 처리된 컴포넌트, 중복된 컴포넌트는 제외하고 Frustum Culling 수행
+        for (UPrimitiveComponent* Primitive : Actor->GetPrimitiveComponents())
+        {
+            if (!Primitive || !Primitive->IsVisible())
+                continue;
+
+            ++LastStats.Culling.TotalVisiblePrimitiveCount;
+
+            const bool bIsCameraDependent = UsesCameraDependentRenderBounds(Primitive);
+            if (!bIsCameraDependent && Primitive->IsEnableCull() || !CollectCameraDependentPrimitives.insert(Primitive).second)
+                continue;
+
+            if (bIsCameraDependent && Primitive->IsEnableCull())
+            {
+                if (ViewFrustum->Intersects(BuildRenderAABB(Primitive, RenderBus)) == FFrustum::EFrustumIntersectResult::Outside)
+                    continue;
+            }
+
+            ++LastStats.Culling.FallbackPassedPrimitiveCount;
+            CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
+        }
+    }
+    if (World->GetWorldType() == EWorldType::Editor && ShowFlags.bCollisionDebug && LineBatcher != nullptr)
 	{
-		CollectShadowCasters(World, RenderBus);
-	}
-
-	if (ViewFrustum)
-	{
-		VisiblePrimitiveScratch.clear();
-		World->GetSpatialIndex().FrustumQueryPrimitives(*ViewFrustum, VisiblePrimitiveScratch, FrustumQueryScratch);
-
-		for (UPrimitiveComponent* Primitive : VisiblePrimitiveScratch)
+		for (const FCollisionDebugContact& Contact : World->GetCollisionSystem().GetDebugContacts())
 		{
-			if (Primitive == nullptr || UsesCameraDependentRenderBounds(Primitive) || !Primitive->IsEnableCull())
-				continue;
-			++LastStats.Culling.BVHPassedPrimitiveCount;
-			CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
-		}
-	}
-
-	std::unordered_set<UPrimitiveComponent*> CollectCameraDependentPrimitives;
-	if (ViewFrustum)
-	{
-		CollectCameraDependentPrimitives.reserve(32);
-	}
-
-	// Frustum이 없다면 액터 단위로 통째로 수집하고, 그렇지 않다면 BVH에서 누락된 컴포넌트들을 개별 수집
-	for (TActorIterator<AActor> Iter(World); Iter; ++Iter)
-	{
-		AActor* Actor = *Iter;
-		if (!Actor || !Actor->IsVisible())
-			continue;
-
-		if (!ViewFrustum)
-		{
-			for (UPrimitiveComponent* Primitive : Actor->GetPrimitiveComponents())
-			{
-				if (Primitive != nullptr && !Primitive->IsVisible())
-				{
-					++LastStats.Culling.TotalVisiblePrimitiveCount;
-				}
-			}
-			CollectFromActor(Actor, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
-			continue; // early-continue
-		}
-
-		// 이미 처리된 컴포넌트, 중복된 컴포넌트는 제외하고 Frustum Culling 수행
-		for (UPrimitiveComponent* Primitive : Actor->GetPrimitiveComponents())
-		{
-			if (!Primitive || !Primitive->IsVisible())
-				continue;
-
-			++LastStats.Culling.TotalVisiblePrimitiveCount;
-
-			const bool bIsCameraDependent = UsesCameraDependentRenderBounds(Primitive);
-			if (!bIsCameraDependent && Primitive->IsEnableCull() || !CollectCameraDependentPrimitives.insert(Primitive).second)
-				continue;
-
-			if (bIsCameraDependent && Primitive->IsEnableCull())
-			{
-				if (ViewFrustum->Intersects(BuildRenderAABB(Primitive, RenderBus)) == FFrustum::EFrustumIntersectResult::Outside)
-					continue;
-			}
-
-			++LastStats.Culling.FallbackPassedPrimitiveCount;
-			CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
+			DrawDebugOverlap(LineBatcher, Contact);
 		}
 	}
 }
@@ -198,150 +209,190 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 // Frustum Culling을 통해 Light Collect와 Shadow Collect를 동시에 수행해줍니다.
 void FRenderCollector::CollectLight(UWorld* World, const FShowFlags& ShowFlags, FRenderBus& RenderBus, const FFrustum* ViewFrustum)
 {
-	(void)ShowFlags;
-	LightRenderCollector.CollectLight(World, RenderBus, LastStats, ViewFrustum);
+    (void)ShowFlags;
+    LightRenderCollector.CollectLight(World, RenderBus, LastStats, ViewFrustum);
 
-	if (World == nullptr || LineBatcher == nullptr)
-	{
-		return;
-	}
+    if (World == nullptr || LineBatcher == nullptr)
+    {
+        return;
+    }
 
-	for (const FLightSlot& Slot : World->GetWorldLightSlots())
-	{
-		const ULightComponent* LightComponent = Cast<ULightComponent>(Slot.LightData);
-		if (!Slot.bAlive || LightComponent == nullptr)
-		{
-			continue;
-		}
+    for (const FLightSlot& Slot : World->GetWorldLightSlots())
+    {
+        const ULightComponent* LightComponent = Cast<ULightComponent>(Slot.LightData);
+        if (!Slot.bAlive || LightComponent == nullptr)
+        {
+            continue;
+        }
 
-		AddDebugLightShape(LightComponent, LineBatcher);
-	}
+        AddDebugLightShape(LightComponent, LineBatcher);
+    }
 }
 
 void FRenderCollector::CollectShadowCasters(UWorld* World, FRenderBus& RenderBus)
 {
-	LightRenderCollector.CollectShadowCasters(World, RenderBus);
+    LightRenderCollector.CollectShadowCasters(World, RenderBus);
 }
 
 void FRenderCollector::CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus)
 {
-	OverlayRenderCollector.CollectSelection(SelectedActors, ShowFlags, ViewMode, RenderBus, LineBatcher);
+    OverlayRenderCollector.CollectSelection(SelectedActors, ShowFlags, ViewMode, RenderBus, LineBatcher);
 }
 
 void FRenderCollector::CollectGrid(
-	float GridSpacing,
-	int32 GridHalfLineCount,
-	FRenderBus& RenderBus,
-	bool bOrthographic,
-	const FGridRenderSettings& GridRenderSettings)
+    float GridSpacing,
+    int32 GridHalfLineCount,
+    FRenderBus& RenderBus,
+    bool bOrthographic,
+    const FGridRenderSettings& GridRenderSettings)
 {
-	OverlayRenderCollector.CollectGrid(GridSpacing, GridHalfLineCount, RenderBus, bOrthographic, GridRenderSettings);
+    OverlayRenderCollector.CollectGrid(GridSpacing, GridHalfLineCount, RenderBus, bOrthographic, GridRenderSettings);
 }
 
 void FRenderCollector::CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus, bool bIsActiveOperation)
 {
-	OverlayRenderCollector.CollectGizmo(Gizmo, ShowFlags, RenderBus, bIsActiveOperation);
+    OverlayRenderCollector.CollectGizmo(Gizmo, ShowFlags, RenderBus, bIsActiveOperation);
 }
 
 void FRenderCollector::CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType)
 {
-	PrimitiveRenderCollector.CollectFromActor(Actor, ShowFlags, ViewMode, RenderBus, WorldType, LastStats, LineBatcher);
+    PrimitiveRenderCollector.CollectFromActor(Actor, ShowFlags, ViewMode, RenderBus, WorldType, LastStats, LineBatcher);
 }
 
 void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType)
 {
-	PrimitiveRenderCollector.CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, WorldType, LastStats, LineBatcher);
+    PrimitiveRenderCollector.CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, WorldType, LastStats, LineBatcher);
 }
 
 void FRenderCollector::CollectBVHInternalNodeAABBs(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus, std::unordered_set<int32>& SeenNodeIndices)
 {
-	OverlayRenderCollector.CollectBVHInternalNodeAABBs(PrimitiveComponent, ShowFlags, RenderBus, LineBatcher, SeenNodeIndices);
+    OverlayRenderCollector.CollectBVHInternalNodeAABBs(PrimitiveComponent, ShowFlags, RenderBus, LineBatcher, SeenNodeIndices);
 }
 
 // ─────────────────── namespace ────────────────────────────────────────────────────────────
 
 namespace
+    {
+    bool UsesCameraDependentRenderBounds(const UPrimitiveComponent* PrimitiveComponent)
+    {
+        if (PrimitiveComponent == nullptr)
+        {
+            return false;
+        }
+
+        switch (PrimitiveComponent->GetPrimitiveType())
+        {
+        case EPrimitiveType::EPT_Billboard:
+        case EPrimitiveType::EPT_Text:
+        case EPrimitiveType::EPT_SubUV:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    void DrawDebugOverlap(FLineBatcher* LineBatcher, const FCollisionDebugContact& Contact)
 	{
-	bool UsesCameraDependentRenderBounds(const UPrimitiveComponent* PrimitiveComponent)
-	{
-		if (PrimitiveComponent == nullptr)
+		if (LineBatcher == nullptr)
 		{
-			return false;
+			return;
 		}
 
-		switch (PrimitiveComponent->GetPrimitiveType())
+		if (Contact.bHasOverlapBounds)
 		{
-		case EPrimitiveType::EPT_Billboard:
-		case EPrimitiveType::EPT_Text:
-		case EPrimitiveType::EPT_SubUV:
-			return true;
-		default:
-			return false;
+			LineBatcher->AddAABB(Contact.OverlapBounds, FColor::Yellow());
 		}
+
+		DrawDebugContactPoint(LineBatcher, Contact.Location, 4.0f);
 	}
 
-	FMatrix MakeViewSubUVSelectionMatrix(const USubUVComponent* SubUVComp, const FRenderBus& RenderBus)
+	void DrawDebugContactPoint(FLineBatcher* LineBatcher, const FVector& Location, float Size)
 	{
-		const FVector WorldScale = SubUVComp->GetWorldScale();
-		return USubUVComponent::MakeBillboardWorldMatrix(
-			SubUVComp->GetWorldLocation(),
-			FVector(
-				WorldScale.X > 0.01f ? WorldScale.X : 0.01f,
-				SubUVComp->GetWidth() * WorldScale.Y,
-				SubUVComp->GetHeight() * WorldScale.Z),
-			RenderBus.GetCameraForward(),
-			RenderBus.GetCameraRight(),
-			RenderBus.GetCameraUp());
+		if (LineBatcher == nullptr)
+		{
+			return;
+		}
+
+		const FVector4 Color = FColor::Yellow().ToVector4();
+
+		LineBatcher->AddLine(
+			Location - FVector(Size, 0.0f, 0.0f),
+			Location + FVector(Size, 0.0f, 0.0f),
+			Color);
+
+		LineBatcher->AddLine(
+			Location - FVector(0.0f, Size, 0.0f),
+			Location + FVector(0.0f, Size, 0.0f),
+			Color);
+
+		LineBatcher->AddLine(
+			Location - FVector(0.0f, 0.0f, Size),
+			Location + FVector(0.0f, 0.0f, Size),
+			Color);
 	}
 
-	// BillBoardComponent를 상속받은 text, SubUV가 사용하는 AABB 계산함수(의존성 분리)
-	FAABB BuildQuadAABB(const FMatrix& WorldMatrix)
-	{
-		static constexpr FVector LocalQuadCorners[4] = {
-			FVector(0.0f, -0.5f, 0.5f),
-			FVector(0.0f, 0.5f, 0.5f),
-			FVector(0.0f, 0.5f, -0.5f),
-			FVector(0.0f, -0.5f, -0.5f)
-		};
+    FMatrix MakeViewSubUVSelectionMatrix(const USubUVComponent* SubUVComp, const FRenderBus& RenderBus)
+    {
+        const FVector WorldScale = SubUVComp->GetWorldScale();
+        return USubUVComponent::MakeBillboardWorldMatrix(
+            SubUVComp->GetWorldLocation(),
+            FVector(
+                WorldScale.X > 0.01f ? WorldScale.X : 0.01f,
+                SubUVComp->GetWidth() * WorldScale.Y,
+                SubUVComp->GetHeight() * WorldScale.Z),
+            RenderBus.GetCameraForward(),
+            RenderBus.GetCameraRight(),
+            RenderBus.GetCameraUp());
+    }
 
-		FAABB Box;
-		Box.Reset();
+    // BillBoardComponent를 상속받은 text, SubUV가 사용하는 AABB 계산함수(의존성 분리)
+    FAABB BuildQuadAABB(const FMatrix& WorldMatrix)
+    {
+        static constexpr FVector LocalQuadCorners[4] = {
+            FVector(0.0f, -0.5f, 0.5f),
+            FVector(0.0f, 0.5f, 0.5f),
+            FVector(0.0f, 0.5f, -0.5f),
+            FVector(0.0f, -0.5f, -0.5f)
+        };
 
-		for (const FVector& Corner : LocalQuadCorners)
-		{
-			Box.Expand(WorldMatrix.TransformPosition(Corner));
-		}
+        FAABB Box;
+        Box.Reset();
 
-		return Box;
-	}
+        for (const FVector& Corner : LocalQuadCorners)
+        {
+            Box.Expand(WorldMatrix.TransformPosition(Corner));
+        }
 
-	FAABB BuildRenderAABB(const UPrimitiveComponent* PrimitiveComponent, const FRenderBus& RenderBus)
-	{
-		switch (PrimitiveComponent->GetPrimitiveType())
-		{
-		case EPrimitiveType::EPT_Billboard:
-		{
-			const UBillboardComponent* BillboardComponent = static_cast<const UBillboardComponent*>(PrimitiveComponent);
-			return BuildQuadAABB(UBillboardComponent::MakeBillboardWorldMatrix(
-				BillboardComponent->GetWorldLocation(),
-				FVector(0.00f, BillboardComponent->GetWidth(), BillboardComponent->GetHeight()),
-				RenderBus.GetCameraForward(),
-				RenderBus.GetCameraRight(),
-				RenderBus.GetCameraUp()));
-		}
-		case EPrimitiveType::EPT_Text:
-		{
-			const UTextRenderComponent* TextComp = static_cast<const UTextRenderComponent*>(PrimitiveComponent);
-			return BuildQuadAABB(TextComp->GetTextMatrix());
-		}
-		case EPrimitiveType::EPT_SubUV:
-		{
-			const USubUVComponent* SubUVComp = static_cast<const USubUVComponent*>(PrimitiveComponent);
-			return BuildQuadAABB(MakeViewSubUVSelectionMatrix(SubUVComp, RenderBus));
-		}
+        return Box;
+    }
 
-		default:
-			return PrimitiveComponent->GetWorldAABB();
-		}
-	}
+    FAABB BuildRenderAABB(const UPrimitiveComponent* PrimitiveComponent, const FRenderBus& RenderBus)
+    {
+        switch (PrimitiveComponent->GetPrimitiveType())
+        {
+        case EPrimitiveType::EPT_Billboard:
+        {
+            const UBillboardComponent* BillboardComponent = static_cast<const UBillboardComponent*>(PrimitiveComponent);
+            return BuildQuadAABB(UBillboardComponent::MakeBillboardWorldMatrix(
+                BillboardComponent->GetWorldLocation(),
+                FVector(0.00f, BillboardComponent->GetWidth(), BillboardComponent->GetHeight()),
+                RenderBus.GetCameraForward(),
+                RenderBus.GetCameraRight(),
+                RenderBus.GetCameraUp()));
+        }
+        case EPrimitiveType::EPT_Text:
+        {
+            const UTextRenderComponent* TextComp = static_cast<const UTextRenderComponent*>(PrimitiveComponent);
+            return BuildQuadAABB(TextComp->GetTextMatrix());
+        }
+        case EPrimitiveType::EPT_SubUV:
+        {
+            const USubUVComponent* SubUVComp = static_cast<const USubUVComponent*>(PrimitiveComponent);
+            return BuildQuadAABB(MakeViewSubUVSelectionMatrix(SubUVComp, RenderBus));
+        }
+
+        default:
+            return PrimitiveComponent->GetWorldAABB();
+        }
+    }
 } // namespace

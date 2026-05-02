@@ -65,86 +65,86 @@ std::wstring FPaths::ResourceDefaultMaterialTexture() { return RootDir() + L"Ass
 
 std::wstring FPaths::Combine(const std::wstring& Base, const std::wstring& Child)
 {
-	std::filesystem::path Result(Base);
-	Result /= Child;
-	return Result.generic_wstring(); // backslash를 slash로 변환해서 반환한다.
+    std::filesystem::path Result(Base);
+    Result /= Child;
+    return Result.generic_wstring(); // backslash를 slash로 변환해서 반환한다.
 }
 
 void FPaths::CreateDir(const std::wstring& Path)
 {
-	std::filesystem::create_directories(Path);
+    std::filesystem::create_directories(Path);
 }
 
 std::wstring FPaths::ToWide(const std::string& Utf8Str)
 {
-	if (Utf8Str.empty()) return {};
-	int32_t Size = MultiByteToWideChar(CP_UTF8, 0, Utf8Str.c_str(), -1, nullptr, 0);
-	std::wstring Result(Size - 1, L'\0');
-	MultiByteToWideChar(CP_UTF8, 0, Utf8Str.c_str(), -1, &Result[0], Size);
-	return Result;
+    if (Utf8Str.empty()) return {};
+    int32_t Size = MultiByteToWideChar(CP_UTF8, 0, Utf8Str.c_str(), -1, nullptr, 0);
+    std::wstring Result(Size - 1, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, Utf8Str.c_str(), -1, &Result[0], Size);
+    return Result;
 }
 
 std::string FPaths::ToUtf8(const std::wstring& WideStr)
 {
-	if (WideStr.empty()) return {};
-	int32_t Size = WideCharToMultiByte(CP_UTF8, 0, WideStr.c_str(), static_cast<int>(WideStr.length()), nullptr, 0, nullptr, nullptr);
-	std::string Result(Size, '\0');
-	WideCharToMultiByte(CP_UTF8, 0, WideStr.c_str(), static_cast<int>(WideStr.length()), Result.data(), Size, nullptr, nullptr);
-	return Result;
+    if (WideStr.empty()) return {};
+    int32_t Size = WideCharToMultiByte(CP_UTF8, 0, WideStr.c_str(), static_cast<int>(WideStr.length()), nullptr, 0, nullptr, nullptr);
+    std::string Result(Size, '\0');
+    WideCharToMultiByte(CP_UTF8, 0, WideStr.c_str(), static_cast<int>(WideStr.length()), Result.data(), Size, nullptr, nullptr);
+    return Result;
 }
 
 FString FPaths::ToString(const std::wstring& wstring)
 {
-	return ToUtf8(wstring);
+    return ToUtf8(wstring);
 }
 
 //	절대경로를 입력받아서 RootDir 기준의 상대 경로로 변환한다.
 std::wstring FPaths::ToRelative(const std::wstring& AbsolutePath)
 {
-	if (AbsolutePath.empty()) return L"";
+    if (AbsolutePath.empty()) return L"";
 
-	std::filesystem::path AbsPath(AbsolutePath);
-	std::filesystem::path Root(RootDir());
-	
-	//	RootDir 기준으로 상대 경로를 계산 (예: Asset/Scene/map.json)
-	std::filesystem::path RelPath = std::filesystem::relative(AbsPath, Root);
-	if (RelPath.empty())
+    std::filesystem::path AbsPath(AbsolutePath);
+    std::filesystem::path Root(RootDir());
+    
+    //	RootDir 기준으로 상대 경로를 계산 (예: Asset/Scene/map.json)
+    std::filesystem::path RelPath = std::filesystem::relative(AbsPath, Root);
+    if (RelPath.empty())
     {
         return AbsPath.lexically_normal().generic_wstring(); 
     }
 
-	return RelPath.generic_wstring();
+    return RelPath.generic_wstring();
 }
 
 //	상대 경로를 입력받아서 RootDir 기준의 절대 경로로 변환한다.
 std::wstring FPaths::ToAbsolute(const std::wstring& RelativePath)
 {
-	if (RelativePath.empty()) return L"";
+    if (RelativePath.empty()) return L"";
 
-	std::filesystem::path TargetPath(RelativePath);
+    std::filesystem::path TargetPath(RelativePath);
 
-	// 이미 C:/ 등 절대 경로라면 변환하지 않고 그대로 반환
-	if (TargetPath.is_absolute())
-	{
-		return TargetPath.generic_wstring();
-	}
+    // 이미 C:/ 등 절대 경로라면 변환하지 않고 그대로 반환
+    if (TargetPath.is_absolute())
+    {
+        return TargetPath.generic_wstring();
+    }
 
-	std::filesystem::path Root(RootDir());
-	
-	// 상대 경로라면 RootDir에 붙인 뒤, 불필요한 슬래시 등을 정리(lexically_normal)
-	return (Root / TargetPath).lexically_normal().generic_wstring();
+    std::filesystem::path Root(RootDir());
+    
+    // 상대 경로라면 RootDir에 붙인 뒤, 불필요한 슬래시 등을 정리(lexically_normal)
+    return (Root / TargetPath).lexically_normal().generic_wstring();
 }
 
 // 절대경로를 입력받아서 RootDir 기준의 상대 경로 string으로 변환한다.
 std::string FPaths::ToRelativeString(const std::wstring &AbsolutePath) 
 {
-	return ToUtf8(ToRelative(AbsolutePath));
+    return ToUtf8(ToRelative(AbsolutePath));
 }
 
 // 상대 경로를 입력받아서 RootDir 기준의 절대 경로 string으로 변환한다.
 std::string FPaths::ToAbsoluteString(const std::wstring &RelativePath) 
 {
-	return ToUtf8(ToAbsolute(RelativePath));
+    return ToUtf8(ToAbsolute(RelativePath));
 }
 
 // JSON 경로를 불러와서 FString 문자열로 변경할 때 사용하는 헬퍼 함수, 한글/한자 경로에 안전

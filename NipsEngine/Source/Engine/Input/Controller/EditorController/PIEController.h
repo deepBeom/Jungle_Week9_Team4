@@ -29,11 +29,11 @@ class FPIEController : public IViewportInputController
     void SetEndPIECallback(std::function<void()> Callback) { OnRequestEndPIE = std::move(Callback); }
     void ClearEndPIECallback() { OnRequestEndPIE = nullptr; }
 
-	FVector GetTargetLocation() const { return TargetLocation; }
-	void SetTargetLocation(FVector InTargetLoc) { TargetLocation = InTargetLoc; }
+    FVector GetTargetLocation() const { return TargetLocation; }
+    void SetTargetLocation(FVector InTargetLoc) { TargetLocation = InTargetLoc; }
 
   private:
-	void UpdateCameraRotation();
+    void UpdateCameraRotation();
   private:
     FViewportCamera*      Camera = nullptr;
     std::function<void()> OnRequestEndPIE;

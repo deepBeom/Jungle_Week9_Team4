@@ -8,58 +8,58 @@
 #include <filesystem>
 
 bool FFontAtlasLoader::Load(const FName& FontName, const FString& Path, uint32 Columns, uint32 Rows,
-	ID3D11Device* Device, FFontResource& OutResource) const
+    ID3D11Device* Device, FFontResource& OutResource) const
 {
-	if (!Device || Path.empty())
-	{
-		return false;
-	}
+    if (!Device || Path.empty())
+    {
+        return false;
+    }
 
-	std::wstring FullPath = FPaths::Combine(FPaths::RootDir(), FPaths::ToWide(Path));
-	const std::wstring Extension = std::filesystem::path(FullPath).extension().wstring();
+    std::wstring FullPath = FPaths::Combine(FPaths::RootDir(), FPaths::ToWide(Path));
+    const std::wstring Extension = std::filesystem::path(FullPath).extension().wstring();
 
-	HRESULT Hr = E_FAIL;
+    HRESULT Hr = E_FAIL;
 
-	if (Extension == L".dds" || Extension == L".DDS")
-	{
-		Hr = DirectX::CreateDDSTextureFromFileEx(
-			Device,
-			FullPath.c_str(),
-			0,
-			D3D11_USAGE_IMMUTABLE,
-			D3D11_BIND_SHADER_RESOURCE,
-			0,
-			0,
-			DirectX::DDS_LOADER_DEFAULT,
-			nullptr,
-			OutResource.Texture->GetAddressOfSRV());
-	}
-	else
-	{
-		Hr = DirectX::CreateWICTextureFromFile(Device, FullPath.c_str(), nullptr, OutResource.Texture->GetAddressOfSRV());
-	}
+    if (Extension == L".dds" || Extension == L".DDS")
+    {
+        Hr = DirectX::CreateDDSTextureFromFileEx(
+            Device,
+            FullPath.c_str(),
+            0,
+            D3D11_USAGE_IMMUTABLE,
+            D3D11_BIND_SHADER_RESOURCE,
+            0,
+            0,
+            DirectX::DDS_LOADER_DEFAULT,
+            nullptr,
+            OutResource.Texture->GetAddressOfSRV());
+    }
+    else
+    {
+        Hr = DirectX::CreateWICTextureFromFile(Device, FullPath.c_str(), nullptr, OutResource.Texture->GetAddressOfSRV());
+    }
 
-	if (FAILED(Hr))
-	{
-		return false;
-	}
+    if (FAILED(Hr))
+    {
+        return false;
+    }
 
-	OutResource.Name = FontName;
-	OutResource.Path = Path;
-	OutResource.Columns = Columns;
-	OutResource.Rows = Rows;
-	return true;
+    OutResource.Name = FontName;
+    OutResource.Path = Path;
+    OutResource.Columns = Columns;
+    OutResource.Rows = Rows;
+    return true;
 }
 
 bool FFontAtlasLoader::SupportsExtension(const FString& Extension) const
 {
-	return Extension == ".dds" || Extension == "dds"
-		|| Extension == ".png" || Extension == "png"
-		|| Extension == ".jpg" || Extension == "jpg"
-		|| Extension == ".jpeg" || Extension == "jpeg";
+    return Extension == ".dds" || Extension == "dds"
+        || Extension == ".png" || Extension == "png"
+        || Extension == ".jpg" || Extension == "jpg"
+        || Extension == ".jpeg" || Extension == "jpeg";
 }
 
 FString FFontAtlasLoader::GetLoaderName() const
 {
-	return "FFontAtlasLoader";
+    return "FFontAtlasLoader";
 }

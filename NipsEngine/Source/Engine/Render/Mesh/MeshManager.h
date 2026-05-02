@@ -7,26 +7,26 @@
 
 class FEditorMeshLibrary : public TSingleton<FEditorMeshLibrary>
 {
-	friend class TSingleton<FEditorMeshLibrary>;
+    friend class TSingleton<FEditorMeshLibrary>;
 
 private:
-	FEditorMeshLibrary() = default;
+    FEditorMeshLibrary() = default;
 
-	static FMeshData TranslationGizmoMeshData;
-	static FMeshData RotationGizmoMeshData;
-	static FMeshData ScaleGizmoMeshData;
-	
-	static void CreateTranslationGizmo();
-	static void CreateRotationGizmo();
-	static void CreateScaleGizmo();
+    static FMeshData TranslationGizmoMeshData;
+    static FMeshData RotationGizmoMeshData;
+    static FMeshData ScaleGizmoMeshData;
+    
+    static void CreateTranslationGizmo();
+    static void CreateRotationGizmo();
+    static void CreateScaleGizmo();
 
-	static bool bIsInitialized;
+    static bool bIsInitialized;
 
 public:
-	static void Initialize();
-	static const FMeshData& GetTranslationGizmo() { return Get().TranslationGizmoMeshData; }
-	static const FMeshData& GetRotationGizmo() { return Get().RotationGizmoMeshData; }
-	static const FMeshData& GetScaleGizmo() { return Get().ScaleGizmoMeshData; }
+    static void Initialize();
+    static const FMeshData& GetTranslationGizmo() { return Get().TranslationGizmoMeshData; }
+    static const FMeshData& GetRotationGizmo() { return Get().RotationGizmoMeshData; }
+    static const FMeshData& GetScaleGizmo() { return Get().ScaleGizmoMeshData; }
 
 };
 

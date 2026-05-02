@@ -7,22 +7,22 @@
 */
 struct FDelegateHandle
 {
-	static constexpr uint64 InvalidID = 0;
+    static constexpr uint64 InvalidID = 0;
 public:
-	FDelegateHandle() = default;
+    FDelegateHandle() = default;
 
-	// 컴파일러에 따른 묵시적 형변환을 막음
-	explicit FDelegateHandle(uint64 ID) : HandleID(ID) {};
+    // 컴파일러에 따른 묵시적 형변환을 막음
+    explicit FDelegateHandle(uint64 ID) : HandleID(ID) {};
 
 public:
-	bool IsValid() const { return HandleID != InvalidID; }
-	void Reset() { HandleID = InvalidID; }
+    bool IsValid() const { return HandleID != InvalidID; }
+    void Reset() { HandleID = InvalidID; }
 
-	bool operator==(const FDelegateHandle& Other) const
-	{
-		return HandleID == Other.HandleID;
-	}
+    bool operator==(const FDelegateHandle& Other) const
+    {
+        return HandleID == Other.HandleID;
+    }
 
 private:
-	uint64 HandleID = { };
+    uint64 HandleID = { };
 };

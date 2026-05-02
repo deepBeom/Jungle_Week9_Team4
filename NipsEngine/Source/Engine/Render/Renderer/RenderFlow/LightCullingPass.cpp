@@ -490,13 +490,15 @@ bool FLightCullingPass::EnsureComputeShader(ID3D11Device* Device)
 
 bool FLightCullingPass::ReloadComputeShader(ID3D11Device* Device)
 {
-    TComPtr<ID3D11ComputeShader> NewComputeShader;
-    if (!CompileComputeShader(Device, NewComputeShader))
+    TComPtr<ID3D11ComputeShader> ReplacementShader;
+    if (!CompileComputeShader(Device, ReplacementShader))
     {
         return false;
     }
 
-    ComputeShader = std::move(NewComputeShader);
+    // Replacement is published only after both compile and CreateComputeShader succeed.
+    // That keeps the previous valid compute shader active if a hot reload fails.
+    ComputeShader = std::move(ReplacementShader);
     return true;
 }
 
@@ -533,19 +535,21 @@ bool FLightCullingPass::CompileComputeShader(ID3D11Device* Device, TComPtr<ID3D1
         return false;
     }
 
-    TComPtr<ID3D11ComputeShader> NewComputeShader;
+    // The blob lifetime only needs to cover CreateComputeShader. We do not touch the live shader
+    // object until the replacement CS has been created successfully.
+    TComPtr<ID3D11ComputeShader> ReplacementShader;
     const HRESULT CreateResult = Device->CreateComputeShader(
         CSBlob->GetBufferPointer(),
         CSBlob->GetBufferSize(),
         nullptr,
-        NewComputeShader.GetAddressOf());
+        ReplacementShader.GetAddressOf());
     if (FAILED(CreateResult))
     {
         UE_LOG("Failed to create LightCulling compute shader");
         return false;
     }
 
-    OutShader = std::move(NewComputeShader);
+    OutShader = std::move(ReplacementShader);
     return true;
 }
 

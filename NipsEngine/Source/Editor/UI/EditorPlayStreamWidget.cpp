@@ -7,7 +7,7 @@ void FEditorPlayStreamWidget::Render(float DeltaTime)
 {
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(5, 0));
 
-	// 그려지는 텍스트의 크기를 1.25배로 키웁니다.
+    // 그려지는 텍스트의 크기를 1.25배로 키웁니다.
     // (원하는 크기에 맞춰 1.3f, 1.5f 등으로 조절 가능합니다)
     ImGui::SetWindowFontScale(1.1f);
 
@@ -55,7 +55,7 @@ void FEditorPlayStreamWidget::Render(float DeltaTime)
         {
             if (bIsPlaying) EditorEngine->PausePlaySession();
             else            EditorEngine->StartPlaySession();  // Paused → Resume 포함
-			ImGui::SetWindowFocus(nullptr);
+            ImGui::SetWindowFocus(nullptr);
         }
         ImGui::PopStyleColor(3);
     }

@@ -6,7 +6,7 @@ DEFINE_CLASS(UMeshComponent, UPrimitiveComponent)
 
 UMeshComponent::~UMeshComponent()
 {
-	ReleaseOwnedMaterialInstances();
+    ReleaseOwnedMaterialInstances();
 }
 
 // UpdateWorldAABB 등의 함수를 오버라이드하지 않았기 때문에 UMeshComponent도 추상 클래스가 됩니다.
@@ -34,125 +34,125 @@ UMeshComponent::~UMeshComponent()
 
 void UMeshComponent::Serialize(FArchive& Ar)
 {
-	UPrimitiveComponent::Serialize(Ar);
+    UPrimitiveComponent::Serialize(Ar);
 
-	TArray<FString> MaterialPaths;
+    TArray<FString> MaterialPaths;
 
-	if (Ar.IsLoading())
-	{
-		ReleaseOwnedMaterialInstances();
-		Materials.clear();
-		Ar << "Materials" << MaterialPaths;
+    if (Ar.IsLoading())
+    {
+        ReleaseOwnedMaterialInstances();
+        Materials.clear();
+        Ar << "Materials" << MaterialPaths;
 
-		Materials.resize(MaterialPaths.size());
-		for (int32 i = 0; i < static_cast<int32>(MaterialPaths.size()); ++i)
-		{
-			if (!MaterialPaths[i].empty())
-			{
-				SetMaterial(i, FResourceManager::Get().GetMaterialInterface(MaterialPaths[i]));
-			}
-			else
-			{
-				Materials[i] = nullptr;
-			}
-		}
-	}
-	else if (Ar.IsSaving())
-	{
-		for (auto& Mat : Materials)
-		{
-			if (UMaterialInstance* MatInst = Cast<UMaterialInstance>(Mat))
-			{
-				MaterialPaths.push_back(MatInst->IsComponentTransient() ? "" : MatInst->GetName());
-				continue;
-			}
+        Materials.resize(MaterialPaths.size());
+        for (int32 i = 0; i < static_cast<int32>(MaterialPaths.size()); ++i)
+        {
+            if (!MaterialPaths[i].empty())
+            {
+                SetMaterial(i, FResourceManager::Get().GetMaterialInterface(MaterialPaths[i]));
+            }
+            else
+            {
+                Materials[i] = nullptr;
+            }
+        }
+    }
+    else if (Ar.IsSaving())
+    {
+        for (auto& Mat : Materials)
+        {
+            if (UMaterialInstance* MatInst = Cast<UMaterialInstance>(Mat))
+            {
+                MaterialPaths.push_back(MatInst->IsComponentTransient() ? "" : MatInst->GetName());
+                continue;
+            }
 
-			MaterialPaths.push_back(Mat ? Mat->GetName() : "");
-		}
-		Ar << "Materials" << MaterialPaths;
-	}
+            MaterialPaths.push_back(Mat ? Mat->GetName() : "");
+        }
+        Ar << "Materials" << MaterialPaths;
+    }
 
-	Ar << "Scroll U" << ScrollUV.first;
-	Ar << "Scroll V" << ScrollUV.second;
+    Ar << "Scroll U" << ScrollUV.first;
+    Ar << "Scroll V" << ScrollUV.second;
 }
 
 void UMeshComponent::SetMaterial(int32 SlotIndex, UMaterialInterface* InMaterial)
 {
-	if (SlotIndex < 0)
-	{
-		return;
-	}
-	
-	if (SlotIndex >= static_cast<int32>(Materials.size()))
-	{
-		Materials.resize(SlotIndex + 1, nullptr);
-	}
+    if (SlotIndex < 0)
+    {
+        return;
+    }
+    
+    if (SlotIndex >= static_cast<int32>(Materials.size()))
+    {
+        Materials.resize(SlotIndex + 1, nullptr);
+    }
 
-	if (Materials[SlotIndex] != InMaterial)
-	{
-		ReleaseOwnedMaterialSlot(Materials[SlotIndex]);
-	}
+    if (Materials[SlotIndex] != InMaterial)
+    {
+        ReleaseOwnedMaterialSlot(Materials[SlotIndex]);
+    }
 
-	Materials[SlotIndex] = InMaterial;
+    Materials[SlotIndex] = InMaterial;
 }
 
 void UMeshComponent::ReleaseOwnedMaterialInstances()
 {
-	for (UMaterialInterface*& Material : Materials)
-	{
-		ReleaseOwnedMaterialSlot(Material);
-	}
+    for (UMaterialInterface*& Material : Materials)
+    {
+        ReleaseOwnedMaterialSlot(Material);
+    }
 }
 
 void UMeshComponent::ReleaseOwnedMaterialSlot(UMaterialInterface*& InOutMaterial)
 {
-	UMaterialInstance* MatInst = Cast<UMaterialInstance>(InOutMaterial);
-	if (!MatInst || !MatInst->IsComponentTransient())
-	{
-		return;
-	}
+    UMaterialInstance* MatInst = Cast<UMaterialInstance>(InOutMaterial);
+    if (!MatInst || !MatInst->IsComponentTransient())
+    {
+        return;
+    }
 
-	UObjectManager::Get().DestroyObject(MatInst);
-	InOutMaterial = nullptr;
+    UObjectManager::Get().DestroyObject(MatInst);
+    InOutMaterial = nullptr;
 }
 
 UMaterialInterface* UMeshComponent::GetMaterial(int32 SlotIndex) const
 {
-	if (SlotIndex < 0 || SlotIndex >= static_cast<int32>(Materials.size()))
-	{
-		return nullptr;
-	}
-	
-	return Materials[SlotIndex];
+    if (SlotIndex < 0 || SlotIndex >= static_cast<int32>(Materials.size()))
+    {
+        return nullptr;
+    }
+    
+    return Materials[SlotIndex];
 }
 
 const TArray<UMaterialInterface*>& UMeshComponent::GetOverrideMaterial() const
 {
-	return Materials;
+    return Materials;
 }
 
 int32 UMeshComponent::GetNumMaterials() const
 {
-	return static_cast<int32>(Materials.size());
+    return static_cast<int32>(Materials.size());
 }
 
 void UMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
 {
-	UPrimitiveComponent::GetEditableProperties(OutProps);
+    UPrimitiveComponent::GetEditableProperties(OutProps);
 
-	OutProps.push_back({ "Scroll U", EPropertyType::Float, &ScrollUV.first,  -1.0f, 1.0f, 0.01f });
-	OutProps.push_back({ "Scroll V", EPropertyType::Float, &ScrollUV.second, -1.0f, 1.0f, 0.01f });
+    OutProps.push_back({ "Scroll U", EPropertyType::Float, &ScrollUV.first,  -1.0f, 1.0f, 0.01f });
+    OutProps.push_back({ "Scroll V", EPropertyType::Float, &ScrollUV.second, -1.0f, 1.0f, 0.01f });
 }
 
 void UMeshComponent::PostEditProperty(const char* PropertyName)
 {
-	UPrimitiveComponent::PostEditProperty(PropertyName);
+    UPrimitiveComponent::PostEditProperty(PropertyName);
 }
 
 void UMeshComponent::TickComponent(float DeltaTime)
 {
-	//ScrollUV.second += DeltaTime;
+    //ScrollUV.second += DeltaTime;
 
-	//if (ScrollUV.first >= 1.f) ScrollUV.first = 0.f;
+    //if (ScrollUV.first >= 1.f) ScrollUV.first = 0.f;
 }
 

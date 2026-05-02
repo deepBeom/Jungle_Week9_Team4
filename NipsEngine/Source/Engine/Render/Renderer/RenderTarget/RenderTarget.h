@@ -8,7 +8,7 @@ struct FRenderTarget
     TComPtr<ID3D11RenderTargetView> RTV;
     TComPtr<ID3D11ShaderResourceView> SRV;
 
-	uint32 Width = 0;
+    uint32 Width = 0;
     uint32 Height = 0;
-	DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
+    DXGI_FORMAT Format = DXGI_FORMAT_UNKNOWN;
 };

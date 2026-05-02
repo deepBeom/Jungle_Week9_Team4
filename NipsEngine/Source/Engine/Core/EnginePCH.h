@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // Keep the PCH limited to stable platform, STL, and low-level engine types.
 // Frequently edited engine modules should stay out of this file.

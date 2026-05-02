@@ -43,6 +43,10 @@
 #elif SOL_IS_ON(SOL_COMPILER_VCXX)
 #pragma warning(push)
 #pragma warning(disable : 4505) // unreferenced local function has been removed GEE THANKS
+#pragma warning(disable : 26439) // function can be noexcept (SAL/Code Analysis)
+#pragma warning(disable : 26495) // variable is uninitialized (SAL/Code Analysis)
+#pragma warning(disable : 26498) // constexpr recommendation (SAL/Code Analysis)
+#pragma warning(disable : 6287)  // redundant code path (Code Analysis)
 #endif                          // clang++ vs. g++ vs. VC++
 
 #include <sol/forward.hpp>

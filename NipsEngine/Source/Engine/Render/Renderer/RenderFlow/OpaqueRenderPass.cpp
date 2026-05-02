@@ -8,20 +8,20 @@
 
 namespace
 {
-	UShader* ResolveOpaqueShaderOverride(const FRenderPassContext* Context)
-	{
-		if (!Context || !Context->RenderBus)
-		{
-			return nullptr;
-		}
+    UShader* ResolveOpaqueShaderOverride(const FRenderPassContext* Context)
+    {
+        if (!Context || !Context->RenderBus)
+        {
+            return nullptr;
+        }
 
-		if (Context->RenderBus->GetViewMode() != EViewMode::Unlit)
-		{
-			return nullptr;
-		}
+        if (Context->RenderBus->GetViewMode() != EViewMode::Unlit)
+        {
+            return nullptr;
+        }
 
-		return FResourceManager::Get().GetShader("Shaders/UberUnlit.hlsl");
-	}
+        return FResourceManager::Get().GetShader("Shaders/UberUnlit.hlsl");
+    }
 }
 
 bool FOpaqueRenderPass::Initialize()
@@ -33,20 +33,20 @@ bool FOpaqueRenderPass::Begin(const FRenderPassContext* Context)
 {
     const FRenderTargetSet* RenderTargets = Context->RenderTargets;
     ID3D11RenderTargetView* RTVs[3] = {
-		RenderTargets->SceneColorRTV,
-		RenderTargets->SceneNormalRTV,
-		RenderTargets->SceneWorldPosRTV
-	};
+        RenderTargets->SceneColorRTV,
+        RenderTargets->SceneNormalRTV,
+        RenderTargets->SceneWorldPosRTV
+    };
     ID3D11DepthStencilView* DSV = RenderTargets->DepthStencilView;
 
-	Context->DeviceContext->OMSetRenderTargets(ARRAYSIZE(RTVs), RTVs, DSV);
+    Context->DeviceContext->OMSetRenderTargets(ARRAYSIZE(RTVs), RTVs, DSV);
     ID3D11DepthStencilState* DepthStencilState =
         FResourceManager::Get().GetOrCreateDepthStencilState(EDepthStencilType::DepthReadOnly);
     Context->DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
     OutSRV = RenderTargets->SceneColorSRV;
     OutRTV = RenderTargets->SceneColorRTV;
 
-	Context->DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    Context->DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
     return true;
 }
@@ -64,7 +64,7 @@ bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)
 
     SceneLightBinding::BindResources(Context,
         VisibleLightConstantBuffer,
-		DirectionalShadowConstantBuffer,
+        DirectionalShadowConstantBuffer,
         SpotShadowInfoConstantBuffer,
         SpotShadowConstantsBuffer,
         SpotShadowConstantsSRV,
@@ -108,10 +108,10 @@ bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)
             Context->DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
         }
 
-		SceneLightBinding::BindResources(
+        SceneLightBinding::BindResources(
             Context,
             VisibleLightConstantBuffer,
-			DirectionalShadowConstantBuffer,
+            DirectionalShadowConstantBuffer,
             SpotShadowInfoConstantBuffer,
             SpotShadowConstantsBuffer,
             SpotShadowConstantsSRV,
@@ -121,7 +121,7 @@ bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)
             PointShadowConstantsSRV,
             PointShadowConstantsCapacity);
 
-		CheckOverrideViewMode(Context);
+        CheckOverrideViewMode(Context);
 
         Context->DeviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 
@@ -151,7 +151,7 @@ bool FOpaqueRenderPass::End(const FRenderPassContext* Context)
 bool FOpaqueRenderPass::Release()
 {
     VisibleLightConstantBuffer.Reset();
-	DirectionalShadowConstantBuffer.Reset();
+    DirectionalShadowConstantBuffer.Reset();
     SpotShadowInfoConstantBuffer.Reset();
     SpotShadowConstantsBuffer.Reset();
     SpotShadowConstantsSRV.Reset();

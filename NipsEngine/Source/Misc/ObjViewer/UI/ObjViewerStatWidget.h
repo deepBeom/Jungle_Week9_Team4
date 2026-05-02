@@ -4,5 +4,5 @@
 class FObjViewerStatWidget : public FObjViewerWidget
 {
 public:
-	virtual void Render(float DeltaTime) override;
+    virtual void Render(float DeltaTime) override;
 };

@@ -26,62 +26,62 @@ void UStaticMeshComponent::PostDuplicate(UObject* Original)
     bBoundsDirty = true;
     bRenderStateDirty = true;
 
-	Materials = TArray<UMaterialInterface*>(Orig->Materials.size());
-	for (int32 i = 0; i < static_cast<int32>(Orig->Materials.size()); ++i)
-	{
-		if (UMaterialInstance* OrigMatInst = Cast<UMaterialInstance>(Orig->Materials[i]))
-		{
-			UMaterialInstance* MatInst = UMaterialInstance::CreateTransient(OrigMatInst->Parent);
-			MatInst->OverridedParams = OrigMatInst->OverridedParams;
-			if (OrigMatInst->HasLightingModelOverride())
-			{
-				MatInst->SetLightingModelOverride(OrigMatInst->GetLightingModelOverride());
-			}
-			else
-			{
-				MatInst->ClearLightingModelOverride();
-			}
-			Materials[i] = MatInst;
-		}
-		else
-		{
-			Materials[i] = Orig->Materials[i]; // 얕은 복사 — ResourceManager 가 소유
-		}
-	}
+    Materials = TArray<UMaterialInterface*>(Orig->Materials.size());
+    for (int32 i = 0; i < static_cast<int32>(Orig->Materials.size()); ++i)
+    {
+        if (UMaterialInstance* OrigMatInst = Cast<UMaterialInstance>(Orig->Materials[i]))
+        {
+            UMaterialInstance* MatInst = UMaterialInstance::CreateTransient(OrigMatInst->Parent);
+            MatInst->OverridedParams = OrigMatInst->OverridedParams;
+            if (OrigMatInst->HasLightingModelOverride())
+            {
+                MatInst->SetLightingModelOverride(OrigMatInst->GetLightingModelOverride());
+            }
+            else
+            {
+                MatInst->ClearLightingModelOverride();
+            }
+            Materials[i] = MatInst;
+        }
+        else
+        {
+            Materials[i] = Orig->Materials[i]; // 얕은 복사 — ResourceManager 가 소유
+        }
+    }
 }
 
 void UStaticMeshComponent::Serialize(FArchive& Ar)
 {
-	UMeshComponent::Serialize(Ar);
-	Ar << "ObjStaticMeshAsset" << StaticMeshAssetPath;
-	Ar << "NormalizeOnImport" << bNormalizeOnImport;
+    UMeshComponent::Serialize(Ar);
+    Ar << "ObjStaticMeshAsset" << StaticMeshAssetPath;
+    Ar << "NormalizeOnImport" << bNormalizeOnImport;
 
-	if (Ar.IsLoading())
-	{
-		TArray<UMaterialInterface*> SavedMaterials = Materials;
+    if (Ar.IsLoading())
+    {
+        TArray<UMaterialInterface*> SavedMaterials = Materials;
 
-		if (!StaticMeshAssetPath.empty())
-		{
-			SetStaticMesh(FResourceManager::Get().LoadStaticMesh(StaticMeshAssetPath, bNormalizeOnImport));
-		}
-		else
-		{
-			SetStaticMesh(nullptr);
-		}
+        if (!StaticMeshAssetPath.empty())
+        {
+            SetStaticMesh(FResourceManager::Get().LoadStaticMesh(StaticMeshAssetPath, bNormalizeOnImport));
+        }
+        else
+        {
+            SetStaticMesh(nullptr);
+        }
 
-		// StaticMesh 로드 시 기본 슬롯 material 이 다시 채워지므로
-		// scene 에 저장된 override 를 마지막에 복원합니다.
-		const int32 RestoreCount = static_cast<int32>(std::min(SavedMaterials.size(), Materials.size()));
-		for (int32 i = 0; i < RestoreCount; ++i)
-		{
-			// 구형 scene 에서 빈 문자열은 "override 없음" 의미로 저장되므로
-			// null 슬롯은 mesh 기본 material 을 유지합니다.
-			if (SavedMaterials[i] != nullptr)
-			{
-				SetMaterial(i, SavedMaterials[i]);
-			}
-		}
-	}
+        // StaticMesh 로드 시 기본 슬롯 material 이 다시 채워지므로
+        // scene 에 저장된 override 를 마지막에 복원합니다.
+        const int32 RestoreCount = static_cast<int32>(std::min(SavedMaterials.size(), Materials.size()));
+        for (int32 i = 0; i < RestoreCount; ++i)
+        {
+            // 구형 scene 에서 빈 문자열은 "override 없음" 의미로 저장되므로
+            // null 슬롯은 mesh 기본 material 을 유지합니다.
+            if (SavedMaterials[i] != nullptr)
+            {
+                SetMaterial(i, SavedMaterials[i]);
+            }
+        }
+    }
 }
 
 void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
@@ -92,14 +92,14 @@ void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
     }
 
     StaticMeshAsset = InStaticMesh;
-	ReleaseOwnedMaterialInstances();
+    ReleaseOwnedMaterialInstances();
     Materials.clear();
 
     if (StaticMeshAsset != nullptr)
     {
         StaticMeshAssetPath = StaticMeshAsset->GetAssetPathFileName();
 
-		const auto& Slots = StaticMeshAsset->GetMaterialSlots();
+        const auto& Slots = StaticMeshAsset->GetMaterialSlots();
         const auto& Sections = StaticMeshAsset->GetSections();
         Materials.reserve(Sections.size());
 
@@ -142,30 +142,30 @@ void UStaticMeshComponent::PostEditProperty(const char* PropertyName)
     //	추후에 FName으로 바꿔도 될 듯 싶긴한데 보류
     if (std::strcmp(PropertyName, "StaticMesh") == 0)
     {
-		if (StaticMeshAssetPath.empty())
-		{
-			SetStaticMesh(nullptr);
-			return;
-		}
+        if (StaticMeshAssetPath.empty())
+        {
+            SetStaticMesh(nullptr);
+            return;
+        }
 
-		UStaticMesh* Mesh = FResourceManager::Get().LoadStaticMesh(StaticMeshAssetPath, bNormalizeOnImport);
-		SetStaticMesh(Mesh);
+        UStaticMesh* Mesh = FResourceManager::Get().LoadStaticMesh(StaticMeshAssetPath, bNormalizeOnImport);
+        SetStaticMesh(Mesh);
     }
-	else if (std::strcmp(PropertyName, "Normalize On Import") == 0)
-	{
-		if (!StaticMeshAssetPath.empty())
-		{
-			UStaticMesh* Mesh = FResourceManager::Get().LoadStaticMesh(StaticMeshAssetPath, bNormalizeOnImport);
-			SetStaticMesh(Mesh);
-		}
-	}
-	else if (std::strcmp(PropertyName, "Materials") == 0)
-	{
-		for (int32 i = 0; i < static_cast<int32>(Materials.size()); ++i)
-		{
-			SetMaterial(i, Materials[i]);
-		}
-	}
+    else if (std::strcmp(PropertyName, "Normalize On Import") == 0)
+    {
+        if (!StaticMeshAssetPath.empty())
+        {
+            UStaticMesh* Mesh = FResourceManager::Get().LoadStaticMesh(StaticMeshAssetPath, bNormalizeOnImport);
+            SetStaticMesh(Mesh);
+        }
+    }
+    else if (std::strcmp(PropertyName, "Materials") == 0)
+    {
+        for (int32 i = 0; i < static_cast<int32>(Materials.size()); ++i)
+        {
+            SetMaterial(i, Materials[i]);
+        }
+    }
 }
 
 void UStaticMeshComponent::UpdateWorldAABB() const

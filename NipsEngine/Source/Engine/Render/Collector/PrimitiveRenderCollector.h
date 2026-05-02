@@ -13,13 +13,13 @@ class UPrimitiveComponent;
 class FPrimitiveRenderCollector
 {
 public:
-	void Initialize(FMeshBufferManager* InMeshBufferManager) { MeshBufferManager = InMeshBufferManager; }
-	void Release() { MeshBufferManager = nullptr; }
+    void Initialize(FMeshBufferManager* InMeshBufferManager) { MeshBufferManager = InMeshBufferManager; }
+    void Release() { MeshBufferManager = nullptr; }
 
-	void CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType, FRenderCollectionStats& LastStats, FLineBatcher* LineBatcher);
-	void CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType, FRenderCollectionStats& LastStats, FLineBatcher* LineBatcher);
+    void CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType, FRenderCollectionStats& LastStats, FLineBatcher* LineBatcher);
+    void CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus, EWorldType WorldType, FRenderCollectionStats& LastStats, FLineBatcher* LineBatcher);
 
 private:
-	FMeshBufferManager* MeshBufferManager = nullptr;
-	FWorldSpatialIndex::FPrimitiveOBBQueryScratch OBBQueryScratch;
+    FMeshBufferManager* MeshBufferManager = nullptr;
+    FWorldSpatialIndex::FPrimitiveOBBQueryScratch OBBQueryScratch;
 };

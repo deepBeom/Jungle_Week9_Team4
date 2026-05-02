@@ -16,67 +16,69 @@ class UCameraComponent;
 class UEngine : public UObject
 {
 public:
-	DECLARE_CLASS(UEngine, UObject)
+    DECLARE_CLASS(UEngine, UObject)
 
-	UEngine() = default;
-	~UEngine() override = default;
+    UEngine() = default;
+    ~UEngine() override = default;
 
-	// Lifecycle
-	virtual void Init(FWindowsWindow* InWindow);
-	virtual void Shutdown();
-	virtual void BeginPlay();
-	virtual void Tick(float DeltaTime);
+    // Lifecycle
+    virtual void Init(FWindowsWindow* InWindow);
+    virtual void Shutdown();
+    virtual void BeginPlay();
+    virtual void Tick(float DeltaTime);
 
-	virtual void OnWindowResized(uint32 Width, uint32 Height);
+    virtual void OnWindowResized(uint32 Width, uint32 Height);
 
-	// World context management
-	FWorldContext& CreateWorldContext(EWorldType Type, const FName& Handle, const FString& Name = "");
-	void DestroyWorldContext(const FName& Handle);
+    // World context management
+    FWorldContext& CreateWorldContext(EWorldType Type, const FName& Handle, const FString& Name = "");
+    void DestroyWorldContext(const FName& Handle);
 
-	// World context lookup
-	FWorldContext* GetWorldContextFromHandle(const FName& Handle);
-	const FWorldContext* GetWorldContextFromHandle(const FName& Handle) const;
-	FWorldContext* GetWorldContextFromWorld(const UWorld* World);
+    // World context lookup
+    FWorldContext* GetWorldContextFromHandle(const FName& Handle);
+    const FWorldContext* GetWorldContextFromHandle(const FName& Handle) const;
+    FWorldContext* GetWorldContextFromWorld(const UWorld* World);
 
-	// Active world
-	void SetActiveWorld(const FName& Handle);
-	FName GetActiveWorldHandle() const { return ActiveWorldHandle; }
+    // Active world
+    void SetActiveWorld(const FName& Handle);
+    FName GetActiveWorldHandle() const { return ActiveWorldHandle; }
 
-	// Accessors
-	FWindowsWindow* GetWindow() const { return Window; }
-	virtual UWorld* GetWorld() const;
+    // Accessors
+    FWindowsWindow* GetWindow() const { return Window; }
+    virtual UWorld* GetWorld() const;
 
-	const TArray<FWorldContext>& GetWorldList() const { return WorldList; }
-	TArray<FWorldContext>& GetWorldList() { return WorldList; }
+    const TArray<FWorldContext>& GetWorldList() const { return WorldList; }
+    TArray<FWorldContext>& GetWorldList() { return WorldList; }
 
-	void SetTimer(FTimer* InTimer) { Timer = InTimer; }
-	FTimer* GetTimer() const { return Timer; }
+    void SetTimer(FTimer* InTimer) { Timer = InTimer; }
+    FTimer* GetTimer() const { return Timer; }
 
 	FRenderer& GetRenderer() { return Renderer; }
 	IRenderPipeline* GetRenderPipeline() const { return RenderPipeline.get(); }
 
 	virtual void ApplySpatialIndexMaintenanceSettings(UWorld* TargetWorld);
 
-	FLuaScriptSubsystem& GetLuaScriptSubsystem() { return LuaScriptSubsystem; }
+    FLuaScriptSubsystem& GetLuaScriptSubsystem() { return LuaScriptSubsystem; }
+    uint64 GetFrameCount() const { return FrameCounter; }
 
 protected:
-	void Render(float DeltaTime);
-	void SetRenderPipeline(std::unique_ptr<IRenderPipeline> InPipeline);
-	virtual void WorldTick(float DeltaTime);
+    void Render(float DeltaTime);
+    void SetRenderPipeline(std::unique_ptr<IRenderPipeline> InPipeline);
+    virtual void WorldTick(float DeltaTime);
 
 protected:
-	FWindowsWindow* Window = nullptr;
+    FWindowsWindow* Window = nullptr;
 
-	FName ActiveWorldHandle;
-	TArray<FWorldContext> WorldList;
+    FName ActiveWorldHandle;
+    TArray<FWorldContext> WorldList;
 
-	FTimer* Timer = nullptr;
+    FTimer* Timer = nullptr;
 
-	FRenderer Renderer;
+    FRenderer Renderer;
     FLuaScriptSubsystem LuaScriptSubsystem;
+    uint64 FrameCounter = 0;
 
 private:
-	std::unique_ptr<IRenderPipeline> RenderPipeline;
+    std::unique_ptr<IRenderPipeline> RenderPipeline;
 };
 
 extern UEngine* GEngine;

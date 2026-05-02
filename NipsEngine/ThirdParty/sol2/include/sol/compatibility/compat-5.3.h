@@ -1,4 +1,4 @@
-#ifndef KEPLER_PROJECT_COMPAT53_H_
+﻿#ifndef KEPLER_PROJECT_COMPAT53_H_
 #define KEPLER_PROJECT_COMPAT53_H_
 
 #include <stddef.h>
@@ -110,11 +110,11 @@ typedef size_t lua_Unsigned;
 #endif
 
 typedef struct luaL_Buffer_53 {
-	luaL_Buffer b; /* make incorrect code crash! */
-	char *ptr;
-	size_t nelems;
-	size_t capacity;
-	lua_State *L2;
+    luaL_Buffer b; /* make incorrect code crash! */
+    char *ptr;
+    size_t nelems;
+    size_t capacity;
+    lua_State *L2;
 } luaL_Buffer_53;
 #define luaL_Buffer luaL_Buffer_53
 
@@ -123,7 +123,7 @@ typedef struct luaL_Buffer_53 {
 * We can't support the `closef` member
 */
 typedef struct luaL_Stream {
-	FILE *f;
+    FILE *f;
 } luaL_Stream;
 
 #define lua_absindex COMPAT53_CONCAT(COMPAT53_PREFIX, _absindex)
@@ -336,7 +336,7 @@ COMPAT53_API const char *luaL_tolstring(lua_State *L, int idx, size_t *len);
 
 #define luaL_requiref COMPAT53_CONCAT(COMPAT53_PREFIX, L_requiref_53)
 COMPAT53_API void luaL_requiref(lua_State *L, const char *modname,
-	lua_CFunction openf, int glb);
+    lua_CFunction openf, int glb);
 
 #endif /* Lua 5.1 and Lua 5.2 */
 

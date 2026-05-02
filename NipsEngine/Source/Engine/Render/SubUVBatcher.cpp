@@ -11,13 +11,13 @@ void FSubUVBatcher::Create(ID3D11Device* InDevice)
     MaxIndexCount  = 384;
     CreateBuffers();
 
-	UMaterial* SubUVMaterial = FResourceManager::Get().GetMaterial("SubUVMat");
-	SubUVMaterial->DepthStencilType = EDepthStencilType::Default;
-	SubUVMaterial->BlendType = EBlendType::AlphaBlend;
-	SubUVMaterial->RasterizerType = ERasterizerType::SolidBackCull;
-	SubUVMaterial->SamplerType = ESamplerType::EST_Linear;
+    UMaterial* SubUVMaterial = FResourceManager::Get().GetMaterial("SubUVMat");
+    SubUVMaterial->DepthStencilType = EDepthStencilType::Default;
+    SubUVMaterial->BlendType = EBlendType::AlphaBlend;
+    SubUVMaterial->RasterizerType = ERasterizerType::SolidBackCull;
+    SubUVMaterial->SamplerType = ESamplerType::EST_Linear;
 
-	Material = SubUVMaterial;
+    Material = SubUVMaterial;
 }
 
 void FSubUVBatcher::CreateBuffers()
@@ -46,30 +46,30 @@ void FSubUVBatcher::Release()
 
     VertexBuffer.Reset();
     IndexBuffer.Reset();
-	Device.Reset();
+    Device.Reset();
 }
 
 void FSubUVBatcher::AddSprite(UTexture* Texture, 
-							  const FVector& WorldPos,
+                              const FVector& WorldPos,
                               const FVector& CamRight,
                               const FVector& CamUp,
-							  const FVector& WorldScale,
+                              const FVector& WorldScale,
                               uint32 FrameIndex,
                               uint32 Columns,
                               uint32 Rows,
                               float Width,
                               float Height)
 {
-	// Batch�� ����ְų� SRV�� 
-	if (Batches.empty() || Batches.back().Texture != Texture)
-	{
-		FSRVBatch batch;
-		batch.Texture = Texture;
-		batch.IndexStart = static_cast<uint32>(Indices.size());
-		batch.IndexCount = 0;
-		batch.BaseVertex = static_cast<int32>(Vertices.size());
-		Batches.push_back(batch);
-	}
+    // Batch�� ����ְų� SRV�� 
+    if (Batches.empty() || Batches.back().Texture != Texture)
+    {
+        FSRVBatch batch;
+        batch.Texture = Texture;
+        batch.IndexStart = static_cast<uint32>(Indices.size());
+        batch.IndexCount = 0;
+        batch.BaseVertex = static_cast<int32>(Vertices.size());
+        Batches.push_back(batch);
+    }
 
     FSubUVFrameInfo Frame = GetFrameUV(FrameIndex, Columns, Rows);
 
@@ -81,8 +81,8 @@ void FSubUVBatcher::AddSprite(UTexture* Texture,
     FVector v2 = WorldPos + CamRight * (-HalfW) + CamUp * (-HalfH); // ����
     FVector v3 = WorldPos + CamRight * ( HalfW) + CamUp * (-HalfH); // ����
 
-	uint32 LocalBase = static_cast<uint32>(Vertices.size()) 
-		- static_cast<uint32>(Batches.back().BaseVertex);
+    uint32 LocalBase = static_cast<uint32>(Vertices.size()) 
+        - static_cast<uint32>(Batches.back().BaseVertex);
 
     Vertices.push_back({ v0, { Frame.U,               Frame.V                } });
     Vertices.push_back({ v1, { Frame.U + Frame.Width,  Frame.V                } });
@@ -90,16 +90,16 @@ void FSubUVBatcher::AddSprite(UTexture* Texture,
     Vertices.push_back({ v3, { Frame.U + Frame.Width,  Frame.V + Frame.Height } });
 
     Indices.push_back(LocalBase + 0); Indices.push_back(LocalBase + 1); Indices.push_back(LocalBase + 2);
-	Indices.push_back(LocalBase + 1); Indices.push_back(LocalBase + 3); Indices.push_back(LocalBase + 2);
+    Indices.push_back(LocalBase + 1); Indices.push_back(LocalBase + 3); Indices.push_back(LocalBase + 2);
 
-	Batches.back().IndexCount += 6;
+    Batches.back().IndexCount += 6;
 }
 
 void FSubUVBatcher::Clear()
 {
     Vertices.clear();
     Indices.clear();
-	Batches.clear();
+    Batches.clear();
 }
 
 void FSubUVBatcher::Flush(ID3D11DeviceContext* Context, const FRenderBus* RenderBus, bool bWireframe)
@@ -123,33 +123,33 @@ void FSubUVBatcher::Flush(ID3D11DeviceContext* Context, const FRenderBus* Render
     Context->Unmap(IndexBuffer.Get(), 0);
 
     uint32 stride = sizeof(FTextureVertex), offset = 0;
-	ID3D11Buffer* VertexBufferPtr = VertexBuffer.Get();
-	ID3D11Buffer* IndexBufferPtr = IndexBuffer.Get();
+    ID3D11Buffer* VertexBufferPtr = VertexBuffer.Get();
+    ID3D11Buffer* IndexBufferPtr = IndexBuffer.Get();
     Context->IASetVertexBuffers(0, 1, &VertexBufferPtr, &stride, &offset);
     Context->IASetIndexBuffer(IndexBufferPtr, DXGI_FORMAT_R32_UINT, 0);
     Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	UMaterial* Mat = Cast<UMaterial>(Material);
+    UMaterial* Mat = Cast<UMaterial>(Material);
 
     // Context->PSSetShaderResources(0, 1, &SRV);
-	for (const FSRVBatch& Batch : Batches)
-	{
-		if (!Batch.Texture || Batch.IndexCount == 0) continue;
+    for (const FSRVBatch& Batch : Batches)
+    {
+        if (!Batch.Texture || Batch.IndexCount == 0) continue;
 
-		Mat->SetTexture("SubUVAtlas", Batch.Texture);
-		Material->Bind(Context, RenderBus);
+        Mat->SetTexture("SubUVAtlas", Batch.Texture);
+        Material->Bind(Context, RenderBus);
         if (bWireframe)
         {
             ID3D11RasterizerState* WireRS = FResourceManager::Get().GetOrCreateRasterizerState(ERasterizerType::WireFrame);
             Context->RSSetState(WireRS);
         }
 
-		Context->DrawIndexed(
-			Batch.IndexCount,
-			Batch.IndexStart,
-			Batch.BaseVertex
-		);
-	}
+        Context->DrawIndexed(
+            Batch.IndexCount,
+            Batch.IndexStart,
+            Batch.BaseVertex
+        );
+    }
 }
 
 FSubUVFrameInfo FSubUVBatcher::GetFrameUV(uint32 FrameIndex, uint32 Columns, uint32 Rows) const

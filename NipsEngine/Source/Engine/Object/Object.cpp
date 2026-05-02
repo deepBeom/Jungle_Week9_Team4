@@ -10,23 +10,23 @@ TArray<UObject*> GUObjectArray;
 
 UObject::UObject()
 {
-	UUID = EngineStatics::GenUUID();
-	InternalIndex = static_cast<uint32>(GUObjectArray.size());
-	GUObjectArray.push_back(this);
+    UUID = EngineStatics::GenUUID();
+    InternalIndex = static_cast<uint32>(GUObjectArray.size());
+    GUObjectArray.push_back(this);
 }
 
 UObject::~UObject()
 {
-	uint32 LastIndex = static_cast<uint32>(GUObjectArray.size() - 1);
+    uint32 LastIndex = static_cast<uint32>(GUObjectArray.size() - 1);
 
-	if (InternalIndex != LastIndex)
-	{
-		UObject* LastObject = GUObjectArray[LastIndex];
-		GUObjectArray[InternalIndex] = LastObject;
-		LastObject->InternalIndex = InternalIndex;
-	}
+    if (InternalIndex != LastIndex)
+    {
+        UObject* LastObject = GUObjectArray[LastIndex];
+        GUObjectArray[InternalIndex] = LastObject;
+        LastObject->InternalIndex = InternalIndex;
+    }
 
-	GUObjectArray.pop_back();
+    GUObjectArray.pop_back();
 }
 
 const FTypeInfo UObject::s_TypeInfo = { "UObject", nullptr, sizeof(UObject) };
@@ -86,22 +86,23 @@ void UObject::CopyPropertiesFrom(UObject* Src)
         {
         case EPropertyType::Bool:
         case EPropertyType::Int:
+        case EPropertyType::Enum:
         case EPropertyType::Float:
         case EPropertyType::Vec3:
         case EPropertyType::Vec4:
-		case EPropertyType::Color:
+        case EPropertyType::Color:
         {
             const size_t Size = GetPropertySize(SrcProp.Type);
             if (Size > 0)
-			{
+            {
                 memcpy(DstProp->ValuePtr, SrcProp.ValuePtr, Size);
-				this->PostEditProperty(SrcProp.Name);
-			}
+                this->PostEditProperty(SrcProp.Name);
+            }
             break;
         }
         case EPropertyType::String:
             *static_cast<FString*>(DstProp->ValuePtr) = *static_cast<const FString*>(SrcProp.ValuePtr);
-			this->PostEditProperty(SrcProp.Name);
+            this->PostEditProperty(SrcProp.Name);
             break;
 
         case EPropertyType::Name:
@@ -112,7 +113,7 @@ void UObject::CopyPropertiesFrom(UObject* Src)
 
         case EPropertyType::SceneComponentRef:
             // Duplicate에서 포인터 복사는 건너뜁니다. 이 부분은 Actor의 Duplicate()가 알아서 잘 복사해줘야 합니다.
-			// 이유: 컴포넌트 입장에선 자기 부모 컴포넌트나 자식 컴포넌트들이 어느 주소로 복사될지 알 수가 없습니다.
+            // 이유: 컴포넌트 입장에선 자기 부모 컴포넌트나 자식 컴포넌트들이 어느 주소로 복사될지 알 수가 없습니다.
             break;
 
         case EPropertyType::Vec3Array:
@@ -126,11 +127,11 @@ void UObject::CopyPropertiesFrom(UObject* Src)
     }
 
     /** 위 함수는 성능상 프로퍼티 개수 N에 대해 O(N²)이므로 개선의 여지가 있습니다. 
-	 *  추후 N이 많아질 경우 FPropertyDescriptor에 해시 및 인덱스를 추가하여 O(N·logN)으로 개선할 수 있지만,
-	 *  캐시 비용이 증가할 수 있으므로 보수적으로 접근하는 편이 좋을 것 같습니다. **/
+     *  추후 N이 많아질 경우 FPropertyDescriptor에 해시 및 인덱스를 추가하여 O(N·logN)으로 개선할 수 있지만,
+     *  캐시 비용이 증가할 수 있으므로 보수적으로 접근하는 편이 좋을 것 같습니다. **/
 }
 
 void UObject::Serialize(FArchive& Ar)
 {
-	Ar << "Type" << GetTypeInfo()->name;
+    Ar << "Type" << GetTypeInfo()->name;
 }

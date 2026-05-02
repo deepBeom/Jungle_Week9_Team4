@@ -73,7 +73,7 @@ void FEditorWorldController::OnLeftMouseClick(float X, float Y)
     else
     {
         Gizmo->SetPressedOnHandle(false);
-	}
+    }
 
     // Actor selection
     if (!World || !SelectionManager)
@@ -82,14 +82,14 @@ void FEditorWorldController::OnLeftMouseClick(float X, float Y)
     AActor* BestActor = nullptr;
     float   ClosestDist = FLT_MAX;
 
-	FWorldSpatialIndex::FPrimitiveRayQueryScratch RayQueryScratch;
-	TArray<UPrimitiveComponent*> CandidatePrimitives;
+    FWorldSpatialIndex::FPrimitiveRayQueryScratch RayQueryScratch;
+    TArray<UPrimitiveComponent*> CandidatePrimitives;
     TArray<float>                CandidateTs;
     World->GetSpatialIndex().RayQueryPrimitives(Ray, CandidatePrimitives, CandidateTs, RayQueryScratch);
 
-	InputSystem& IS = InputSystem::Get();
+    InputSystem& IS = InputSystem::Get();
 
-	for (int32 CandidateIndex = 0; CandidateIndex < static_cast<int32>(CandidatePrimitives.size()); ++CandidateIndex)
+    for (int32 CandidateIndex = 0; CandidateIndex < static_cast<int32>(CandidatePrimitives.size()); ++CandidateIndex)
     {
         if (CandidateTs[CandidateIndex] > ClosestDist)
         {
@@ -201,7 +201,7 @@ void FEditorWorldController::OnRightMouseDrag(float DeltaX, float DeltaY)
 
 void FEditorWorldController::OnKeyPressed(int VK)
 {
-	InputSystem& IS = InputSystem::Get();
+    InputSystem& IS = InputSystem::Get();
 
     switch (VK)
     {

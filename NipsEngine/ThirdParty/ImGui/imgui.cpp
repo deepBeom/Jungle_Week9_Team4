@@ -1,4 +1,4 @@
-// dear imgui, v1.92.7 WIP
+﻿// dear imgui, v1.92.7 WIP
 // (main code and documentation)
 
 // Help:
@@ -8925,9 +8925,9 @@ static ImGuiWindow* GetCombinedRootWindow(ImGuiWindow* window, bool popup_hierar
         window = window->RootWindow;
         if (popup_hierarchy)
             window = window->RootWindowPopupTree;
-		if (dock_hierarchy)
-			window = window->RootWindowDockTree;
-	}
+        if (dock_hierarchy)
+            window = window->RootWindowDockTree;
+    }
     return window;
 }
 

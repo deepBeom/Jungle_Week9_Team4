@@ -1,9 +1,13 @@
 ﻿#include "GameFramework/World.h"
+
+#include "Collision/CollisionSystem.h"
 #include "Component/Light/LightComponent.h"
 
 
 //test
 #include "DelegateTestActor.h"
+#include "Engine/Core/SoundManager.h"
+
 
 DEFINE_CLASS(UWorld, UObject)
 REGISTER_FACTORY(UWorld)
@@ -71,8 +75,10 @@ void UWorld::BeginPlay()
     PersistentLevel->BeginPlay();
     RebuildSpatialIndex();
 
-	SpawnActor<ADelegateTestActor>();
-
+    ///* test
+    SpawnActor<ADelegateTestActor>();
+    FSoundManager::Get().PlayBGM("Menu.mp3");
+    //*/
 }
 
 void UWorld::Tick(float DeltaTime)
@@ -80,11 +86,16 @@ void UWorld::Tick(float DeltaTime)
     if (!PersistentLevel)
         return;
 
-	if (WorldType == EWorldType::Editor)
-		PersistentLevel->TickEditor(DeltaTime);
-	else
-		PersistentLevel->TickGame(DeltaTime);
+    if (WorldType == EWorldType::Editor)
+        PersistentLevel->TickEditor(DeltaTime);
+    else
+        PersistentLevel->TickGame(DeltaTime);
 
+    if (WorldType == EWorldType::PIE || WorldType == EWorldType::Game)
+    {
+        CollisionSystem.Tick(this, DeltaTime);
+    }
+    FlushPendingDestroyActors();
     SyncSpatialIndex();
 }
 
@@ -95,6 +106,9 @@ void UWorld::EndPlay(EEndPlayReason::Type EndPlayReason)
         bHasBegunPlay = false;
         PersistentLevel->EndPlay(EndPlayReason);
     }
+	///* test
+	FSoundManager::Get().StopBGM();
+	//*/
 }
 
 void UWorld::RebuildSpatialIndex()
@@ -107,27 +121,64 @@ void UWorld::SyncSpatialIndex()
     SpatialIndex.FlushDirtyBounds();
 }
 
+void UWorld::RequestDestroyActor(AActor* Actor)
+{
+    if (!Actor || !UObject::IsValid(Actor) || Actor->IsPendingDestroy() || Actor->IsBeingDestroyed())
+    {
+        return;
+    }
+
+    Actor->MarkPendingDestroy();
+    PendingDestroyActors.push_back(Actor);
+}
+
+void UWorld::FlushPendingDestroyActors()
+{
+    if (PendingDestroyActors.empty())
+    {
+        return;
+    }
+
+    TArray<AActor*> ActorsToDestroy = PendingDestroyActors;
+    PendingDestroyActors.clear();
+
+    for (AActor* Actor : ActorsToDestroy)
+    {
+        if (!Actor || !UObject::IsValid(Actor))
+        {
+            continue;
+        }
+
+        DestroyActor(Actor);
+    }
+
+    if (PersistentLevel)
+    {
+        PersistentLevel->RemovePendingDestroyActors();
+    }
+}
+
 FLightHandle UWorld::RegisterLight(ULightComponentBase* Comp)
 {
     FLightHandle LightHandle;
     FLightSlot LightSlot;
 
-	if (FreeLightSlotList.empty())
-	{
-		// 새로 생성
+    if (FreeLightSlotList.empty())
+    {
+        // 새로 생성
         uint32 Index = static_cast<uint32>(WorldLightSlots.size());
-		LightSlot.LightData = Comp;
+        LightSlot.LightData = Comp;
         LightSlot.Generation = 0;
         LightSlot.bAlive = true;
 
-		WorldLightSlots.push_back(LightSlot);
+        WorldLightSlots.push_back(LightSlot);
 
         LightHandle.Index = Index;
         LightHandle.Generation = WorldLightSlots[Index].Generation;
-	}
-	else
-	{
-		// Free Slot 사용
+    }
+    else
+    {
+        // Free Slot 사용
         uint32 Index = FreeLightSlotList.back();
         FreeLightSlotList.pop_back();
         WorldLightSlots[Index].Generation += 1;
@@ -136,23 +187,23 @@ FLightHandle UWorld::RegisterLight(ULightComponentBase* Comp)
 
         LightHandle.Index = Index;
         LightHandle.Generation = WorldLightSlots[Index].Generation;
-	}
+    }
 
-	Comp->SetLightHandle(LightHandle);
+    Comp->SetLightHandle(LightHandle);
 
-	return LightHandle;
+    return LightHandle;
 }
 
 void UWorld::UnregisterLight(ULightComponentBase* Comp)
 {
     FLightHandle LightHandle = Comp->GetLightHandle();
-	// LightHandle이 없거나, 해당 Slot에 다른 데이터가 들어가 있으면 등록 해제 취소
+    // LightHandle이 없거나, 해당 Slot에 다른 데이터가 들어가 있으면 등록 해제 취소
     if (!LightHandle.IsValid() || WorldLightSlots[LightHandle.Index].Generation != LightHandle.Generation)
     {
         return;
     }
 
-	WorldLightSlots[LightHandle.Index].bAlive = false;
+    WorldLightSlots[LightHandle.Index].bAlive = false;
     WorldLightSlots[LightHandle.Index].LightData = nullptr;
     FreeLightSlotList.push_back(LightHandle.Index);
 }

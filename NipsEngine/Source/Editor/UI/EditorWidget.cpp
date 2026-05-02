@@ -2,5 +2,5 @@
 
 void FEditorWidget::Initialize(UEditorEngine* InEditorEngine)
 {
-	EditorEngine = InEditorEngine;
+    EditorEngine = InEditorEngine;
 }

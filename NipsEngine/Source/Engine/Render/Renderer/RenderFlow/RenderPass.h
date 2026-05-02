@@ -12,19 +12,19 @@ public:
     virtual bool Initialize() = 0;
     virtual bool Release() = 0;
 
-	/**
-	 * Begin, DrawCommand, End 구조를 강제하는 함수
-	 * 기본적으로 Override 를 금지하고 있으며, 만약 특수한 패스가 있는 경우 FCustomRenderPass 등의 Class 를 새로 만들어서 virtual 선언할 것 
-	 */
+    /**
+     * Begin, DrawCommand, End 구조를 강제하는 함수
+     * 기본적으로 Override 를 금지하고 있으며, 만약 특수한 패스가 있는 경우 FCustomRenderPass 등의 Class 를 새로 만들어서 virtual 선언할 것 
+     */
     bool Render(const FRenderPassContext* Context);
 
     ID3D11ShaderResourceView* GetOutSRV() const { return OutSRV; }
     ID3D11RenderTargetView* GetOutRTV() const { return OutRTV; }
 
-	void SetPrevPassSRV(ID3D11ShaderResourceView* InSRV) { PrevPassSRV = InSRV; }
+    void SetPrevPassSRV(ID3D11ShaderResourceView* InSRV) { PrevPassSRV = InSRV; }
     void SetPrevPassRTV(ID3D11RenderTargetView* InRTV) { PrevPassRTV = InRTV; }
 
-	void SetSkipWireframe(bool bInSkipWireframe) { bSkipWireframe = bInSkipWireframe; }
+    void SetSkipWireframe(bool bInSkipWireframe) { bSkipWireframe = bInSkipWireframe; }
 
 protected:
     /** 자원 할당 */
@@ -32,12 +32,12 @@ protected:
     /** Draw */
     virtual bool DrawCommand(const FRenderPassContext* Context) = 0;
     /** 자원 해제 */
-	virtual bool End(const FRenderPassContext* Context) = 0;
+    virtual bool End(const FRenderPassContext* Context) = 0;
 
-	void CheckOverrideViewMode(const FRenderPassContext* Context);
+    void CheckOverrideViewMode(const FRenderPassContext* Context);
 
 protected:
-	// 현재 Pass 출력용 최종 View
+    // 현재 Pass 출력용 최종 View
     ID3D11ShaderResourceView* OutSRV = nullptr;
     ID3D11RenderTargetView* OutRTV = nullptr;
 
@@ -45,5 +45,5 @@ protected:
     ID3D11ShaderResourceView* PrevPassSRV = nullptr;
     ID3D11RenderTargetView* PrevPassRTV = nullptr;
 
-	bool bSkipWireframe = false;
+    bool bSkipWireframe = false;
 };
