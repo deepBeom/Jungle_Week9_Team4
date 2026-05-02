@@ -226,17 +226,17 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 {
     Lua.set_function("Log", [](const FString& Message)
     {
-        printf("[Lua] %s\n", Message.c_str());
+        UE_LOG("[Lua] %s\n", Message.c_str());
     });
 
     Lua.set_function("Warning", [](const FString& Message)
     {
-        printf("[Lua Warning] %s\n", Message.c_str());
+        UE_LOG("[Lua Warning] %s\n", Message.c_str());
     });
 
     Lua.set_function("Error", [](const FString& Message)
     {
-        printf("[Lua Error] %s\n", Message.c_str());
+        UE_LOG("[Lua Error] %s\n", Message.c_str());
     });
 
     Lua.set_function("GetTimeSeconds", []() -> double
