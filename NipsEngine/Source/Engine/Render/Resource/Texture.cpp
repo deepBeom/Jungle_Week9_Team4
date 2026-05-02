@@ -3,7 +3,7 @@
 
 #include "DDSTextureLoader.h"
 #include "WICTextureLoader.h"
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 DEFINE_CLASS(UTexture, UObject)
 

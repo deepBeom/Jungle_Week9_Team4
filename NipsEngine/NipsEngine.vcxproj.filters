@@ -434,6 +434,9 @@
     <ClCompile Include="Source\Engine\Core\Logging\GPUProfiler.cpp">
       <Filter>Source\Engine\Core\Logging</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Core\Logging\Log.cpp">
+      <Filter>Source\Engine\Core\Logging</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Core\Logging\Stats.cpp">
       <Filter>Source\Engine\Core\Logging</Filter>
     </ClCompile>
@@ -1125,6 +1128,9 @@
       <Filter>Source\Engine\Core\Containers</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\Logging\GPUProfiler.h">
+      <Filter>Source\Engine\Core\Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Core\Logging\Log.h">
       <Filter>Source\Engine\Core\Logging</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\Logging\Stats.h">

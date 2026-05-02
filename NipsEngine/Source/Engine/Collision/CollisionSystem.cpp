@@ -6,7 +6,7 @@
 
 #include "Component/ObjectTypeComponent.h"
 #include "Component/Movement/MovementComponent.h"
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 
@@ -999,3 +999,4 @@ void FCollisionSystem::LogCollisionEvent(const char* EventName, const FCollision
         Event.Normal.Z,
         Event.bBlockingHit ? "true" : "false");
 }
+

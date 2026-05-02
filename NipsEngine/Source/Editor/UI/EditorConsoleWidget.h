@@ -6,6 +6,7 @@
 #include <cstdarg>
 #include <cstdlib>
 #include <functional>
+#include <mutex>
 #include <sstream>
 
 #include "ImGui/imgui.h"
@@ -21,16 +22,19 @@ public:
     ~FEditorConsoleWidget();
 
     static void AddLog(const char* fmt, ...);
+    static void AddLogMessage(const char* Message);
 
     virtual void Render(float DeltaTime) override;
 
     void Clear()
     {
+        std::lock_guard<std::mutex> Lock(MessageMutex);
         for (int32 i = 0; i < Messages.Size; i++) free(Messages[i]);
         Messages.clear();
     }
     static void ClearHistory()
     {
+        std::lock_guard<std::mutex> Lock(HistoryMutex);
         for (int32 i = 0; i < History.Size; i++) free(History[i]);
         History.clear();
     }
@@ -39,6 +43,10 @@ private:
     char InputBuf[256]{};
     static ImVector<char*> Messages;
     static ImVector<char*> History;
+    static std::mutex MessageMutex;
+    static std::mutex HistoryMutex;
+    static uint32 LogSinkHandle;
+    static int32 ActiveWidgetCount;
     int32 HistoryPos = -1;
     ImGuiTextFilter Filter;
     static bool AutoScroll;
@@ -59,6 +67,3 @@ private:
     void CmdStat(const TArray<FString>& Args);
     void CmdShadowFilter(const TArray<FString>& Args);
 };
-
-#define UE_LOG(Format, ...) \
-    FEditorConsoleWidget::AddLog(Format, ##__VA_ARGS__)

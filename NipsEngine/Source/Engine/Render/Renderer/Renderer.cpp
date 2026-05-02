@@ -8,7 +8,7 @@
 #include "Render/Mesh/MeshManager.h"
 #include "Core/Logging/Stats.h"
 #include "Core/Logging/GPUProfiler.h"
-#include "Editor/UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 #include "Render/Renderer/RenderTarget/RenderTargetFactory.h"
 #include "Render/Renderer/RenderTarget/DepthStencilFactory.h"
 #include "Render/Renderer/RenderFlow/RenderPassContext.h"
@@ -481,3 +481,4 @@ void FRenderer::EndFrame()
 #endif
     Device.EndFrame();
 }
+

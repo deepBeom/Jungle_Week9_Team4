@@ -2,7 +2,7 @@
 #include "StaticMesh.h"
 #include <algorithm>
 
-#include "Editor/UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 FStaticMeshSimplifier::FStaticMeshSimplifier(UStaticMesh* InTargetMesh)
     : TargetMesh(InTargetMesh)
@@ -686,3 +686,4 @@ void FStaticMeshSimplifier::SaveCurrentStateAsLOD(int32 CurrentLOD, const TArray
     TargetLOD->LocalBounds = MeshData->LocalBounds;
     TargetLOD->PathFileName = MeshData->PathFileName;
 }
+

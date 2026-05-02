@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "Core/Logging/Log.h"
 #include "Editor/EditorEngine.h"
 #include "Editor/Settings/EditorSettings.h"
 #include "Editor/Viewport/ViewportLayout.h"
@@ -9,6 +10,16 @@
 // 콘솔 초기화 시점에 입력될 명령어를 등록한다.
 FEditorConsoleWidget::FEditorConsoleWidget() 
 {
+    if (ActiveWidgetCount++ == 0)
+    {
+        // Editor 콘솔을 엔진 공용 로그 sink로 등록한다.
+        LogSinkHandle = NLogging::RegisterLogSink(
+            [](const char* Message)
+            {
+                FEditorConsoleWidget::AddLogMessage(Message);
+            });
+    }
+
     // 임의의 명령어 문자열이 들어왔을 때 뒤의 함수를 실행하도록 분기한다.
     RegisterCommand("stat", [this](const TArray<FString>& Args) { CmdStat(Args); });
     RegisterCommand("shadow_filter", [this](const TArray<FString>& Args) { CmdShadowFilter(Args); });
@@ -17,6 +28,12 @@ FEditorConsoleWidget::FEditorConsoleWidget()
 
 FEditorConsoleWidget::~FEditorConsoleWidget() 
 {
+    if (--ActiveWidgetCount == 0 && LogSinkHandle != 0)
+    {
+        NLogging::UnregisterLogSink(LogSinkHandle);
+        LogSinkHandle = 0;
+    }
+
     Clear();
     ClearHistory();
 }
@@ -27,7 +44,21 @@ void FEditorConsoleWidget::AddLog(const char* fmt, ...) {
     va_start(args, fmt);
     vsnprintf(buf, sizeof(buf), fmt, args);
     va_end(args);
+
+    std::lock_guard<std::mutex> Lock(MessageMutex);
     Messages.push_back(_strdup(buf));
+    if (AutoScroll) ScrollToBottom = true;
+}
+
+void FEditorConsoleWidget::AddLogMessage(const char* Message)
+{
+    if (Message == nullptr)
+    {
+        return;
+    }
+
+    std::lock_guard<std::mutex> Lock(MessageMutex);
+    Messages.push_back(_strdup(Message));
     if (AutoScroll) ScrollToBottom = true;
 }
 
@@ -71,6 +102,7 @@ void FEditorConsoleWidget::Render(float DeltaTime)
 
     const float FooterHeight = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
     if (ImGui::BeginChild("ScrollingRegion", ImVec2(0, -FooterHeight), false, ImGuiWindowFlags_HorizontalScrollbar)) {
+        std::lock_guard<std::mutex> Lock(MessageMutex);
         for (auto& Item : Messages) {
             if (!Filter.PassFilter(Item)) continue;
 
@@ -137,8 +169,11 @@ void FEditorConsoleWidget::RegisterCommand(const FString& Name, CommandFn Fn) {
 
 void FEditorConsoleWidget::ExecCommand(const char* CommandLine) {
     AddLog("# %s\n", CommandLine);
-    History.push_back(_strdup(CommandLine));
-    HistoryPos = -1;
+    {
+        std::lock_guard<std::mutex> Lock(HistoryMutex);
+        History.push_back(_strdup(CommandLine));
+        HistoryPos = -1;
+    }
 
     TArray<FString> Tokens;
     std::istringstream Iss(CommandLine);
@@ -168,6 +203,8 @@ int32 FEditorConsoleWidget::TextEditCallback(ImGuiInputTextCallbackData* Data) {
     }
 
     if (Data->EventFlag == ImGuiInputTextFlags_CallbackHistory) {
+        std::lock_guard<std::mutex> Lock(HistoryMutex);
+
         const int32 PrevPos = Console->HistoryPos;
         if (Data->EventKey == ImGuiKey_UpArrow) {
             if (Console->HistoryPos == -1)
@@ -329,6 +366,10 @@ void FEditorConsoleWidget::CmdShadowFilter(const TArray<FString>& Args)
 
 ImVector<char*> FEditorConsoleWidget::Messages;
 ImVector<char*> FEditorConsoleWidget::History;
+std::mutex FEditorConsoleWidget::MessageMutex;
+std::mutex FEditorConsoleWidget::HistoryMutex;
+uint32 FEditorConsoleWidget::LogSinkHandle = 0;
+int32 FEditorConsoleWidget::ActiveWidgetCount = 0;
 
 bool FEditorConsoleWidget::AutoScroll = true;
 bool FEditorConsoleWidget::ScrollToBottom = true;

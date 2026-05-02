@@ -8,7 +8,7 @@
 #include "Render/Resource/ObjMtlLoader.h"
 #include "Render/Scene/RenderCommand.h"
 #include "Settings/EditorSettings.h"
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 #include "DDSTextureLoader.h"
 #include "SimpleJSON/json.hpp"
@@ -2862,3 +2862,4 @@ size_t FResourceManager::GetMaterialMemorySize() const
 
     return TotalSize;
 }
+

@@ -3,7 +3,7 @@
 #include "Texture.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Scene/RenderCommand.h"
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 #include <vector>
 
@@ -640,3 +640,4 @@ void FShaderBindingInstance::Bind(ID3D11DeviceContext* Context)
     BindTextures(Context);
     BindSamplers(Context);
 }
+

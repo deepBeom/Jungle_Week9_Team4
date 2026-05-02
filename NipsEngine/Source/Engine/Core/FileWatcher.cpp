@@ -1,6 +1,6 @@
 ﻿#include "FileWatcher.h"
 
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 #include <filesystem>
 
@@ -118,3 +118,4 @@ void FFileWatcher::EnqueueChangedFile(const FWString& InFilePath)
     std::lock_guard<std::mutex> Lock(ChangedFilesMutex);
     ChangedFiles.push_back(InFilePath);
 }
+
