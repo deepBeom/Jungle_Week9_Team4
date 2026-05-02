@@ -1,9 +1,11 @@
 ﻿#pragma once
 #include "SWindow.h"
-#include "Editor/Viewport/FSceneViewport.h"
+
+#include <memory>
 
 struct FViewportMouseEvent;
 class ISlateViewport;
+class FSceneViewport;
 
 /*
 * Viewport가 차지하는 공간을 묘사하는 Slate Widget
@@ -13,6 +15,9 @@ class SViewport : public SWindow
 {
 
 public:
+    SViewport();
+    ~SViewport();
+
     bool OnMouseMove(int32 X, int32 Y) override;
     bool OnMouseButtonDown(int32 Button, int32 X, int32 Y) override;
     bool OnMouseButtonUp(int32 Button, int32 X, int32 Y) override;
@@ -24,14 +29,14 @@ public:
     void SetViewportInterface(ISlateViewport* InInterface) { ViewportInterface = InInterface; }
     ISlateViewport* GetViewportInterface() const { return ViewportInterface; }
 
-    FSceneViewport& GetSceneViewport() { return SceneViewport; }
-    const FSceneViewport& GetSceneViewport() const { return SceneViewport; }
+    FSceneViewport& GetSceneViewport() { return *SceneViewport; }
+    const FSceneViewport& GetSceneViewport() const { return *SceneViewport; }
 
 private:
     FViewportMouseEvent MakeMouseEvent(int32 X, int32 Y) const;
 
 private:
     ISlateViewport* ViewportInterface = nullptr;
-    FSceneViewport SceneViewport;
+    std::unique_ptr<FSceneViewport> SceneViewport;
 };
 

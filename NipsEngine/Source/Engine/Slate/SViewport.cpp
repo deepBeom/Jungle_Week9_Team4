@@ -1,4 +1,13 @@
-﻿#include "SViewport.h"
+#include "SViewport.h"
+
+#include "Editor/Viewport/FSceneViewport.h"
+
+SViewport::SViewport()
+    : SceneViewport(std::make_unique<FSceneViewport>())
+{
+}
+
+SViewport::~SViewport() = default;
 
 bool SViewport::OnMouseMove(int32 X, int32 Y)
 {

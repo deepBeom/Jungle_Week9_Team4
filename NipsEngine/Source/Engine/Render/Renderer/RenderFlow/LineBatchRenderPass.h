@@ -1,7 +1,7 @@
 #pragma once
 #include "RenderPass.h"
 
-class FEditorRenderPass : public FBaseRenderPass
+class FLineBatchRenderPass : public FBaseRenderPass
 {
 public:
     bool Initialize() override;

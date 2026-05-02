@@ -21,7 +21,6 @@ void FGameViewportClient::SetViewportSize(float InWidth, float InHeight)
 
 void FGameViewportClient::Tick(float DeltaTime)
 {
-	// TODO: 뭐 없음.. 카메라 복제?
 	TickInput(DeltaTime);
 }
 

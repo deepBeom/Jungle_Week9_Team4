@@ -7,7 +7,9 @@
 #include "Core/Paths.h"
 #include "Render/Resource/ObjMtlLoader.h"
 #include "Render/Scene/RenderCommand.h"
+#if WITH_EDITOR
 #include "Settings/EditorSettings.h"
+#endif
 #include "Core/Logging/Log.h"
 
 #include "DDSTextureLoader.h"
@@ -2584,6 +2586,7 @@ UStaticMesh* FResourceManager::LoadStaticMeshWithOptions(const FString& Path, co
     UStaticMesh* LoadedMesh = UObjectManager::Get().CreateObject<UStaticMesh>();
     LoadedMesh->SetMeshData(LoadedMeshData);
 
+#if WITH_EDITOR
     if (FEditorSettings::Get().ShowFlags.bEnableLOD)
     {
         const auto LodStart = std::chrono::steady_clock::now();
@@ -2597,6 +2600,9 @@ UStaticMesh* FResourceManager::LoadStaticMeshWithOptions(const FString& Path, co
     {
         UE_LOG("[StaticMeshLoad] LOD generation skipped for %s (Enable LOD is off)", Path.c_str());
     }
+#else
+    UE_LOG("[StaticMeshLoad] LOD generation skipped for %s (non-editor build)", Path.c_str());
+#endif
 
     StaticMeshes.insert({CacheKey, LoadedMesh});
 

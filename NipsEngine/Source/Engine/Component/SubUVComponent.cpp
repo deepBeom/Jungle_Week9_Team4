@@ -1,7 +1,7 @@
 ﻿#include "SubUVComponent.h"
 
 #include <cmath>
-#include "Editor/Viewport/ViewportCamera.h"
+#include "Engine/Viewport/ViewportCamera.h"
 #include "Core/ResourceManager.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/World.h"

@@ -68,7 +68,7 @@ void FRenderer::CreateResources()
     //	MeshManager init
     FMeshManager::Initialize();
 
-    EditorLineBatcher.Create(Device.GetDevice());
+    DebugLineBatcher.Create(Device.GetDevice());
     GridLineBatcher.Create(Device.GetDevice());
 
     // 텍스처는 ResourceManager가 소유 — Batcher 는 셰이더/버퍼만 초기화
@@ -103,7 +103,7 @@ void FRenderer::Release()
 
     FGPUProfiler::Get().Shutdown();
 
-    EditorLineBatcher.Release();
+    DebugLineBatcher.Release();
     GridLineBatcher.Release();
     FontBatcher.Release();
     SubUVBatcher.Release();
@@ -327,7 +327,7 @@ void FRenderer::Render(const FRenderBus& InRenderBus)
     RenderPassContext->FontBatcher = &FontBatcher;
     RenderPassContext->SubUVBatcher = &SubUVBatcher;
     RenderPassContext->GridLineBatcher = &GridLineBatcher;
-    RenderPassContext->EditorLineBatcher = &EditorLineBatcher;
+    RenderPassContext->DebugLineBatcher = &DebugLineBatcher;
     UpdateSceneLightBuffer(InRenderBus);
     RenderPipeline.Render(RenderPassContext.get());
     

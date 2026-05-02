@@ -1,7 +1,7 @@
 ﻿#include "Editor/UI/EditorControlWidget.h"
 
 #include "Editor/EditorEngine.h"
-#include "Editor/Viewport/ViewportCamera.h"
+#include "Engine/Viewport/ViewportCamera.h"
 
 #include "ImGui/imgui.h"
 #include "Component/GizmoComponent.h"

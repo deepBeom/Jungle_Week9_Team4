@@ -25,7 +25,7 @@ class FBillboardRenderPass;
 class FTranslucentRenderPass;
 class FSelectionMaskRenderPass;
 class FGridRenderPass;
-class FEditorRenderPass;
+class FLineBatchRenderPass;
 class FDepthLessRenderPass;
 class FDepthPrepassRenderPass;
 class FHitMapRenderPass;
@@ -62,7 +62,7 @@ private:
     std::shared_ptr<FTranslucentRenderPass> TranslucentRenderPass;
     std::shared_ptr<FSelectionMaskRenderPass> SelectionMaskRenderPass;
     std::shared_ptr<FGridRenderPass> GridRenderPass;
-    std::shared_ptr<FEditorRenderPass> EditorRenderPass;
+    std::shared_ptr<FLineBatchRenderPass> LineBatchRenderPass;
     std::shared_ptr<FDepthLessRenderPass> DepthLessRenderPass;
     std::shared_ptr<FPostProcessOutlineRenderPass> PostProcessOutlineRenderPass;
     std::shared_ptr<FToonOutlineRenderPass> ToonOutlineRenderPass;
