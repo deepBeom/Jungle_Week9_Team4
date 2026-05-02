@@ -234,8 +234,8 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Scripting\LuaScriptSubsystem.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaBinder.cpp" />
-    <ClCompile Include="Source\Engine\Scripting\LuaScriptEngine.cpp" />
     <ClCompile Include="Source\Engine\Component\Script\ScriptComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorEngine.cpp" />
     <ClCompile Include="Source\Editor\EditorRenderPipeline.cpp" />
@@ -265,6 +265,7 @@
     <ClCompile Include="Source\Engine\Asset\ParticleAtlasLoader.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMeshSimplifier.cpp" />
+    <ClCompile Include="Source\Engine\Collision\CollisionSystem.cpp" />
     <ClCompile Include="Source\Engine\Collision\RayCollision\RayCollision.cpp" />
     <ClCompile Include="Source\Engine\Component\ActorComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\BillboardComponent.cpp" />
@@ -274,8 +275,10 @@
     <ClCompile Include="Source\Engine\Component\HeightFogComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\LineBatchComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\ObjectTypeComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SceneComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SkyAtmosphereComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SubUVComponent.cpp" />
@@ -302,7 +305,7 @@
     <ClCompile Include="Source\Engine\Core\Logging\GPUProfiler.cpp" />
     <ClCompile Include="Source\Engine\Core\Logging\Stats.cpp" />
     <ClCompile Include="Source\Engine\Core\Logging\Timer.cpp" />
-    <ClCompile Include="Source\Engine\GameFramework\AActor.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Actor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\DelegateTestActor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Level.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\PrimitiveActors.cpp" />
@@ -547,8 +550,9 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Scripting\LuaScriptSubsystem.h" />
+    <ClInclude Include="Source\Engine\Scripting\LuaScriptInstance.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaBinder.h" />
-    <ClInclude Include="Source\Engine\Scripting\LuaScriptEngine.h" />
     <ClInclude Include="Source\Engine\Component\Script\ScriptComponent.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />
     <ClInclude Include="Source\Editor\EditorRenderPipeline.h" />
@@ -583,6 +587,7 @@
     <ClInclude Include="Source\Engine\Asset\StaticMesh.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMeshSimplifier.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMeshTypes.h" />
+    <ClInclude Include="Source\Engine\Collision\CollisionSystem.h" />
     <ClInclude Include="Source\Engine\Collision\RayCollision\RayCollision.h" />
     <ClInclude Include="Source\Engine\Component\ActorComponent.h" />
     <ClInclude Include="Source\Engine\Component\BillboardComponent.h" />
@@ -592,8 +597,10 @@
     <ClInclude Include="Source\Engine\Component\HeightFogComponent.h" />
     <ClInclude Include="Source\Engine\Component\LineBatchComponent.h" />
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\ObjectTypeComponent.h" />
     <ClInclude Include="Source\Engine\Component\PrimitiveComponent.h" />
     <ClInclude Include="Source\Engine\Component\SceneComponent.h" />
+    <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
     <ClInclude Include="Source\Engine\Component\SkyAtmosphereComponent.h" />
     <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
     <ClInclude Include="Source\Engine\Component\SubUVComponent.h" />
@@ -621,6 +628,7 @@
     <ClInclude Include="Source\Engine\Core\Delegate\DelegateMacros.h" />
     <ClInclude Include="Source\Engine\Core\Delegate\MulticastDelegate.h" />
     <ClInclude Include="Source\Engine\Core\EngineTypes.h" />
+    <ClInclude Include="Source\Engine\Core\GameObjectTypes.h" />
     <ClInclude Include="Source\Engine\Core\FileWatcher.h" />
     <ClInclude Include="Source\Engine\Core\Paths.h" />
     <ClInclude Include="Source\Engine\Core\PlatformTime.h" />
@@ -640,7 +648,7 @@
     <ClInclude Include="Source\Engine\Core\Logging\GPUProfiler.h" />
     <ClInclude Include="Source\Engine\Core\Logging\Stats.h" />
     <ClInclude Include="Source\Engine\Core\Logging\Timer.h" />
-    <ClInclude Include="Source\Engine\GameFramework\AActor.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Actor.h" />
     <ClInclude Include="Source\Engine\GameFramework\DelegateTestActor.h" />
     <ClInclude Include="Source\Engine\GameFramework\Level.h" />
     <ClInclude Include="Source\Engine\GameFramework\PrimitiveActors.h" />

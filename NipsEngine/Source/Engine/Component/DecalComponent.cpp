@@ -1,6 +1,6 @@
 ﻿#include "DecalComponent.h"
 
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 #include "Core/ResourceManager.h"
 #include "Object/ObjectFactory.h"

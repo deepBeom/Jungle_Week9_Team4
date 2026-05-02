@@ -7,7 +7,7 @@
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Core/ResourceManager.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 #include "Render/LineBatcher.h"
 #include "Render/Resource/Material.h"

@@ -1,4 +1,4 @@
-﻿#include "GameFramework/AActor.h"
+﻿#include "GameFramework/Actor.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/ActorComponent.h"
 #include "Component/Movement/MovementComponent.h"
@@ -318,6 +318,11 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 }
 
+void AActor::Destroy()
+{
+
+}
+
 
 void AActor::MarkPrimitiveComponentsDirty()
 {
@@ -347,4 +352,29 @@ const TArray<UPrimitiveComponent*>& AActor::GetPrimitiveComponents() const
         bPrimitiveCacheDirty = false;
     }
     return PrimitiveCache;
+}
+
+bool AActor::IsOverlappingActor(const AActor* Other) const
+{
+    if (!Other)
+    {
+        return false;
+    }
+
+    for (UActorComponent* OwnedComp : OwnedComponents)
+    {
+        UShapeComponent* ShapeComp = Cast<UShapeComponent>(OwnedComp);
+        if (!ShapeComp)
+        {
+            continue;
+        }
+
+        if (!ShapeComp->GetOverlapInfos().empty() &&
+            ShapeComp->IsOverlappingActor(Other))
+        {
+            return true;
+        }
+    }
+
+    return false;
 }

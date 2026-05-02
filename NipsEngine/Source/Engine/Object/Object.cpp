@@ -86,6 +86,7 @@ void UObject::CopyPropertiesFrom(UObject* Src)
         {
         case EPropertyType::Bool:
         case EPropertyType::Int:
+        case EPropertyType::Enum:
         case EPropertyType::Float:
         case EPropertyType::Vec3:
         case EPropertyType::Vec4:

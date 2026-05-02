@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "AActor.h"
+#include "Actor.h"
 
 class UTextRenderComponent;
 class UDecalComponent;

@@ -1,6 +1,6 @@
 ﻿#include "LightComponent.h"
 #include "Object/ObjectFactory.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 
 DEFINE_CLASS(ULightComponentBase, USceneComponent)
 REGISTER_FACTORY(ULightComponentBase)

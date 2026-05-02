@@ -2,7 +2,7 @@
 
 #include <cmath>
 #include <cstring>
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "Core/ResourceManager.h"
 #include "Object/ObjectFactory.h"
 

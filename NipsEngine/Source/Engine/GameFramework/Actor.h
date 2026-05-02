@@ -42,6 +42,7 @@ public:
 	virtual void BeginPlay();
 	virtual void Tick(float DeltaTime);
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
+    virtual void Destroy();
 
 	bool IsActive() const { return bIsActive ; }
 	void SetActive(bool bEnabled) { bIsActive = bEnabled; }
@@ -107,6 +108,8 @@ public:
 	void PostEditProperty(const char* PropertyName) override {}
 
 	const TArray<UPrimitiveComponent*>& GetPrimitiveComponents() const;
+    
+    bool IsOverlappingActor(const AActor* Other) const;
 
 protected:
 	void MarkPrimitiveComponentsDirty();

@@ -1,5 +1,5 @@
 ﻿#include "GizmoComponent.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 #include "Render/Mesh/MeshManager.h"
 #include "Core/ResourceManager.h"
 

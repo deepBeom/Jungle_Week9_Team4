@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "AActor.h"
+#include "Actor.h"
 #include "Core/Delegate/DelegateMacros.h"
 
 

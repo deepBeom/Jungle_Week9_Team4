@@ -2,7 +2,7 @@
 
 #include "GameFramework/World.h"
 #include "GameFramework/Level.h"
-#include "GameFramework/AActor.h"
+#include "GameFramework/Actor.h"
 
 template<typename T>
 class TActorIterator
