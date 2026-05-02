@@ -13,35 +13,35 @@ struct FRenderResources
 
 enum class ESamplerType
 {
-	EST_Point,
-	EST_Linear,
-	EST_Anisotropic,
+    EST_Point,
+    EST_Linear,
+    EST_Anisotropic,
 };
 
 enum class EDepthStencilType
 {
-	Default,
-	DepthReadOnly,
-	StencilWrite,
-	StencilWriteOnlyEqual,
+    Default,
+    DepthReadOnly,
+    StencilWrite,
+    StencilWriteOnlyEqual,
 
-	// --- 기즈모 전용 ---
-	GizmoInside,
-	GizmoOutside
+    // --- 기즈모 전용 ---
+    GizmoInside,
+    GizmoOutside
 };
 
 enum class EBlendType
 {
-	Opaque,
-	AlphaBlend,
-	NoColor
+    Opaque,
+    AlphaBlend,
+    NoColor
 };
 
 enum class ERasterizerType
 {
-	SolidBackCull,
-	SolidFrontCull,
-	SolidNoCull,
-	WireFrame,
-	DepthView,
+    SolidBackCull,
+    SolidFrontCull,
+    SolidNoCull,
+    WireFrame,
+    DepthView,
 };

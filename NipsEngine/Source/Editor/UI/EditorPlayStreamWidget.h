@@ -5,10 +5,10 @@
 class FEditorPlayStreamWidget : public FEditorWidget
 {
 public:
-	virtual void Render(float DeltaTime) override;
+    virtual void Render(float DeltaTime) override;
 
 private:
-	const char* PlayLabel   = "▶ Play";
+    const char* PlayLabel   = "▶ Play";
     const char* ResumeLabel = "▶ Resume";
     const char* PauseLabel  = "❚❚ Pause"; 
     const char* StopLabel   = "■ Stop";

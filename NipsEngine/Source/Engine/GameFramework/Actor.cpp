@@ -124,19 +124,19 @@ void AActor::PostDuplicate(UObject* Original)
 
 void AActor::Serialize(FArchive& Ar)
 {
-	Ar.BeginObject(std::to_string(GetUUID()));
-	UObject::Serialize(Ar);
-	Ar << "Visible" << bVisible;
-	Ar << "Editor Only" << bTickInEditor;
-	Ar.EndObject();
+    Ar.BeginObject(std::to_string(GetUUID()));
+    UObject::Serialize(Ar);
+    Ar << "Visible" << bVisible;
+    Ar << "Editor Only" << bTickInEditor;
+    Ar.EndObject();
 
-	for (UActorComponent* Comp : OwnedComponents)
-	{
-		if (Comp->IsTransient()) continue;
-		Ar.BeginObject(std::to_string(Comp->GetUUID()));
-		Comp->Serialize(Ar);
-		Ar.EndObject();
-	}
+    for (UActorComponent* Comp : OwnedComponents)
+    {
+        if (Comp->IsTransient()) continue;
+        Ar.BeginObject(std::to_string(Comp->GetUUID()));
+        Comp->Serialize(Ar);
+        Ar.EndObject();
+    }
 }
 
 UActorComponent* AActor::AddComponentByClass(const FTypeInfo* Class)
@@ -291,11 +291,20 @@ void AActor::BeginPlay()
 
 void AActor::Tick(float DeltaTime)
 {
+    if (bPendingDestroy || bBeingDestroyed)
+    {
+        return;
+    }
+
     for (UActorComponent* Component : OwnedComponents)
     {
         if (Component && Component->IsActive())
         {
             Component->ExecuteTick(DeltaTime);
+            if (bPendingDestroy || bBeingDestroyed)
+            {
+                break;
+            }
         }
     }
 }
@@ -309,18 +318,30 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
      * Light 들의 경우 부모 -> 자식 순으로 AddComponent 되는 구조라 임시로 역순 Unregister 로 해결
      * 실제론 Actor - Component 생애주기를 잘 관리해줘야함
      */
-	for (int i = static_cast<int>(Components.size()) - 1; i >= 0; i--)
-	{
+    for (int i = static_cast<int>(Components.size()) - 1; i >= 0; i--)
+    {
         if (Components[i])
         {
             Components[i]->EndPlay();
         }
-	}
+    }
 }
 
 void AActor::Destroy()
 {
+    if (bPendingDestroy || bBeingDestroyed)
+    {
+        return;
+    }
 
+    if (OwningWorld != nullptr)
+    {
+        OwningWorld->RequestDestroyActor(this);
+    }
+    else
+    {
+        bPendingDestroy = true;
+    }
 }
 
 

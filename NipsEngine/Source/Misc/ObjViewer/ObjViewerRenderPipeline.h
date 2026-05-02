@@ -9,14 +9,14 @@ class UObjViewerEngine;
 class FObjViewerRenderPipeline : public IRenderPipeline
 {
 public:
-	FObjViewerRenderPipeline(UObjViewerEngine* InEngine, FRenderer& InRenderer);
-	~FObjViewerRenderPipeline() override;
+    FObjViewerRenderPipeline(UObjViewerEngine* InEngine, FRenderer& InRenderer);
+    ~FObjViewerRenderPipeline() override;
 
-	void Execute(float DeltaTime, FRenderer& Renderer) override;
-	void TransferViewportData(FRenderer& Renderer);
+    void Execute(float DeltaTime, FRenderer& Renderer) override;
+    void TransferViewportData(FRenderer& Renderer);
 
 private:
-	UObjViewerEngine* Engine = nullptr;
-	FRenderCollector Collector;
-	FRenderBus Bus;
+    UObjViewerEngine* Engine = nullptr;
+    FRenderCollector Collector;
+    FRenderBus Bus;
 };

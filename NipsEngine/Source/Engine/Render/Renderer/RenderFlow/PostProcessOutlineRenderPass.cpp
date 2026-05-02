@@ -5,39 +5,39 @@
 
 namespace
 {
-	void BindOutlineMaskSRV(UMaterialInterface* Material, ID3D11Device* Device, ID3D11ShaderResourceView* MaskSRV)
-	{
-		if (!Material || !Device)
-		{
-			return;
-		}
+    void BindOutlineMaskSRV(UMaterialInterface* Material, ID3D11Device* Device, ID3D11ShaderResourceView* MaskSRV)
+    {
+        if (!Material || !Device)
+        {
+            return;
+        }
 
-		if (UMaterial* BaseMaterial = Cast<UMaterial>(Material))
-		{
-			BaseMaterial->EnsureShaderBinding(Device);
-			if (BaseMaterial->ShaderBinding)
-			{
-				BaseMaterial->ShaderBinding->SetSRV("SelectionMaskTexture", MaskSRV);
-			}
-			return;
-		}
+        if (UMaterial* BaseMaterial = Cast<UMaterial>(Material))
+        {
+            BaseMaterial->EnsureShaderBinding(Device);
+            if (BaseMaterial->ShaderBinding)
+            {
+                BaseMaterial->ShaderBinding->SetSRV("SelectionMaskTexture", MaskSRV);
+            }
+            return;
+        }
 
-		UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(Material);
-		if (!MaterialInstance || !MaterialInstance->Parent || !MaterialInstance->Parent->Shader)
-		{
-			return;
-		}
+        UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(Material);
+        if (!MaterialInstance || !MaterialInstance->Parent || !MaterialInstance->Parent->Shader)
+        {
+            return;
+        }
 
-		if (!MaterialInstance->ShaderBinding || MaterialInstance->ShaderBinding->GetShader() != MaterialInstance->Parent->Shader)
-		{
-			MaterialInstance->ShaderBinding = MaterialInstance->Parent->Shader->CreateBindingInstance(Device);
-		}
+        if (!MaterialInstance->ShaderBinding || MaterialInstance->ShaderBinding->GetShader() != MaterialInstance->Parent->Shader)
+        {
+            MaterialInstance->ShaderBinding = MaterialInstance->Parent->Shader->CreateBindingInstance(Device);
+        }
 
-		if (MaterialInstance->ShaderBinding)
-		{
-			MaterialInstance->ShaderBinding->SetSRV("SelectionMaskTexture", MaskSRV);
-		}
-	}
+        if (MaterialInstance->ShaderBinding)
+        {
+            MaterialInstance->ShaderBinding->SetSRV("SelectionMaskTexture", MaskSRV);
+        }
+    }
 }
 
 bool FPostProcessOutlineRenderPass::Initialize()
@@ -91,7 +91,7 @@ bool FPostProcessOutlineRenderPass::End(const FRenderPassContext* Context)
     ID3D11ShaderResourceView* nullSRV = nullptr;
     Context->DeviceContext->PSSetShaderResources(7, 1, &nullSRV);
 
-	ID3D11BlendState* OpaqueBlend = FResourceManager::Get().GetOrCreateBlendState(EBlendType::Opaque);
+    ID3D11BlendState* OpaqueBlend = FResourceManager::Get().GetOrCreateBlendState(EBlendType::Opaque);
     float BlendFactor[4] = { 1.f, 1.f, 1.f, 1.f };
     Context->DeviceContext->OMSetBlendState(OpaqueBlend, BlendFactor, 0xFFFFFFFF);
 

@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** $Id: lapi.h $
 ** Auxiliary functions from Lua API
 ** See Copyright Notice in lua.h
@@ -14,8 +14,8 @@
 
 /* Increments 'L->top.p', checking for stack overflows */
 #define api_incr_top(L)	{L->top.p++; \
-			 api_check(L, L->top.p <= L->ci->top.p, \
-					"stack overflow");}
+             api_check(L, L->top.p <= L->ci->top.p, \
+                    "stack overflow");}
 
 
 /*
@@ -25,13 +25,13 @@
 */
 #define adjustresults(L,nres) \
     { if ((nres) <= LUA_MULTRET && L->ci->top.p < L->top.p) \
-	L->ci->top.p = L->top.p; }
+    L->ci->top.p = L->top.p; }
 
 
 /* Ensure the stack has at least 'n' elements */
 #define api_checknelems(L,n) \
-	api_check(L, (n) < (L->top.p - L->ci->func.p), \
-			  "not enough elements in the stack")
+    api_check(L, (n) < (L->top.p - L->ci->func.p), \
+              "not enough elements in the stack")
 
 
 /*

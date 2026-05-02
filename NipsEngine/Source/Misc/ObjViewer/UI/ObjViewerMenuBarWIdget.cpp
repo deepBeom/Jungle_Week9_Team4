@@ -16,81 +16,81 @@
 
 void FObjViewerMenuBarWidget::Render(float DeltaTime)
 {
-	if (ImGui::BeginMainMenuBar())
-	{
-		if (ImGui::BeginMenu("Files"))
-		{
-			if (ImGui::MenuItem("Load Obj..."))
-				LoadObj();
+    if (ImGui::BeginMainMenuBar())
+    {
+        if (ImGui::BeginMenu("Files"))
+        {
+            if (ImGui::MenuItem("Load Obj..."))
+                LoadObj();
 
-			// if (ImGui::MenuItem("Load Scene..."))
-			//  	LoadScene();
+            // if (ImGui::MenuItem("Load Scene..."))
+            //  	LoadScene();
 
-			ImGui::EndMenu();
-		}
-		ImGui::EndMainMenuBar();
-	}
+            ImGui::EndMenu();
+        }
+        ImGui::EndMainMenuBar();
+    }
 }
 
 void FObjViewerMenuBarWidget::LoadObj()
 {
-	FString FilePath = OpenFileDialog(L"OBJ Files (*.obj)\0*.obj\0All Files\0*.*\0");
+    FString FilePath = OpenFileDialog(L"OBJ Files (*.obj)\0*.obj\0All Files\0*.*\0");
 
-	if (!FilePath.empty())
-	{
-		UStaticMesh* LoadedMesh = FResourceManager::Get().LoadStaticMesh(FilePath);
+    if (!FilePath.empty())
+    {
+        UStaticMesh* LoadedMesh = FResourceManager::Get().LoadStaticMesh(FilePath);
 
-		if (!LoadedMesh) return;
+        if (!LoadedMesh) return;
 
-		UStaticMeshComponent* TargetComponent = Engine->GetPreviewMeshComponent();
+        UStaticMeshComponent* TargetComponent = Engine->GetPreviewMeshComponent();
 
-		if (!TargetComponent) return; 
+        if (!TargetComponent) return; 
 
-		TargetComponent->SetStaticMesh(LoadedMesh);
+        TargetComponent->SetStaticMesh(LoadedMesh);
 
-		if (FObjViewerSettings::Get().ModelUpAxis == EModelUpAxis::Y_up)
-		{
-			TargetComponent->GetOwner()->SetActorRotation(FVector(90.0f, 0.0f, 0.0f));
-		}
-		else
-		{
-			TargetComponent->GetOwner()->SetActorRotation(FVector(0.0f, 0.0f, 0.0f));
-		}
-							
-		Engine->GetViewportClient().ResetCamera();
-	}
+        if (FObjViewerSettings::Get().ModelUpAxis == EModelUpAxis::Y_up)
+        {
+            TargetComponent->GetOwner()->SetActorRotation(FVector(90.0f, 0.0f, 0.0f));
+        }
+        else
+        {
+            TargetComponent->GetOwner()->SetActorRotation(FVector(0.0f, 0.0f, 0.0f));
+        }
+                            
+        Engine->GetViewportClient().ResetCamera();
+    }
 }
 
 void FObjViewerMenuBarWidget::LoadScene()
 {
-	FString FilePath = OpenFileDialog(L"Scene Files (*.Scene; *.json)\0*.Scene;*.json\0All Files\0*.*\0");
+    FString FilePath = OpenFileDialog(L"Scene Files (*.Scene; *.json)\0*.Scene;*.json\0All Files\0*.*\0");
     if (FilePath.empty()) return;
 
-	FWorldContext LoadCtx;
-	FEditorCameraState LoadedCam;
-	FSceneSaveManager::LoadSceneFromJSON(FilePath, LoadCtx, &LoadedCam);
-	
-	if (LoadCtx.World)
-	{
-		Engine->GetWorldList().clear();
-		Engine->GetWorldList().push_back(LoadCtx);
-		Engine->SetActiveWorld(LoadCtx.ContextHandle);
-	}
-	
-	Engine->GetViewportClient().ResetCamera();
+    FWorldContext LoadCtx;
+    FEditorCameraState LoadedCam;
+    FSceneSaveManager::LoadSceneFromJSON(FilePath, LoadCtx, &LoadedCam);
+    
+    if (LoadCtx.World)
+    {
+        Engine->GetWorldList().clear();
+        Engine->GetWorldList().push_back(LoadCtx);
+        Engine->SetActiveWorld(LoadCtx.ContextHandle);
+    }
+    
+    Engine->GetViewportClient().ResetCamera();
 
-	// 로드된 카메라 상태가 유효하다면 적용합니다
-	if (LoadedCam.bValid)
-	{
-		if (FViewportCamera* Cam = Engine->GetCamera())
-		{
-			Cam->SetLocation(LoadedCam.Location);
-			Cam->SetRotation(FQuat(LoadedCam.Rotation));
-			Cam->SetFOV(LoadedCam.FOV);
-			Cam->SetNearPlane(LoadedCam.NearClip);
-			Cam->SetFarPlane(LoadedCam.FarClip);
-		}
-	}
+    // 로드된 카메라 상태가 유효하다면 적용합니다
+    if (LoadedCam.bValid)
+    {
+        if (FViewportCamera* Cam = Engine->GetCamera())
+        {
+            Cam->SetLocation(LoadedCam.Location);
+            Cam->SetRotation(FQuat(LoadedCam.Rotation));
+            Cam->SetFOV(LoadedCam.FOV);
+            Cam->SetNearPlane(LoadedCam.NearClip);
+            Cam->SetFarPlane(LoadedCam.FarClip);
+        }
+    }
 }
 
 FString FObjViewerMenuBarWidget::OpenFileDialog(const wchar_t* Filter)

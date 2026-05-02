@@ -1,4 +1,4 @@
-/*
+﻿/*
 ** $Id: luaconf.h $
 ** Configuration file for Lua
 ** See Copyright Notice in lua.h
@@ -208,17 +208,17 @@
 
 #if !defined(LUA_PATH_DEFAULT)
 #define LUA_PATH_DEFAULT  \
-		LUA_LDIR"?.lua;"  LUA_LDIR"?\\init.lua;" \
-		LUA_CDIR"?.lua;"  LUA_CDIR"?\\init.lua;" \
-		LUA_SHRDIR"?.lua;" LUA_SHRDIR"?\\init.lua;" \
-		".\\?.lua;" ".\\?\\init.lua"
+        LUA_LDIR"?.lua;"  LUA_LDIR"?\\init.lua;" \
+        LUA_CDIR"?.lua;"  LUA_CDIR"?\\init.lua;" \
+        LUA_SHRDIR"?.lua;" LUA_SHRDIR"?\\init.lua;" \
+        ".\\?.lua;" ".\\?\\init.lua"
 #endif
 
 #if !defined(LUA_CPATH_DEFAULT)
 #define LUA_CPATH_DEFAULT \
-		LUA_CDIR"?.dll;" \
-		LUA_CDIR"..\\lib\\lua\\" LUA_VDIR "\\?.dll;" \
-		LUA_CDIR"loadall.dll;" ".\\?.dll"
+        LUA_CDIR"?.dll;" \
+        LUA_CDIR"..\\lib\\lua\\" LUA_VDIR "\\?.dll;" \
+        LUA_CDIR"loadall.dll;" ".\\?.dll"
 #endif
 
 #else			/* }{ */
@@ -229,14 +229,14 @@
 
 #if !defined(LUA_PATH_DEFAULT)
 #define LUA_PATH_DEFAULT  \
-		LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
-		LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua;" \
-		"./?.lua;" "./?/init.lua"
+        LUA_LDIR"?.lua;"  LUA_LDIR"?/init.lua;" \
+        LUA_CDIR"?.lua;"  LUA_CDIR"?/init.lua;" \
+        "./?.lua;" "./?/init.lua"
 #endif
 
 #if !defined(LUA_CPATH_DEFAULT)
 #define LUA_CPATH_DEFAULT \
-		LUA_CDIR"?.so;" LUA_CDIR"loadall.so;" "./?.so"
+        LUA_CDIR"?.so;" LUA_CDIR"loadall.so;" "./?.so"
 #endif
 
 #endif			/* } */
@@ -418,7 +418,7 @@
 #define l_floor(x)		(l_mathop(floor)(x))
 
 #define lua_number2str(s,sz,n)  \
-	l_sprintf((s), sz, LUA_NUMBER_FMT, (LUAI_UACNUMBER)(n))
+    l_sprintf((s), sz, LUA_NUMBER_FMT, (LUAI_UACNUMBER)(n))
 
 /*
 @@ lua_numbertointeger converts a float number with an integral value
@@ -511,7 +511,7 @@
 #define LUAI_UACINT		LUA_INTEGER
 
 #define lua_integer2str(s,sz,n)  \
-	l_sprintf((s), sz, LUA_INTEGER_FMT, (LUAI_UACINT)(n))
+    l_sprintf((s), sz, LUA_INTEGER_FMT, (LUAI_UACINT)(n))
 
 /*
 ** use LUAI_UACINT here to avoid problems with promotions (which
@@ -626,7 +626,7 @@
 */
 #if !defined(LUA_USE_C89)
 #define lua_number2strx(L,b,sz,f,n)  \
-	((void)L, l_sprintf(b,sz,f,(LUAI_UACNUMBER)(n)))
+    ((void)L, l_sprintf(b,sz,f,(LUAI_UACNUMBER)(n)))
 #endif
 
 

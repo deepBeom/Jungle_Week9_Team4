@@ -13,148 +13,148 @@
 
 void FEditorSceneWidget::Initialize(UEditorEngine* InEditorEngine)
 {
-	FEditorWidget::Initialize(InEditorEngine);
-	RefreshSceneFileList();
+    FEditorWidget::Initialize(InEditorEngine);
+    RefreshSceneFileList();
 }
 
 void FEditorSceneWidget::RefreshSceneFileList()
 {
-	SceneFiles = FSceneSaveManager::GetSceneFileList();
-	if (SelectedSceneIndex >= static_cast<int32>(SceneFiles.size()))
-	{
-		SelectedSceneIndex = SceneFiles.empty() ? -1 : 0;
-	}
+    SceneFiles = FSceneSaveManager::GetSceneFileList();
+    if (SelectedSceneIndex >= static_cast<int32>(SceneFiles.size()))
+    {
+        SelectedSceneIndex = SceneFiles.empty() ? -1 : 0;
+    }
 }
 
 void FEditorSceneWidget::NewScene()
 {
-	if (!EditorEngine)
-	{
-		return;
-	}
+    if (!EditorEngine)
+    {
+        return;
+    }
 
-	EditorEngine->GetMainPanel().ResetWidgetSelections();
-	EditorEngine->NewScene();
-	NewSceneNotificationTimer = common::constants::ImGui::NotificationTimer;
+    EditorEngine->GetMainPanel().ResetWidgetSelections();
+    EditorEngine->NewScene();
+    NewSceneNotificationTimer = common::constants::ImGui::NotificationTimer;
 }
 
 void FEditorSceneWidget::SaveScene()
 {
-	SaveSceneToFilePath(SceneName);
+    SaveSceneToFilePath(SceneName);
 }
 
 void FEditorSceneWidget::LoadScene()
 {
-	if (!EditorEngine || SceneFiles.empty() || SelectedSceneIndex < 0)
-	{
-		return;
-	}
+    if (!EditorEngine || SceneFiles.empty() || SelectedSceneIndex < 0)
+    {
+        return;
+    }
 
-	std::filesystem::path ScenePath = std::filesystem::path(FSceneSaveManager::GetSceneDirectory())
-		/ (FPaths::ToWide(SceneFiles[SelectedSceneIndex]) + FSceneSaveManager::SceneExtension);
-	LoadSceneFromFilePath(FPaths::ToUtf8(ScenePath.wstring()));
+    std::filesystem::path ScenePath = std::filesystem::path(FSceneSaveManager::GetSceneDirectory())
+        / (FPaths::ToWide(SceneFiles[SelectedSceneIndex]) + FSceneSaveManager::SceneExtension);
+    LoadSceneFromFilePath(FPaths::ToUtf8(ScenePath.wstring()));
 }
 
 void FEditorSceneWidget::SaveSceneToFilePath(const FString& FilePath)
 {
-	if (!EditorEngine)
-	{
-		return;
-	}
+    if (!EditorEngine)
+    {
+        return;
+    }
 
-	std::filesystem::path TargetPath = std::filesystem::path(FPaths::ToWide(FilePath));
-	const bool bNameOnlySave = !TargetPath.has_parent_path() && TargetPath.root_path().empty();
-	if (TargetPath.extension().empty())
-	{
-		TargetPath += FSceneSaveManager::SceneExtension;
-	}
+    std::filesystem::path TargetPath = std::filesystem::path(FPaths::ToWide(FilePath));
+    const bool bNameOnlySave = !TargetPath.has_parent_path() && TargetPath.root_path().empty();
+    if (TargetPath.extension().empty())
+    {
+        TargetPath += FSceneSaveManager::SceneExtension;
+    }
 
-	const FString FinalSceneName = FPaths::ToUtf8(TargetPath.stem().wstring());
-	strncpy_s(SceneName, IM_ARRAYSIZE(SceneName), FinalSceneName.c_str(), _TRUNCATE);
+    const FString FinalSceneName = FPaths::ToUtf8(TargetPath.stem().wstring());
+    strncpy_s(SceneName, IM_ARRAYSIZE(SceneName), FinalSceneName.c_str(), _TRUNCATE);
 
-	FWorldContext* Ctx = EditorEngine->GetWorldContextFromHandle(EditorEngine->GetActiveWorldHandle());
-	if (Ctx)
-	{
-		FEditorCameraState CamState;
-		if (const FViewportCamera* Cam = EditorEngine->GetCamera())
-		{
-			CamState.Location = Cam->GetLocation();
-			CamState.Rotation = FRotator(Cam->GetRotation());
-			CamState.FOV = Cam->GetFOV() * (180.f / 3.14159265358979f);
-			CamState.NearClip = Cam->GetNearPlane();
-			CamState.FarClip = Cam->GetFarPlane();
-			CamState.bValid = true;
-		}
+    FWorldContext* Ctx = EditorEngine->GetWorldContextFromHandle(EditorEngine->GetActiveWorldHandle());
+    if (Ctx)
+    {
+        FEditorCameraState CamState;
+        if (const FViewportCamera* Cam = EditorEngine->GetCamera())
+        {
+            CamState.Location = Cam->GetLocation();
+            CamState.Rotation = FRotator(Cam->GetRotation());
+            CamState.FOV = Cam->GetFOV() * (180.f / 3.14159265358979f);
+            CamState.NearClip = Cam->GetNearPlane();
+            CamState.FarClip = Cam->GetFarPlane();
+            CamState.bValid = true;
+        }
 
-		//FSceneSaveManager::SaveSceneAsJSON(FinalSceneName, *Ctx, &CamState);
-		FSceneSaveManager::Save(FinalSceneName, *Ctx, &CamState);
+        //FSceneSaveManager::SaveSceneAsJSON(FinalSceneName, *Ctx, &CamState);
+        FSceneSaveManager::Save(FinalSceneName, *Ctx, &CamState);
 
-		const std::filesystem::path SavedPath = std::filesystem::path(FSceneSaveManager::GetSceneDirectory())
-			/ (FPaths::ToWide(FinalSceneName) + FSceneSaveManager::SceneExtension);
+        const std::filesystem::path SavedPath = std::filesystem::path(FSceneSaveManager::GetSceneDirectory())
+            / (FPaths::ToWide(FinalSceneName) + FSceneSaveManager::SceneExtension);
 
-		if (!bNameOnlySave && SavedPath != TargetPath)
-		{
-			const std::filesystem::path ParentPath = TargetPath.parent_path();
-			if (!ParentPath.empty())
-			{
-				std::error_code CreateDirEc;
-				std::filesystem::create_directories(ParentPath, CreateDirEc);
-			}
+        if (!bNameOnlySave && SavedPath != TargetPath)
+        {
+            const std::filesystem::path ParentPath = TargetPath.parent_path();
+            if (!ParentPath.empty())
+            {
+                std::error_code CreateDirEc;
+                std::filesystem::create_directories(ParentPath, CreateDirEc);
+            }
 
-			std::error_code CopyEc;
-			std::filesystem::copy_file(SavedPath, TargetPath, std::filesystem::copy_options::overwrite_existing, CopyEc);
-		}
-	}
+            std::error_code CopyEc;
+            std::filesystem::copy_file(SavedPath, TargetPath, std::filesystem::copy_options::overwrite_existing, CopyEc);
+        }
+    }
 
-	SceneSaveNotificationTimer = common::constants::ImGui::NotificationTimer;
-	RefreshSceneFileList();
+    SceneSaveNotificationTimer = common::constants::ImGui::NotificationTimer;
+    RefreshSceneFileList();
 }
 
 void FEditorSceneWidget::LoadSceneFromFilePath(const FString& FilePath)
 {
-	if (!EditorEngine)
-	{
-		return;
-	}
+    if (!EditorEngine)
+    {
+        return;
+    }
 
-	EditorEngine->GetMainPanel().ResetWidgetSelections();
-	EditorEngine->ClearScene();
-	FWorldContext LoadCtx;
-	FEditorCameraState LoadedCam;
-	//FSceneSaveManager::LoadSceneFromJSON(FilePath, LoadCtx, &LoadedCam);
-	FSceneSaveManager::Load(FilePath, LoadCtx, &LoadedCam);
-	if (LoadCtx.World)
-	{
-		EditorEngine->GetWorldList().push_back(LoadCtx);
-		EditorEngine->SetActiveWorld(LoadCtx.ContextHandle);
-		EditorEngine->ApplySpatialIndexMaintenanceSettings(LoadCtx.World);
-	}
-	EditorEngine->ResetViewport();
+    EditorEngine->GetMainPanel().ResetWidgetSelections();
+    EditorEngine->ClearScene();
+    FWorldContext LoadCtx;
+    FEditorCameraState LoadedCam;
+    //FSceneSaveManager::LoadSceneFromJSON(FilePath, LoadCtx, &LoadedCam);
+    FSceneSaveManager::Load(FilePath, LoadCtx, &LoadedCam);
+    if (LoadCtx.World)
+    {
+        EditorEngine->GetWorldList().push_back(LoadCtx);
+        EditorEngine->SetActiveWorld(LoadCtx.ContextHandle);
+        EditorEngine->ApplySpatialIndexMaintenanceSettings(LoadCtx.World);
+    }
+    EditorEngine->ResetViewport();
 
-	// ResetViewport 가 카메라를 InitViewPos 로 초기화하므로 그 이후에 덮어씁니다
-	if (LoadedCam.bValid)
-	{
-		if (FViewportCamera* Cam = EditorEngine->GetCamera())
-		{
-			Cam->SetLocation(LoadedCam.Location);
-			Cam->SetRotation(FQuat(LoadedCam.Rotation));
-			Cam->SetFOV(LoadedCam.FOV * (3.14159265358979f / 180.f));
-			Cam->SetNearPlane(LoadedCam.NearClip);
-			Cam->SetFarPlane(LoadedCam.FarClip);
-			// ApplyCameraMode 가 설정한 TargetLocation(기본값)이 남아 있으면
-			// 다음 Tick 에서 EditorWorldController 가 카메라를 되돌려 버리므로
-			// 새 위치로 동기화한다.
-			EditorEngine->GetViewportLayout().GetViewportClient(0)->SyncCameraTarget();
-		}
-	}
+    // ResetViewport 가 카메라를 InitViewPos 로 초기화하므로 그 이후에 덮어씁니다
+    if (LoadedCam.bValid)
+    {
+        if (FViewportCamera* Cam = EditorEngine->GetCamera())
+        {
+            Cam->SetLocation(LoadedCam.Location);
+            Cam->SetRotation(FQuat(LoadedCam.Rotation));
+            Cam->SetFOV(LoadedCam.FOV * (3.14159265358979f / 180.f));
+            Cam->SetNearPlane(LoadedCam.NearClip);
+            Cam->SetFarPlane(LoadedCam.FarClip);
+            // ApplyCameraMode 가 설정한 TargetLocation(기본값)이 남아 있으면
+            // 다음 Tick 에서 EditorWorldController 가 카메라를 되돌려 버리므로
+            // 새 위치로 동기화한다.
+            EditorEngine->GetViewportLayout().GetViewportClient(0)->SyncCameraTarget();
+        }
+    }
 
-	SceneLoadNotificationTimer = common::constants::ImGui::NotificationTimer;
+    SceneLoadNotificationTimer = common::constants::ImGui::NotificationTimer;
 }
 
 void FEditorSceneWidget::RefreshSceneAndAssets()
 {
-	RefreshSceneFileList();
-	FResourceManager::Get().RefreshFromAssetDirectory(FPaths::ToUtf8(FPaths::AssetDirectoryPath()));
+    RefreshSceneFileList();
+    FResourceManager::Get().RefreshFromAssetDirectory(FPaths::ToUtf8(FPaths::AssetDirectoryPath()));
 }
 
 void FEditorSceneWidget::Render(float DeltaTime)

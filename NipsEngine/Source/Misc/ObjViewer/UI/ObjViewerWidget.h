@@ -5,15 +5,15 @@ class UObjViewerEngine;
 class FObjViewerWidget
 {
 public:
-	virtual ~FObjViewerWidget() = default;
+    virtual ~FObjViewerWidget() = default;
 
-	virtual void Initialize(UObjViewerEngine* InEngine)
-	{
-		Engine = InEngine;
-	}
+    virtual void Initialize(UObjViewerEngine* InEngine)
+    {
+        Engine = InEngine;
+    }
 
-	virtual void Render(float DeltaTime) = 0;
+    virtual void Render(float DeltaTime) = 0;
 
 protected:
-	UObjViewerEngine* Engine = nullptr;
+    UObjViewerEngine* Engine = nullptr;
 };

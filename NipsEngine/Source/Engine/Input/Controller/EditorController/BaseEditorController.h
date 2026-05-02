@@ -22,7 +22,7 @@ class IBaseEditorController
     virtual void OnKeyDown(int VK) = 0;
     virtual void OnKeyReleased(int VK) = 0;
     virtual void OnWheelScrolled(float Notch) = 0;
-	virtual void Tick(float InDeltaTime) { DeltaTime = InDeltaTime; }
+    virtual void Tick(float InDeltaTime) { DeltaTime = InDeltaTime; }
 
     void SetViewportDim(float X, float Y, float Width, float Height);
 

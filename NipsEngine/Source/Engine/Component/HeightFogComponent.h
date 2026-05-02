@@ -10,7 +10,7 @@ public:
     UHeightFogComponent();
     ~UHeightFogComponent() override = default;
 
-	virtual void Serialize(FArchive& Ar) override;
+    virtual void Serialize(FArchive& Ar) override;
 
     EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_FOG; }
 

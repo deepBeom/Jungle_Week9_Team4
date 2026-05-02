@@ -53,11 +53,11 @@ bool FDecalRenderPass::DrawCommand(const FRenderPassContext* Context)
     {
         return true;
     }
-	
+    
     SceneLightBinding::BindResources(
         Context,
         VisibleLightConstantBuffer,
-		DirectionalShadowConstantBuffer,
+        DirectionalShadowConstantBuffer,
         SpotShadowInfoConstantBuffer,
         SpotShadowConstantsBuffer,
         SpotShadowConstantsSRV,
@@ -102,7 +102,7 @@ bool FDecalRenderPass::DrawCommand(const FRenderPassContext* Context)
         SceneLightBinding::BindResources(
             Context,
             VisibleLightConstantBuffer,
-			DirectionalShadowConstantBuffer,
+            DirectionalShadowConstantBuffer,
             SpotShadowInfoConstantBuffer,
             SpotShadowConstantsBuffer,
             SpotShadowConstantsSRV,

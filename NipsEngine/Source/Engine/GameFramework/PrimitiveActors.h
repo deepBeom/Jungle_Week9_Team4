@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Actor.h"
+#include "Engine/Core/SoundManager.h"
 
 class UTextRenderComponent;
 class UDecalComponent;
@@ -8,19 +9,21 @@ class UDecalComponent;
 class ASceneActor : public AActor
 {
 public:
-	DECLARE_CLASS(ASceneActor, AActor)
-	ASceneActor() = default;
+    DECLARE_CLASS(ASceneActor, AActor)
+    ASceneActor() = default;
 
-	void InitDefaultComponents();
+    void InitDefaultComponents();
 };
 
 class AStaticMeshActor : public AActor
 {
 public:
-	DECLARE_CLASS(AStaticMeshActor, AActor)
-	AStaticMeshActor() = default;
+    DECLARE_CLASS(AStaticMeshActor, AActor)
+    AStaticMeshActor() = default;
 
-	void InitDefaultComponents();
+    void InitDefaultComponents();
+public:
+    virtual void BeginPlay() override;
 };
 
 class ASubUVActor : public AActor
@@ -45,7 +48,7 @@ class ABillboardActor : public AActor
 {
 public:
     DECLARE_CLASS(ABillboardActor, AActor)
-	ABillboardActor() = default;
+    ABillboardActor() = default;
 
     void InitDefaultComponents();
 };
@@ -53,10 +56,10 @@ public:
 class ADecalActor : public AActor
 {
 public:
-	DECLARE_CLASS(ADecalActor, AActor)
-	ADecalActor() = default;
+    DECLARE_CLASS(ADecalActor, AActor)
+    ADecalActor() = default;
 
-	void InitDefaultComponents();
+    void InitDefaultComponents();
 };
 
 class ALightActor : public AActor {
@@ -72,48 +75,48 @@ protected:
 
 class ADirectionalLightActor : public ALightActor {
 public:
-	DECLARE_CLASS(ADirectionalLightActor, ALightActor)
-	ADirectionalLightActor() = default;
+    DECLARE_CLASS(ADirectionalLightActor, ALightActor)
+    ADirectionalLightActor() = default;
 
-	void InitDefaultComponents();
+    void InitDefaultComponents();
 };
 
 class AAmbientLightActor : public ALightActor {
 public:
-	DECLARE_CLASS(AAmbientLightActor, ALightActor)
-	AAmbientLightActor() = default;
+    DECLARE_CLASS(AAmbientLightActor, ALightActor)
+    AAmbientLightActor() = default;
 
-	void InitDefaultComponents();
+    void InitDefaultComponents();
 };
 
 class APointLightActor : public ALightActor {
 public:
-	DECLARE_CLASS(APointLightActor, ALightActor)
-	APointLightActor() = default;
+    DECLARE_CLASS(APointLightActor, ALightActor)
+    APointLightActor() = default;
 
-	void InitDefaultComponents();
+    void InitDefaultComponents();
 };
 
 class ASpotLightActor : public ALightActor {
 public:
-	DECLARE_CLASS(ASpotLightActor, ALightActor)
-	ASpotLightActor() = default;
+    DECLARE_CLASS(ASpotLightActor, ALightActor)
+    ASpotLightActor() = default;
 
-	void InitDefaultComponents();
+    void InitDefaultComponents();
 };
 
 class ASkyAtmosphereActor : public AActor {
 public:
-	DECLARE_CLASS(ASkyAtmosphereActor, AActor)
-	ASkyAtmosphereActor() = default;
+    DECLARE_CLASS(ASkyAtmosphereActor, AActor)
+    ASkyAtmosphereActor() = default;
 
-	void InitDefaultComponents();
+    void InitDefaultComponents();
 };
 
 class AHeightFogActor : public AActor {
 public:
-	DECLARE_CLASS(AHeightFogActor, AActor)
-	AHeightFogActor() = default;
+    DECLARE_CLASS(AHeightFogActor, AActor)
+    AHeightFogActor() = default;
 
-	void InitDefaultComponents();
+    void InitDefaultComponents();
 };

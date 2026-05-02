@@ -88,9 +88,9 @@ bool FToonOutlineRenderPass::DrawCommand(const FRenderPassContext* Context)
                                &Cmd.PerObjectConstants, Shader, Context);
         }
 
-		/**
-		 * TODO: Material 내에서 B2 Slot 를 이미 쓰고 있는 것 같은데 이런 충돌을 밑 방식 이외의 방식으로 해결할 수 있는지 찾아볼 필요가 있음 
-		 */
+        /**
+         * TODO: Material 내에서 B2 Slot 를 이미 쓰고 있는 것 같은데 이런 충돌을 밑 방식 이외의 방식으로 해결할 수 있는지 찾아볼 필요가 있음 
+         */
         {
             FToonOutlineConstantBuffer OutlineCB = {};
             OutlineCB.OutlineThickness = 0.003f; // 원하는 두께

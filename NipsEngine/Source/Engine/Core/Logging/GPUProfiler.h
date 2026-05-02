@@ -21,70 +21,70 @@
 
 class FGPUProfiler : public TSingleton<FGPUProfiler>
 {
-	friend class TSingleton<FGPUProfiler>;
+    friend class TSingleton<FGPUProfiler>;
 
 public:
-	void Initialize(ID3D11Device* InDevice, ID3D11DeviceContext* InContext);
-	void Shutdown();
+    void Initialize(ID3D11Device* InDevice, ID3D11DeviceContext* InContext);
+    void Shutdown();
 
-	void BeginFrame();
-	void EndFrame();
+    void BeginFrame();
+    void EndFrame();
 
-	uint32 BeginTimestamp(const char* Name);
-	void EndTimestamp(uint32 Index);
+    uint32 BeginTimestamp(const char* Name);
+    void EndTimestamp(uint32 Index);
 
-	void TakeSnapshot();
-	const TArray<FStatEntry>& GetGPUSnapshot() const { return Snapshot; }
+    void TakeSnapshot();
+    const TArray<FStatEntry>& GetGPUSnapshot() const { return Snapshot; }
 
 private:
-	FGPUProfiler() = default;
-	~FGPUProfiler() = default;
+    FGPUProfiler() = default;
+    ~FGPUProfiler() = default;
 
-	static const uint32 MAX_TIMESTAMPS = 64;
-	static const uint32 FRAME_COUNT = 2;
+    static const uint32 MAX_TIMESTAMPS = 64;
+    static const uint32 FRAME_COUNT = 2;
 
-	struct FTimestampPair
-	{
-		TComPtr<ID3D11Query> BeginQuery;
-		TComPtr<ID3D11Query> EndQuery;
-		const char* Name = nullptr;
-	};
+    struct FTimestampPair
+    {
+        TComPtr<ID3D11Query> BeginQuery;
+        TComPtr<ID3D11Query> EndQuery;
+        const char* Name = nullptr;
+    };
 
-	struct FFrameData
-	{
-		TComPtr<ID3D11Query> DisjointQuery;
-		FTimestampPair Timestamps[MAX_TIMESTAMPS];
-		uint32 UsedCount = 0;
-	};
+    struct FFrameData
+    {
+        TComPtr<ID3D11Query> DisjointQuery;
+        FTimestampPair Timestamps[MAX_TIMESTAMPS];
+        uint32 UsedCount = 0;
+    };
 
-	FFrameData Frames[FRAME_COUNT];
-	uint32 WriteIndex = 0;
+    FFrameData Frames[FRAME_COUNT];
+    uint32 WriteIndex = 0;
 
-	TComPtr<ID3D11Device> Device;
-	TComPtr<ID3D11DeviceContext> Context;
-	bool bInitialized = false;
-	bool bSkipFrame = false;
+    TComPtr<ID3D11Device> Device;
+    TComPtr<ID3D11DeviceContext> Context;
+    bool bInitialized = false;
+    bool bSkipFrame = false;
 
-	void CollectPreviousFrame();
+    void CollectPreviousFrame();
 
-	TMap<const char*, FStatEntry> GPUStats;
-	TArray<FStatEntry> Snapshot;
+    TMap<const char*, FStatEntry> GPUStats;
+    TArray<FStatEntry> Snapshot;
 };
 
 // --- GPU Scoped Timer (RAII) ---
 class FGPUScopedTimer
 {
 public:
-	FGPUScopedTimer(const char* InName)
-		: Index(FGPUProfiler::Get().BeginTimestamp(InName)) {}
+    FGPUScopedTimer(const char* InName)
+        : Index(FGPUProfiler::Get().BeginTimestamp(InName)) {}
 
-	~FGPUScopedTimer()
-	{
-		FGPUProfiler::Get().EndTimestamp(Index);
-	}
+    ~FGPUScopedTimer()
+    {
+        FGPUProfiler::Get().EndTimestamp(Index);
+    }
 
 private:
-	uint32 Index;
+    uint32 Index;
 };
 
 // --- GPU_SCOPE_STAT 매크로 ---

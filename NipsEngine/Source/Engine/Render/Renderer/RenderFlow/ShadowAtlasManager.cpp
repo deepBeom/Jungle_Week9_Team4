@@ -61,7 +61,7 @@ bool FShadowAtlasManager::Initialize(ID3D11Device* Device)
         return false;
     }
 
-	// VSM
+    // VSM
     D3D11_TEXTURE2D_DESC VSMTextureDesc = {};
     VSMTextureDesc.Width = SpotAtlasResolution;
     VSMTextureDesc.Height = SpotAtlasResolution;
@@ -158,7 +158,7 @@ bool FShadowAtlasManager::InitializeDirectionalAtlas(ID3D11Device* Device)
         return false;
     }
 
-	// VSM
+    // VSM
     D3D11_TEXTURE2D_DESC VSMTextureDesc = {};
     VSMTextureDesc.Width = DirectionalAtlasResolution;
     VSMTextureDesc.Height = DirectionalAtlasResolution;
@@ -210,7 +210,7 @@ void FShadowAtlasManager::Release()
     SpotAtlasDSV.Reset();
     SpotAtlasTexture.Reset();
 
-	SpotVSMAtlasSRV.Reset();
+    SpotVSMAtlasSRV.Reset();
     SpotVSMAtlasRTV.Reset();
     SpotVSMAtlasTexture.Reset();
 

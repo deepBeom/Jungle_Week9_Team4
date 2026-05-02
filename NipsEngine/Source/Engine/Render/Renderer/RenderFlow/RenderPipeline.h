@@ -42,7 +42,7 @@ public:
     bool Render(const FRenderPassContext* Context);
     void Release();
 
-	ID3D11ShaderResourceView* GetOutSRV() const { return OutSRV; }
+    ID3D11ShaderResourceView* GetOutSRV() const { return OutSRV; }
 
 private:
     std::shared_ptr<FLightCullingPass> LightCullingPass;
@@ -70,5 +70,5 @@ private:
     ID3D11ShaderResourceView* OutSRV = nullptr;
     ID3D11RenderTargetView* OutRTV = nullptr;
 
-	TArray<std::shared_ptr<FBaseRenderPass>> RenderPasses;
+    TArray<std::shared_ptr<FBaseRenderPass>> RenderPasses;
 };

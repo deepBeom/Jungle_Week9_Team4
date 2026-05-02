@@ -1,4 +1,4 @@
-#include "KDTree.h"
+﻿#include "KDTree.h"
 
 FKDTree::~FKDTree()
 {
@@ -42,7 +42,7 @@ void FKDTree::Build(const TArray<FNormalVertex>& Vertices, const TArray<uint32>&
 {
     Clear();
 
-	uint32 TriangleCount = static_cast<int32>(Indices.size() / 3);
+    uint32 TriangleCount = static_cast<int32>(Indices.size() / 3);
     if (TriangleCount <= 0)
     {
         return;

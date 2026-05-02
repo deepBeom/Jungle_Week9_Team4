@@ -11,7 +11,7 @@
 #include "Component/StaticMeshComponent.h"
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
-
+#include "Engine/Core/SoundManager.h"
 
 #include "Component/ObjectTypeComponent.h"
 
@@ -56,112 +56,131 @@ REGISTER_FACTORY(AHeightFogActor)
 
 void ASceneActor::InitDefaultComponents()
 {
-	auto SceneRoot = AddComponent<USceneComponent>();
-	SetRootComponent(SceneRoot);
+    auto SceneRoot = AddComponent<USceneComponent>();
+    SetRootComponent(SceneRoot);
 
-	UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
-	Billboard->AttachToComponent(SceneRoot);
-	Billboard->SetEditorOnly(true);
-	Billboard->SetHiddenInEditor(true);
-	Billboard->SetTexturePath("Asset/Texture/Icons/EmptyActor.PNG");
+    UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
+    Billboard->AttachToComponent(SceneRoot);
+    Billboard->SetEditorOnly(true);
+    Billboard->SetHiddenInEditor(true);
+    Billboard->SetTexturePath("Asset/Texture/Icons/EmptyActor.PNG");
 }
 
 void AStaticMeshActor::InitDefaultComponents()
 {
-	auto* StaticMesh = AddComponent<UStaticMeshComponent>();
-	SetRootComponent(StaticMesh);
-    
+    auto* StaticMesh = AddComponent<UStaticMeshComponent>();
+    SetRootComponent(StaticMesh);
+
     AddComponent<UObjectTypeComponent>();
+}
+
+void AStaticMeshActor::BeginPlay()
+{
+    for (UActorComponent* Comp : GetComponents())
+    {
+        UShapeComponent* ShapeComp = Cast<UShapeComponent>(Comp);
+        if (!ShapeComp) continue;
+
+        ShapeComp->SetGenerateOverlapEvents(true);
+
+        // 외부 싱글턴 호출은 Add
+        ShapeComp->OnHit.Add([](const FCollisionEvent& Event)
+            {
+                FSoundManager::Get().PlaySFX("Click.wav");
+            });
+
+
+    }
 }
 
 void ASubUVActor::InitDefaultComponents()
 {
-	SetTickInEditor(true); // Editor Tick을 받도록 변경
+    SetTickInEditor(true); // Editor Tick을 받도록 변경
 
     auto* SubUV = AddComponent<USubUVComponent>();
     SetRootComponent(SubUV);
-	SubUV->SetParticle(FName("Explosion"));
-	SubUV->SetSpriteSize(2.0f, 2.0f);
-	SubUV->SetFrameRate(30.f);
+    SubUV->SetParticle(FName("Explosion"));
+    SubUV->SetSpriteSize(2.0f, 2.0f);
+    SubUV->SetFrameRate(30.f);
 }
 
 void ATextRenderActor::InitDefaultComponents()
 {
-	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
-	SetRootComponent(Text);
-	Text->SetFont(FName("Default"));
-	Text->SetText("TextRender");
+    UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
+    SetRootComponent(Text);
+    Text->SetFont(FName("Default"));
+    Text->SetText("TextRender");
 }
 
 void ABillboardActor::InitDefaultComponents()
 {
-	UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
-	SetRootComponent(Billboard);
-	Billboard->SetTexturePath(("Asset/Texture/Pawn_64x.png"));
-	Billboard->SetEditorOnly(true);
+    UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
+    SetRootComponent(Billboard);
+    Billboard->SetTexturePath(("Asset/Texture/Pawn_64x.png"));
+    Billboard->SetEditorOnly(true);
 }
 
 void ADecalActor::InitDefaultComponents()
 {
-	UDecalComponent* Decal = AddComponent<UDecalComponent>();
-	SetRootComponent(Decal);
+    UDecalComponent* Decal = AddComponent<UDecalComponent>();
+    SetRootComponent(Decal);
 
-	UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
-	Billboard->AttachToComponent(Decal);
-	Billboard->SetTexturePath("Asset/Texture/Icons/S_DecalActorIcon.PNG");
+    UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
+    Billboard->AttachToComponent(Decal);
+    Billboard->SetTexturePath("Asset/Texture/Icons/S_DecalActorIcon.PNG");
 }
 
 void ADirectionalLightActor::InitDefaultComponents()
 {
-	UDirectionalLightComponent* DirLight = AddComponent<UDirectionalLightComponent>();
-	SetRootComponent(DirLight);
-	SetupBillboard(DirLight);
+    UDirectionalLightComponent* DirLight = AddComponent<UDirectionalLightComponent>();
+    SetRootComponent(DirLight);
+    SetupBillboard(DirLight);
 }
 
 void AAmbientLightActor::InitDefaultComponents()
 {
-	UAmbientLightComponent* AmbientLight = AddComponent<UAmbientLightComponent>();
-	SetRootComponent(AmbientLight);
-	SetupBillboard(AmbientLight);
+    UAmbientLightComponent* AmbientLight = AddComponent<UAmbientLightComponent>();
+    SetRootComponent(AmbientLight);
+    SetupBillboard(AmbientLight);
 }
 
 void APointLightActor::InitDefaultComponents()
 {
-	UPointLightComponent* PointLight = AddComponent<UPointLightComponent>();
-	SetRootComponent(PointLight);
-	SetupBillboard(PointLight);
+    UPointLightComponent* PointLight = AddComponent<UPointLightComponent>();
+    SetRootComponent(PointLight);
+    SetupBillboard(PointLight);
 }
 
 void ASpotLightActor::InitDefaultComponents()
 {
-	USpotLightComponent* SpotLight = AddComponent<USpotLightComponent>();
-	SetRootComponent(SpotLight);
-	SetupBillboard(SpotLight);
+    USpotLightComponent* SpotLight = AddComponent<USpotLightComponent>();
+    SetRootComponent(SpotLight);
+    SetupBillboard(SpotLight);
 }
 
 
 void ASkyAtmosphereActor::InitDefaultComponents()
 {
-	USkyAtmosphereComponent* SkyAtmosphere = AddComponent<USkyAtmosphereComponent>();
-	SetRootComponent(SkyAtmosphere);
-	
-	UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
-	Billboard->AttachToComponent(SkyAtmosphere);
-	Billboard->SetEditorOnly(true);
-	Billboard->SetHiddenInEditor(true);
-	Billboard->SetTexturePath("Asset/Texture/Icons/SkyLight.PNG");
+    USkyAtmosphereComponent* SkyAtmosphere = AddComponent<USkyAtmosphereComponent>();
+    SetRootComponent(SkyAtmosphere);
+    
+    UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
+    Billboard->AttachToComponent(SkyAtmosphere);
+    Billboard->SetEditorOnly(true);
+    Billboard->SetHiddenInEditor(true);
+    Billboard->SetTexturePath("Asset/Texture/Icons/SkyLight.PNG");
 }
 
 void AHeightFogActor::InitDefaultComponents()
 {
-	UHeightFogComponent* HeightFog = AddComponent<UHeightFogComponent>();
-	SetRootComponent(HeightFog);
-	
-	UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
-	Billboard->AttachToComponent(HeightFog);
-	Billboard->SetEditorOnly(true);
-	Billboard->SetHiddenInEditor(true);
-	Billboard->SetTexturePath("Asset/Texture/Icons/S_ExpoHeightFog.PNG");
+    UHeightFogComponent* HeightFog = AddComponent<UHeightFogComponent>();
+    SetRootComponent(HeightFog);
+    
+    UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
+    Billboard->AttachToComponent(HeightFog);
+    Billboard->SetEditorOnly(true);
+    Billboard->SetHiddenInEditor(true);
+    Billboard->SetTexturePath("Asset/Texture/Icons/S_ExpoHeightFog.PNG");
 }
 
 void ALightActor::PostDuplicate(UObject* Original)

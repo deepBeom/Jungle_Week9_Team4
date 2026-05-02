@@ -5,7 +5,7 @@ bool FBaseRenderPass::Render(const FRenderPassContext* Context)
 {
     bool bResult;
     
-	bResult = Begin(Context);
+    bResult = Begin(Context);
     if (!bResult)
         return false;
 
@@ -17,7 +17,7 @@ bool FBaseRenderPass::Render(const FRenderPassContext* Context)
     if (!bResult)
         return false;
 
-	return true;
+    return true;
 }
 
 void FBaseRenderPass::CheckOverrideViewMode(const FRenderPassContext* Context)

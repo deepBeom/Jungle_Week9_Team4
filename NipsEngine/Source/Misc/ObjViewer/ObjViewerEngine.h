@@ -10,25 +10,25 @@
 class UObjViewerEngine : public UEngine
 {
 public:
-	DECLARE_CLASS(UObjViewerEngine, UEngine)
+    DECLARE_CLASS(UObjViewerEngine, UEngine)
 
-	void Init(FWindowsWindow* InWindow) override;
-	void BeginPlay() override;
-	void Shutdown() override;
-	void Tick(float DeltaTime) override;
-	
-	FViewportCamera* GetCamera() const { return ViewportClient.GetCamera(); }
-	FObjViewerViewportClient& GetViewportClient() { return ViewportClient; }
+    void Init(FWindowsWindow* InWindow) override;
+    void BeginPlay() override;
+    void Shutdown() override;
+    void Tick(float DeltaTime) override;
+    
+    FViewportCamera* GetCamera() const { return ViewportClient.GetCamera(); }
+    FObjViewerViewportClient& GetViewportClient() { return ViewportClient; }
 
-	void RenderUI(float DeltaTime);
-	void OnWindowResized(uint32 Width, uint32 Height) override;
-	UStaticMeshComponent* GetPreviewMeshComponent() const { return PreviewMeshComponent; }
+    void RenderUI(float DeltaTime);
+    void OnWindowResized(uint32 Width, uint32 Height) override;
+    UStaticMeshComponent* GetPreviewMeshComponent() const { return PreviewMeshComponent; }
 
-	FObjViewerSettings& GetSettings() { return FObjViewerSettings::Get(); }
-	const FObjViewerSettings& GetSettings() const { return FObjViewerSettings::Get(); }
+    FObjViewerSettings& GetSettings() { return FObjViewerSettings::Get(); }
+    const FObjViewerSettings& GetSettings() const { return FObjViewerSettings::Get(); }
 
 private:
-	FObjViewerMainPanel MainPanel;
-	FObjViewerViewportClient ViewportClient;
-	UStaticMeshComponent* PreviewMeshComponent = nullptr;
+    FObjViewerMainPanel MainPanel;
+    FObjViewerViewportClient ViewportClient;
+    UStaticMeshComponent* PreviewMeshComponent = nullptr;
 };

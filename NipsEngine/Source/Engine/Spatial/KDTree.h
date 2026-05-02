@@ -12,7 +12,7 @@ struct FKDNode
     FKDNode*       Left = nullptr;
     FKDNode*       Right = nullptr;
 
-	int32 SplitAxis = -1;
+    int32 SplitAxis = -1;
     float SplitPos = 0.0f;
 
     TArray<uint32> TriangleIndices;
@@ -38,7 +38,7 @@ class FKDTree
     FAABB CalculateTriangleAABB(const TArray<FNormalVertex>& Vertices,
                                 const TArray<uint32>& Indices, uint32 TriIdx);
 
-	bool RayCast(const FRay& Ray, const TArray<FNormalVertex>& Verts, const TArray<uint32>& Idxs,
+    bool RayCast(const FRay& Ray, const TArray<FNormalVertex>& Verts, const TArray<uint32>& Idxs,
                  float& OutDist) const;
 
   private:
