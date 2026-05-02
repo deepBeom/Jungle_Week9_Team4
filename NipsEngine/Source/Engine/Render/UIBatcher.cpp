@@ -83,7 +83,7 @@ void FUIBatcher::AddQuad(FVector2 ScreenXY,
                          FVector4 Color)
 {
     // 픽셀 좌표를 NDC로 변환
-    FVector2 LeftTop = { ScreenXY.X, ScreenXY.Y};
+    FVector2 LeftTop = { ScreenXY.X , ScreenXY.Y};
     FVector2 RightTop = { ScreenXY.X + QuadSize.X, ScreenXY.Y };
     FVector2 LeftBottom = { ScreenXY.X, ScreenXY.Y + QuadSize.Y };
     FVector2 RightBottom = { ScreenXY.X + QuadSize.X, ScreenXY.Y + QuadSize.Y };

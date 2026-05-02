@@ -8,6 +8,7 @@
 #include "Core/ResourceManager.h"
 #include "Render/Renderer/DefaultRenderPipeline.h"
 #include "GameFramework/World.h"
+#include "Engine/UI/UIManager.h"
 
 DEFINE_CLASS(UEngine, UObject)
 
@@ -87,6 +88,7 @@ void UEngine::OnWindowResized(uint32 Width, uint32 Height)
 
     Renderer.InvalidateSceneFinalTargets();
     Renderer.GetFD3DDevice().OnResizeViewport(Width, Height);
+    FUIManager::Get().OnResize(static_cast<float>(Width), static_cast<float>(Height));
 }
 
 void UEngine::WorldTick(float DeltaTime)

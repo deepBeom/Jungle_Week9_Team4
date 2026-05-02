@@ -66,6 +66,17 @@ public:
 
     uint32 GetQuadCount() const { return static_cast<uint32>(Vertices.size() / 4); }
 
+    // ── UI 전용 2D 텍스트 경로 ──────────────────────────────────────────
+    // 픽셀 좌표를 NDC로 변환해 저장 → FlushUI에서 행렬 없이 렌더링
+    void AddUIText(const FString& Text,
+                   const FVector2& ScreenPos,
+                   float ViewportW, float ViewportH,
+                   float Scale = 1.f,
+                   FVector4 Color = { 1.f, 1.f, 1.f, 1.f });
+
+    void ClearUI();
+    void FlushUI(ID3D11DeviceContext* Context, const FFontResource* Resource);
+
 private:
     // CPU 누적 배열
     TArray<FTextureVertex> Vertices;
@@ -81,6 +92,17 @@ private:
     // 공유 DX 리소스
     TComPtr<ID3D11Device> Device;
     UMaterialInterface* FontMaterial = nullptr;
+
+    // UI 2D 전용 버퍼 (FUIVertex — NDC XY + UV + Color)
+    TArray<FUIVertex>             Vertices2D;
+    TArray<uint32>                Indices2D;
+    TComPtr<ID3D11Buffer>         VertexBuffer2D;
+    TComPtr<ID3D11Buffer>         IndexBuffer2D;
+    uint32                        MaxVertexCount2D = 0;
+    uint32                        MaxIndexCount2D  = 0;
+    UMaterialInterface*           Font2DMaterial   = nullptr;
+
+    void CreateBuffers2D();
 
     // CharInfoMap — Atlas 그리드가 바뀔 때만 재빌드
     // key: Unicode 코드포인트 (ASCII 33~126, 한글 U+AC00~U+D7A3)

@@ -49,8 +49,9 @@ void FRenderer::Create(HWND hWindow)
     FResourceManager::Get().LoadShader("Shaders/Multipass/SkyPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/FogPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/FXAAPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
-    FResourceManager::Get().LoadShader("Shaders/ShaderFont.hlsl", "VS", "PS", TextureVertexInputLayout, ARRAYSIZE(TextureVertexInputLayout), nullptr);
-    FResourceManager::Get().LoadShader("Shaders/ShaderUI.hlsl",   "VS", "PS", UIVertexInputLayout,      ARRAYSIZE(UIVertexInputLayout),      nullptr);
+    FResourceManager::Get().LoadShader("Shaders/ShaderFont.hlsl",   "VS", "PS", TextureVertexInputLayout, ARRAYSIZE(TextureVertexInputLayout), nullptr);
+    FResourceManager::Get().LoadShader("Shaders/ShaderFont2D.hlsl", "VS", "PS", UIVertexInputLayout, ARRAYSIZE(UIVertexInputLayout), nullptr);
+    FResourceManager::Get().LoadShader("Shaders/ShaderUI.hlsl",     "VS", "PS", UIVertexInputLayout,      ARRAYSIZE(UIVertexInputLayout),      nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderLine.hlsl", "mainVS", "mainPS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderGrid.hlsl", "GridVS", "GridPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderAxis.hlsl", "VS", "PS", nullptr, 0, nullptr);

@@ -27,22 +27,32 @@ public:
     // 렌더 패스에서 호출 — 누적된 버텍스를 GPU에 올리고 DrawCall
     void Flush(ID3D11DeviceContext* Context, const FRenderBus* RenderBus);
 
+    // 창 크기 변경 시 호출 — 뷰포트 크기를 캐싱해 Relative 좌표 변환에 사용
+    void OnResize(float NewViewportW, float NewViewportH);
+
+    float GetViewportW() const { return CachedViewportW; }
+    float GetViewportH() const { return CachedViewportH; }
+
     // --- Element 생성 (parent가 nullptr이면 루트로 등록) ---
+    // Params 생략 시 기존 동작(Absolute, TopLeft) 유지 — 하위 호환
     FUIImage* CreateImage(FUIElement* Parent,
         FVector2 LocalPos, FVector2 Size,
         UTexture* Texture,
-        FVector4 Color = { 1, 1, 1, 1 });
+        FVector4 Color  = { 1, 1, 1, 1 },
+        FUICreateParams Params = {});
 
     FUIText* CreateText(FUIElement* Parent,
         FVector2 LocalPos, FVector2 Size,
         const FString& Text,
-        float FontSize = 16.f,
-        FVector4 Color = { 1, 1, 1, 1 });
+        float FontSize  = 16.f,
+        FVector4 Color  = { 1, 1, 1, 1 },
+        FUICreateParams Params = {});
 
     FUIProgressBar* CreateProgressBar(FUIElement* Parent,
         FVector2 LocalPos, FVector2 Size,
-        FVector4 FillColor = { 0.8f, 0.1f, 0.1f, 1.f },
-        FVector4 BgColor = { 0.2f, 0.2f, 0.2f, 1.f });
+        FVector4 FillColor  = { 0.8f, 0.1f, 0.1f, 1.f },
+        FVector4 BgColor    = { 0.2f, 0.2f, 0.2f, 1.f },
+        FUICreateParams Params = {});
 
     // Element와 그 자식 전체를 트리에서 제거하고 메모리 해제
     void DestroyElement(FUIElement* Element);
@@ -58,8 +68,15 @@ private:
     void DestroyRecursive(FUIElement* Element);
 
 private:
-    FUIBatcher*         UIBatcher   = nullptr;
-    FFontBatcher*       FontBatcher = nullptr;
-    TArray<FUIElement*> RootElements;   // 부모 없는 최상위 노드만 보관
-    TArray<FUIElement*> AllElements;    // 소유권 — 전체 Element 목록
+    FUIBatcher*         UIBatcher      = nullptr;
+    FFontBatcher*       FontBatcher    = nullptr;
+    TArray<FUIElement*> RootElements;
+    TArray<FUIElement*> AllElements;
+
+    float CachedViewportW = 1280.f;
+    float CachedViewportH = 720.f;
+
+    // Relative 모드 좌표를 픽셀로 변환
+    FVector2 ResolvePosition(const FUIElement* Element) const;
+    FVector2 ResolveSize    (const FUIElement* Element) const;
 };

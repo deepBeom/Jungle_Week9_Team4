@@ -35,12 +35,81 @@ void FUIManager::Release()
     }
 }
 
+void FUIManager::OnResize(float NewViewportW, float NewViewportH)
+{
+    CachedViewportW = NewViewportW;
+    CachedViewportH = NewViewportH;
+}
+
+FVector2 FUIManager::ResolvePosition(const FUIElement* Element) const
+{
+    FVector2 LocalPx = Element->LocalPosition;
+
+    switch (Element->PositionMode)
+    {
+    case EUIPositionMode::Relative:
+        // 뷰포트 기준 비율
+        LocalPx.X *= CachedViewportW;
+        LocalPx.Y *= CachedViewportH;
+        break;
+
+    case EUIPositionMode::ParentRelative:
+        // 부모 크기 기준 비율 — 부모가 없으면 뷰포트로 폴백
+        if (const FUIElement* Parent = Element->GetParent())
+        {
+            const FVector2 ParentPx = ResolveSize(Parent);
+            LocalPx.X *= ParentPx.X;
+            LocalPx.Y *= ParentPx.Y;
+        }
+        else
+        {
+            LocalPx.X *= CachedViewportW;
+            LocalPx.Y *= CachedViewportH;
+        }
+        break;
+
+    default: // Absolute
+        break;
+    }
+
+    if (const FUIElement* Parent = Element->GetParent())
+        return ResolvePosition(Parent) + LocalPx;
+
+    return LocalPx;
+}
+
+FVector2 FUIManager::ResolveSize(const FUIElement* Element) const
+{
+    switch (Element->SizeMode)
+    {
+    case EUIPositionMode::Relative:
+        // 뷰포트 기준 비율
+        return { Element->Size.X * CachedViewportW, Element->Size.Y * CachedViewportH };
+
+    case EUIPositionMode::ParentRelative:
+        // 부모 크기 기준 비율 — 부모가 없으면 뷰포트로 폴백
+        if (const FUIElement* Parent = Element->GetParent())
+        {
+            const FVector2 ParentPx = ResolveSize(Parent);
+            return { Element->Size.X * ParentPx.X, Element->Size.Y * ParentPx.Y };
+        }
+        return { Element->Size.X * CachedViewportW, Element->Size.Y * CachedViewportH };
+
+    default: // Absolute
+        return Element->Size;
+    }
+}
+
 void FUIManager::Update(float ViewportW, float ViewportH)
 {
     if (!UIBatcher || !FontBatcher) return;
 
+    CachedViewportW = ViewportW;
+    CachedViewportH = ViewportH;
+
     UIBatcher->Clear();
     FontBatcher->Clear();
+    FontBatcher->ClearUI();
 
     std::sort(RootElements.begin(), RootElements.end(),
         [](const FUIElement* A, const FUIElement* B)
@@ -59,18 +128,36 @@ void FUIManager::Flush(ID3D11DeviceContext* Context, const FRenderBus* RenderBus
     // 쿼드/이미지 먼저
     UIBatcher->Flush(Context, RenderBus);
 
-    // 텍스트는 항상 위에
+    // 3D 월드 텍스트 (TextRenderComponent 등)
     const FFontResource* FontRes = FResourceManager::Get().FindFont(FName("Default"));
     if (FontRes)
         FontBatcher->Flush(Context, RenderBus, FontRes);
+
+    // UI 2D 텍스트 — 행렬 없는 셰이더로 별도 렌더링
+    if (FontRes)
+        FontBatcher->FlushUI(Context, FontRes);
 }
 
 void FUIManager::RenderRecursive(FUIElement* Element, float ViewportW, float ViewportH)
 {
     if (!Element->IsWorldVisible()) return;
 
-    const FVector2 WorldPos = Element->GetWorldPosition();
-    const FVector2 Size = Element->Size;
+    // Relative 모드 변환 후 Anchor 적용
+    const FVector2 ResolvedSize = ResolveSize(Element);
+    const FVector2 RawPos       = ResolvePosition(Element);
+
+    // Anchor 오프셋 — GetRenderPosition 대신 직접 계산 (ResolvedSize 반영)
+    FVector2 WorldPos = RawPos;
+    switch (Element->Anchor)
+    {
+    case EUIAnchor::Center:      WorldPos = { RawPos.X - ResolvedSize.X * 0.5f, RawPos.Y - ResolvedSize.Y * 0.5f }; break;
+    case EUIAnchor::TopRight:    WorldPos = { RawPos.X - ResolvedSize.X,         RawPos.Y                         }; break;
+    case EUIAnchor::BottomLeft:  WorldPos = { RawPos.X,                          RawPos.Y - ResolvedSize.Y        }; break;
+    case EUIAnchor::BottomRight: WorldPos = { RawPos.X - ResolvedSize.X,         RawPos.Y - ResolvedSize.Y        }; break;
+    default: break;
+    }
+
+    const FVector2 Size = ResolvedSize;
 
     switch (Element->GetType())
     {
@@ -97,9 +184,9 @@ void FUIManager::RenderRecursive(FUIElement* Element, float ViewportW, float Vie
     case EUIElementType::Text:
     {
         auto* Txt = static_cast<FUIText*>(Element);
-        // FontSize를 Scale로 사용 — 기본 폰트 크기(20px) 대비 비율
         const float Scale = Txt->FontSize / 20.f;
-        FontBatcher->AddText2D(Txt->Text, WorldPos, ViewportW, ViewportH, Scale);
+        // 2D 전용 경로 — NDC 변환 후 행렬 없는 셰이더로 렌더링, Color 전달
+        FontBatcher->AddUIText(Txt->Text, WorldPos, ViewportW, ViewportH, Scale, Txt->Color);
         break;
     }
     }
@@ -111,27 +198,36 @@ void FUIManager::RenderRecursive(FUIElement* Element, float ViewportW, float Vie
 
 FUIImage* FUIManager::CreateImage(FUIElement* Parent,
     FVector2 LocalPos, FVector2 Size,
-    UTexture* Texture, FVector4 Color)
+    UTexture* Texture, FVector4 Color, FUICreateParams Params)
 {
-    FUIImage* Element = new FUIImage(LocalPos, Size, Texture, Color);
+    FUIImage* Element     = new FUIImage(LocalPos, Size, Texture, Color);
+    Element->PositionMode = Params.PosMode;
+    Element->SizeMode     = Params.SizeMode;
+    Element->Anchor       = Params.Anchor;
     RegisterElement(Element, Parent);
     return Element;
 }
 
 FUIText* FUIManager::CreateText(FUIElement* Parent,
     FVector2 LocalPos, FVector2 Size,
-    const FString& Text, float FontSize, FVector4 Color)
+    const FString& Text, float FontSize, FVector4 Color, FUICreateParams Params)
 {
-    FUIText* Element = new FUIText(LocalPos, Size, Text, FontSize, Color);
+    FUIText* Element      = new FUIText(LocalPos, Size, Text, FontSize, Color);
+    Element->PositionMode = Params.PosMode;
+    Element->SizeMode     = Params.SizeMode;
+    Element->Anchor       = Params.Anchor;
     RegisterElement(Element, Parent);
     return Element;
 }
 
 FUIProgressBar* FUIManager::CreateProgressBar(FUIElement* Parent,
     FVector2 LocalPos, FVector2 Size,
-    FVector4 FillColor, FVector4 BgColor)
+    FVector4 FillColor, FVector4 BgColor, FUICreateParams Params)
 {
     FUIProgressBar* Element = new FUIProgressBar(LocalPos, Size, FillColor, BgColor);
+    Element->PositionMode   = Params.PosMode;
+    Element->SizeMode       = Params.SizeMode;
+    Element->Anchor         = Params.Anchor;
     RegisterElement(Element, Parent);
     return Element;
 }

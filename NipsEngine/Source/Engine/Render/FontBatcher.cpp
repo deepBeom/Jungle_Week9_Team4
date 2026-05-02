@@ -20,6 +20,21 @@ void FFontBatcher::Create(ID3D11Device* InDevice)
     Mat->SamplerType = ESamplerType::EST_Point;
 
     FontMaterial = Mat;
+
+    // 2D UI 전용 버퍼 초기화
+    MaxVertexCount2D = 512;
+    MaxIndexCount2D  = 768;
+    CreateBuffers2D();
+
+    UMaterial* Mat2D = FResourceManager::Get().GetMaterial("Font2DMat");
+    if (Mat2D)
+    {
+        Mat2D->BlendType        = EBlendType::AlphaBlend;
+        Mat2D->DepthStencilType = EDepthStencilType::NoDepth;
+        Mat2D->RasterizerType   = ERasterizerType::SolidNoCull;
+        Mat2D->SamplerType      = ESamplerType::EST_Point;
+    }
+    Font2DMaterial = Mat2D;
 }
 
 void FFontBatcher::CreateBuffers()
@@ -69,13 +84,121 @@ void FFontBatcher::BuildCharInfoMap(uint32 Columns, uint32 Rows)
         AddChar(CP, Slot - 32);
 }
 
+void FFontBatcher::CreateBuffers2D()
+{
+    VertexBuffer2D.Reset();
+    IndexBuffer2D.Reset();
+
+    D3D11_BUFFER_DESC vbDesc = {};
+    vbDesc.Usage          = D3D11_USAGE_DYNAMIC;
+    vbDesc.ByteWidth      = sizeof(FUIVertex) * MaxVertexCount2D;
+    vbDesc.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
+    vbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    Device->CreateBuffer(&vbDesc, nullptr, VertexBuffer2D.ReleaseAndGetAddressOf());
+
+    D3D11_BUFFER_DESC ibDesc = {};
+    ibDesc.Usage          = D3D11_USAGE_DYNAMIC;
+    ibDesc.ByteWidth      = sizeof(uint32) * MaxIndexCount2D;
+    ibDesc.BindFlags      = D3D11_BIND_INDEX_BUFFER;
+    ibDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    Device->CreateBuffer(&ibDesc, nullptr, IndexBuffer2D.ReleaseAndGetAddressOf());
+}
+
+void FFontBatcher::AddUIText(const FString& Text,
+                              const FVector2& ScreenPos,
+                              float ViewportW, float ViewportH,
+                              float Scale, FVector4 Color)
+{
+    if (Text.empty() || ViewportW <= 0.f || ViewportH <= 0.f) return;
+
+    auto ToNDCX = [&](float px) { return  (px / ViewportW) * 2.f - 1.f; };
+    auto ToNDCY = [&](float py) { return -(py / ViewportH) * 2.f + 1.f; };
+
+    const float CharW = 20.f * Scale;
+    const float CharH = 20.f * Scale;
+    float CurX = ScreenPos.X;
+
+    const float Y0 = ToNDCY(ScreenPos.Y);
+    const float Y1 = ToNDCY(ScreenPos.Y + CharH);
+
+    for (char C : Text)
+    {
+        FVector2 UVMin, UVMax;
+        GetCharUV(static_cast<uint32>(C), UVMin, UVMax);
+
+        const float X0 = ToNDCX(CurX);
+        const float X1 = ToNDCX(CurX + CharW);
+
+        const uint32 Base = static_cast<uint32>(Vertices2D.size());
+
+        // FUIVertex: XY(NDC) + UV + Color
+        Vertices2D.push_back({ {X0, Y0}, {UVMin.X, UVMin.Y}, Color });
+        Vertices2D.push_back({ {X1, Y0}, {UVMax.X, UVMin.Y}, Color });
+        Vertices2D.push_back({ {X0, Y1}, {UVMin.X, UVMax.Y}, Color });
+        Vertices2D.push_back({ {X1, Y1}, {UVMax.X, UVMax.Y}, Color });
+
+        Indices2D.push_back(Base + 0); Indices2D.push_back(Base + 1); Indices2D.push_back(Base + 2);
+        Indices2D.push_back(Base + 1); Indices2D.push_back(Base + 3); Indices2D.push_back(Base + 2);
+
+        CurX += CharW;
+    }
+}
+
+void FFontBatcher::ClearUI()
+{
+    Vertices2D.clear();
+    Indices2D.clear();
+}
+
+void FFontBatcher::FlushUI(ID3D11DeviceContext* Context, const FFontResource* Resource)
+{
+    if (Vertices2D.empty() || !VertexBuffer2D || !IndexBuffer2D) return;
+    if (!Resource || !Resource->IsLoaded()) return;
+    if (!Font2DMaterial) return;
+
+    if (CachedColumns != Resource->Columns || CachedRows != Resource->Rows)
+        BuildCharInfoMap(Resource->Columns, Resource->Rows);
+
+    if (Vertices2D.size() > MaxVertexCount2D || Indices2D.size() > MaxIndexCount2D)
+    {
+        MaxVertexCount2D = static_cast<uint32>(Vertices2D.size()) * 2;
+        MaxIndexCount2D  = static_cast<uint32>(Indices2D.size())  * 2;
+        CreateBuffers2D();
+    }
+
+    D3D11_MAPPED_SUBRESOURCE Mapped = {};
+    if (FAILED(Context->Map(VertexBuffer2D.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped))) return;
+    memcpy(Mapped.pData, Vertices2D.data(), sizeof(FUIVertex) * Vertices2D.size());
+    Context->Unmap(VertexBuffer2D.Get(), 0);
+
+    if (FAILED(Context->Map(IndexBuffer2D.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped))) return;
+    memcpy(Mapped.pData, Indices2D.data(), sizeof(uint32) * Indices2D.size());
+    Context->Unmap(IndexBuffer2D.Get(), 0);
+
+    Font2DMaterial->Bind(Context, nullptr);
+
+    // Bind 이후 폰트 아틀라스 덮어쓰기 (UIBatcher와 동일한 패턴)
+    ID3D11ShaderResourceView* SRV = Resource->Texture ? Resource->Texture->GetSRV() : nullptr;
+    Context->PSSetShaderResources(0, 1, &SRV);
+
+    uint32 Stride = sizeof(FUIVertex), Offset = 0;
+    ID3D11Buffer* VBPtr = VertexBuffer2D.Get();
+    Context->IASetVertexBuffers(0, 1, &VBPtr, &Stride, &Offset);
+    Context->IASetIndexBuffer(IndexBuffer2D.Get(), DXGI_FORMAT_R32_UINT, 0);
+    Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    Context->DrawIndexed(static_cast<uint32>(Indices2D.size()), 0, 0);
+}
+
 void FFontBatcher::Release()
 {
     CharInfoMap.clear();
     Clear();
+    ClearUI();
 
     VertexBuffer.Reset();
     IndexBuffer.Reset();
+    VertexBuffer2D.Reset();
+    IndexBuffer2D.Reset();
     Device.Reset();
 }
 

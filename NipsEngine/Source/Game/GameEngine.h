@@ -20,6 +20,7 @@ public:
 
 private:
     bool LoadStartLevel();
+    void CreateLogoHud();
 
     FGameViewportClient ViewportClient;
 };
