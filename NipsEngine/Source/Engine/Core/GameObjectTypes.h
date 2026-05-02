@@ -44,7 +44,7 @@ struct FObjectTypeBinding
     
     EObjectCollisionShape CollisionShape = EObjectCollisionShape::None;
     bool bGenerateOverlapEvents = false;
-    bool bBlockComponent = false;
+    bool bBlock = false;
     
     uint32 DefaultTags = GT_None;
 };
