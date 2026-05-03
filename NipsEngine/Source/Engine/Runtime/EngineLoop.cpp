@@ -1,4 +1,4 @@
-#include "Engine/Runtime/EngineLoop.h"
+﻿#include "Engine/Runtime/EngineLoop.h"
 
 #if WITH_EDITOR
 #include "Editor/EditorEngine.h"
@@ -7,8 +7,6 @@
 
 void FEngineLoop::CreateEngine()
 {
-#define WITH_EDITOR 0 
-
 #if WITH_EDITOR
     GEngine = UObjectManager::Get().CreateObject<UEditorEngine>();
 #else

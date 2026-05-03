@@ -1,4 +1,4 @@
-#include "Game/GameEngine.h"
+﻿#include "Game/GameEngine.h"
 #include "Game/GameViewportClient.h"
 #include "Game/GameRenderPipeline.h"
 #include "Core/Paths.h"
@@ -15,7 +15,10 @@ void UGameEngine::Init(FWindowsWindow* InWindow)
 {
     UEngine::Init(InWindow);
 
-    assert(LoadStartLevel());
+    if (!LoadStartLevel())
+    {
+        return;
+    }
 
     SetActiveWorld(WorldList[0].ContextHandle);
     WorldList[0].World->SetWorldType(EWorldType::Game);

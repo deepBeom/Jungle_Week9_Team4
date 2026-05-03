@@ -24,7 +24,6 @@
 #include "ToonOutlineRenderPass.h"
 #include "Core/Logging/Log.h"
 #include "UIRenderPass.h"
-#include "UI/EditorConsoleWidget.h"
 
 #include <algorithm>
 #include <cwctype>
