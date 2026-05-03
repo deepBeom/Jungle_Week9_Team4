@@ -8,6 +8,8 @@
 #include "Component/Script/ScriptComponent.h"
 #include "Core/ActorTags.h"
 #include "Core/Logging/Log.h"
+#include "DriftSalvage/ExplosionSystem.h"
+#include "Engine/Scripting/LuaBinder.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 
@@ -83,6 +85,19 @@ namespace
                (ActorA->CompareTag(ActorTags::Rock) && ActorB->CompareTag(ActorTags::Boat));
     }
 
+    bool IsBoatHazardPair(const UShapeComponent* A, const UShapeComponent* B)
+    {
+        const AActor* ActorA = A ? A->GetOwner() : nullptr;
+        const AActor* ActorB = B ? B->GetOwner() : nullptr;
+        if (!ActorA || !ActorB)
+        {
+            return false;
+        }
+
+        return (ActorA->CompareTag(ActorTags::Boat) && ActorB->CompareTag(ActorTags::Hazard)) ||
+               (ActorA->CompareTag(ActorTags::Hazard) && ActorB->CompareTag(ActorTags::Boat));
+    }
+
     bool IsCollectibleActor(const AActor* Actor)
     {
         return Actor &&
@@ -145,6 +160,8 @@ namespace
             return;
         }
 
+        LuaBinder::ApplyDriftSalvageDamage(1);
+
         FVector PushForA = ComputeAABBDepenetration(A->GetWorldAABB(), B->GetWorldAABB());
         FVector Knockback = (BoatShape == A) ? PushForA : (PushForA * -1.0f);
         Knockback = Knockback.GetSafeNormal2D();
@@ -159,17 +176,105 @@ namespace
             return;
         }
 
-        constexpr float BoatRockKnockbackDistance = 2.0f;
-        BoatActor->AddActorWorldOffset(Knockback * BoatRockKnockbackDistance);
+        // 즉시 offset 대신 ExplosionSystem에 push velocity 등록 → 매 프레임 감속하며 부드럽게 밀림.
+        constexpr float BoatRockKnockbackSpeed = 6.0f;
+        if (UWorld* World = BoatActor->GetFocusedWorld())
+        {
+            World->GetExplosionSystem().ApplyKnockback(BoatActor, Knockback * BoatRockKnockbackSpeed);
+        }
+
+    }
+
+    void ApplyBoatHazardExplosion(UShapeComponent* A, UShapeComponent* B)
+    {
+        if (!IsBoatHazardPair(A, B))
+        {
+            return;
+        }
+
+        AActor* ActorA = A ? A->GetOwner() : nullptr;
+        AActor* ActorB = B ? B->GetOwner() : nullptr;
+        if (!ActorA || !ActorB)
+        {
+            return;
+        }
+
+        UShapeComponent* BoatShape = ActorA->CompareTag(ActorTags::Boat) ? A : B;
+        UShapeComponent* HazardShape = ActorA->CompareTag(ActorTags::Hazard) ? A : B;
+        AActor* BoatActor = BoatShape ? BoatShape->GetOwner() : nullptr;
+        AActor* HazardActor = HazardShape ? HazardShape->GetOwner() : nullptr;
+        if (!BoatActor || !HazardActor || HazardActor->IsPendingDestroy())
+        {
+            return;
+        }
+
+        // Boat가 이미 폭발에 떠밀리는 중이면 새 Hazard 충돌 무시 — Boat가 도미노 도화선이 되어
+        // 모든 Hazard를 한 번에 폭파시키는 현상을 막는다. 멈춘 뒤에야 다음 Hazard와 충돌.
+        if (UWorld* W = BoatActor->GetFocusedWorld())
+        {
+            if (W->GetExplosionSystem().IsActorPushed(BoatActor))
+            {
+                return;
+            }
+        }
+
+        // 1) Boat 강한 push velocity (Rock보다 큼). 즉시 offset 대신 ExplosionSystem에 등록.
+        FVector PushForA = ComputeAABBDepenetration(A->GetWorldAABB(), B->GetWorldAABB());
+        FVector Knockback = (BoatShape == A) ? PushForA : (PushForA * -1.0f);
+        Knockback = Knockback.GetSafeNormal2D();
+        if (Knockback.IsNearlyZero())
+        {
+            Knockback = (BoatShape->GetWorldLocation() - HazardShape->GetWorldLocation()).GetSafeNormal2D();
+        }
+
+        // 2) Hazard 자체는 사라짐. (Trigger보다 먼저 Destroy해서 자기 자신이 연쇄 큐에 다시 들어가지 않게.)
+        const FVector ExplosionCenter = HazardActor->GetActorLocation();
+        UWorld* World = HazardActor->GetFocusedWorld();
+        LuaBinder::ApplyDriftSalvageDamage(2);
+        HazardActor->Destroy();
+
+        if (World)
+        {
+            constexpr float BoatHazardKnockbackSpeed = 14.0f;
+            if (!Knockback.IsNearlyZero())
+            {
+                World->GetExplosionSystem().ApplyKnockback(BoatActor, Knockback * BoatHazardKnockbackSpeed);
+            }
+            // 3) 폭발 트리거: 반경 안의 Trash/Resource/Recyclable/Premium에 push, 다른 Hazard는 거리 비례 딜레이로 연쇄.
+            World->GetExplosionSystem().TriggerExplosion(World, ExplosionCenter);
+        }
     }
 
     void CollectBoatOverlapTarget(UShapeComponent* A, UShapeComponent* B)
     {
         AActor* Collectible = GetCollectibleFromBoatPair(A, B);
-        if (Collectible && !Collectible->IsPendingDestroy())
+        if (!Collectible || Collectible->IsPendingDestroy())
         {
-            Collectible->Destroy();
+            return;
         }
+
+        // Boat 또는 collectible이 폭발/충돌 push 중이면 이 overlap은 회수로 보지 않는다.
+        // 폭발은 삭제가 아니라 밀어내기 효과여야 하므로, 움직임이 끝난 뒤의 입력 수집만 허용한다.
+        AActor* BoatActor = (A && A->GetOwner() && A->GetOwner()->CompareTag(ActorTags::Boat))
+                                ? A->GetOwner()
+                                : (B ? B->GetOwner() : nullptr);
+        if (BoatActor)
+        {
+            if (UWorld* W = BoatActor->GetFocusedWorld())
+            {
+                if (W->GetExplosionSystem().IsActorPushed(BoatActor) ||
+                    W->GetExplosionSystem().IsActorPushed(Collectible))
+                {
+                    return;
+                }
+            }
+        }
+
+        UE_LOG("[CollectByBoatOverlap] name=%s tag=%s",
+               *Collectible->GetName(),
+               Collectible->GetTag().c_str());
+        LuaBinder::ApplyDriftSalvagePickup(Collectible->GetTag());
+        Collectible->Destroy();
     }
 
     void DispatchScriptOverlapBegin(const FCollisionEvent& Event)
@@ -731,6 +836,13 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
     }
 }
 
+void FCollisionSystem::Reset()
+{
+    PreviousOverlaps.clear();
+    DebugContacts.clear();
+    DebugLines.clear();
+}
+
 void FCollisionSystem::CollectShapeComponents(UWorld* World, TArray<UShapeComponent*>& OutShapes)
 {
     OutShapes.clear();
@@ -951,6 +1063,7 @@ void FCollisionSystem::HandleBeginOverlap(UShapeComponent* A, UShapeComponent* B
     B->AddOverlap(A);
 
     ApplyBoatRockKnockback(A, B);
+    ApplyBoatHazardExplosion(A, B);
     CollectBoatOverlapTarget(A, B);
 
     if (A->GetGenerateOverlapEvents())

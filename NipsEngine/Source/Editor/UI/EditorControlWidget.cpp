@@ -38,6 +38,8 @@ namespace
         { "Scene", SpawnActor<ASceneActor> },
         { "Pawn", SpawnActor<APawn> },
         { "StaticMesh", SpawnActor<AStaticMeshActor> },
+        { "Water", SpawnActor<AWaterActor> },
+        { "Global Ocean", SpawnActor<AGlobalOceanActor> },
         { "TextRender", SpawnActor<ATextRenderActor> },
         { "SubUV", SpawnActor<ASubUVActor> },
         { "Billboard", SpawnActor<ABillboardActor> },

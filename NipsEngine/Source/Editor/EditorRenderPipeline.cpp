@@ -58,7 +58,9 @@ void FEditorRenderPipeline::RenderViewport(FRenderer& Renderer, int32 ViewportIn
     const FFrustum& ViewFrustum = SceneView.CameraFrustum;
 
     Renderer.GetDebugLineBatcher().Clear();
+    Renderer.GetDebugRingBatcher().Clear();
     Collector.SetLineBatcher(&Renderer.GetDebugLineBatcher());
+    Collector.SetRingBatcher(&Renderer.GetDebugRingBatcher());
     Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum);
     ViewportCullingStats[ViewportIndex] = Collector.GetLastCullingStats();
     ViewportDecalStats[ViewportIndex] = Collector.GetLastDecalStats();

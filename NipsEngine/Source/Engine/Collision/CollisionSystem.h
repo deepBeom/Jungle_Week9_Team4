@@ -66,6 +66,7 @@ class FCollisionSystem
 {
 public:
     void Tick(UWorld* World, float DeltaTime);
+    void Reset();
 
     const TArray<FCollisionDebugContact>& GetDebugContacts() const
     {

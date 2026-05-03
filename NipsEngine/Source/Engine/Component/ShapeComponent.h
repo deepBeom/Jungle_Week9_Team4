@@ -225,6 +225,6 @@ public:;
     }
     
 private:
-    float CapsuleHalfHeight = 1.0f;
-    float CapsuleRadius = 0.5f;
+    float CapsuleHalfHeight = 0.25f;
+    float CapsuleRadius = 0.125f;
 };

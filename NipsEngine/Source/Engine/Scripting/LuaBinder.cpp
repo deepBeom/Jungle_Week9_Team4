@@ -2,6 +2,7 @@
 #include "Engine/Scripting/LuaBinder.h"
 
 #include "Engine/Component/ActorComponent.h"
+#include "Engine/Core/ActorTags.h"
 #include "Engine/Core/CollisionTypes.h"
 #include "Engine/Core/Logging/Timer.h"
 #include "Engine/Core/ResourceManager.h"
@@ -11,8 +12,58 @@
 #include "Engine/UI/UIElement.h"
 #include "Engine/UI/UIManager.h"
 
+#include <algorithm>
+
 namespace
 {
+    bool bGameplayInputEnabled = false;
+
+    struct FDriftSalvageStats
+    {
+        int32 Health = 3;
+        int32 Money = 0;
+        float Weight = 0.0f;
+    };
+
+    struct FDriftSalvageCargoValue
+    {
+        float Weight = 0.0f;
+        int32 Money = 0;
+    };
+
+    constexpr int32 DriftSalvageMaxHealth = 3;
+    constexpr float DriftSalvageWeightCapacity = 30.0f;
+    FDriftSalvageStats DriftSalvageStats;
+
+    bool TryGetDriftSalvageCargoValue(const FString& ActorTag, FDriftSalvageCargoValue& OutValue)
+    {
+        if (ActorTag == ActorTags::Trash)
+        {
+            OutValue = { 1.0f, 1 };
+            return true;
+        }
+
+        if (ActorTag == ActorTags::Resource)
+        {
+            OutValue = { 2.0f, 5 };
+            return true;
+        }
+
+        if (ActorTag == ActorTags::Recyclable)
+        {
+            OutValue = { 1.5f, 8 };
+            return true;
+        }
+
+        if (ActorTag == ActorTags::Premium)
+        {
+            OutValue = { 1.0f, 20 };
+            return true;
+        }
+
+        return false;
+    }
+
     // A valid actor can still be pending destroy; call sites choose strictness.
     bool IsValidActorObject(AActor* Actor)
     {
@@ -433,6 +484,71 @@ namespace
     }
 }
 
+void LuaBinder::SetGameplayInputEnabled(bool bEnabled)
+{
+    bGameplayInputEnabled = bEnabled;
+}
+
+bool LuaBinder::IsGameplayInputEnabled()
+{
+    return bGameplayInputEnabled;
+}
+
+void LuaBinder::ResetDriftSalvageStats()
+{
+    DriftSalvageStats.Health = DriftSalvageMaxHealth;
+    DriftSalvageStats.Money = 0;
+    DriftSalvageStats.Weight = 0.0f;
+}
+
+void LuaBinder::ApplyDriftSalvageDamage(int32 Damage)
+{
+    if (Damage <= 0)
+    {
+        return;
+    }
+
+    DriftSalvageStats.Health = std::max(0, DriftSalvageStats.Health - Damage);
+}
+
+void LuaBinder::ApplyDriftSalvagePickup(const FString& ActorTag)
+{
+    if (ActorTag == ActorTags::Hazard)
+    {
+        ApplyDriftSalvageDamage(2);
+        return;
+    }
+
+    FDriftSalvageCargoValue CargoValue;
+    if (!TryGetDriftSalvageCargoValue(ActorTag, CargoValue))
+    {
+        return;
+    }
+
+    DriftSalvageStats.Weight += CargoValue.Weight;
+    DriftSalvageStats.Money += CargoValue.Money;
+}
+
+int32 LuaBinder::GetDriftSalvageHealth()
+{
+    return DriftSalvageStats.Health;
+}
+
+int32 LuaBinder::GetDriftSalvageMoney()
+{
+    return DriftSalvageStats.Money;
+}
+
+float LuaBinder::GetDriftSalvageWeight()
+{
+    return DriftSalvageStats.Weight;
+}
+
+float LuaBinder::GetDriftSalvageWeightCapacity()
+{
+    return DriftSalvageWeightCapacity;
+}
+
 void LuaBinder::BindEngineTypes(sol::state& Lua)
 {
     // Keep registration split by domain so additions stay localized.
@@ -491,19 +607,54 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 
     Lua["Input"] = InputTable;
 
+    Lua.set_function("SetGameplayInputEnabled", [](bool bEnabled)
+    {
+        LuaBinder::SetGameplayInputEnabled(bEnabled);
+    });
+
+    Lua.set_function("IsGameplayInputEnabled", []()
+    {
+        return LuaBinder::IsGameplayInputEnabled();
+    });
+
+    Lua.set_function("ResetDriftSalvageStats", []()
+    {
+        LuaBinder::ResetDriftSalvageStats();
+    });
+
+    Lua.set_function("GetDriftSalvageHealth", []()
+    {
+        return LuaBinder::GetDriftSalvageHealth();
+    });
+
+    Lua.set_function("GetDriftSalvageMoney", []()
+    {
+        return LuaBinder::GetDriftSalvageMoney();
+    });
+
+    Lua.set_function("GetDriftSalvageWeight", []()
+    {
+        return LuaBinder::GetDriftSalvageWeight();
+    });
+
+    Lua.set_function("GetDriftSalvageWeightCapacity", []()
+    {
+        return LuaBinder::GetDriftSalvageWeightCapacity();
+    });
+
     Lua.set_function("Log", [](const FString& Message)
     {
-        printf("[Lua] %s\n", Message.c_str());
+        UE_LOG("[Lua] %s\n", Message.c_str());
     });
 
     Lua.set_function("Warning", [](const FString& Message)
     {
-        printf("[Lua Warning] %s\n", Message.c_str());
+        UE_LOG("[Lua Warning] %s\n", Message.c_str());
     });
 
     Lua.set_function("Error", [](const FString& Message)
     {
-        printf("[Lua Error] %s\n", Message.c_str());
+        UE_LOG("[Lua Error] %s\n", Message.c_str());
     });
 
     Lua.set_function("GetTimeSeconds", []() -> double

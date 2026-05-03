@@ -3,6 +3,7 @@
 #include "Object/Object.h"
 #include "Texture.h"
 #include "Shader.h"
+#include "Render/Common/WaterRenderingCommon.h"
 #include "RenderResources.h"
 #include <variant>
 
@@ -30,8 +31,10 @@ struct FMaterial
     FString SpecularTexPath;  // map_Ks
     bool	bHasSpecularTexture = { false };
 
-    FString NormalTexPath;     // norm / map_norm / map_Kn
-    bool	bHasNormalTexture = { false };
+    // Up to two normal maps can be retained from MTL for water use.
+    // Generic surface shading continues to use slot 0 through "NormalMap".
+    FString NormalTexPath[2];  // norm / map_norm / map_Kn
+    uint32  NormalTextureCount = 0;
 
     FString BumpTexPath;      // map_bump
     bool	bHasBumpTexture = { false };
@@ -91,6 +94,8 @@ const char* ToMaterialDomainString(EMaterialDomain MaterialDomain);
 bool TryParseMaterialDomain(const FString& Value, EMaterialDomain& OutMaterialDomain);
 const char* ToLightingModelString(ELightingModel LightingModel);
 bool TryParseLightingModel(const FString& Value, ELightingModel& OutLightingModel);
+const char* ToRasterizerTypeString(ERasterizerType RasterizerType);
+bool TryParseRasterizerType(const FString& Value, ERasterizerType& OutRasterizerType);
 FShaderCompileKey MakeUberLitShaderCompileKey(EMaterialDomain MaterialDomain, ELightingModel LightingModel = ELightingModel::Phong);
 inline FShaderCompileKey MakeUberLitShaderCompileKey(ELightingModel LightingModel)
 {
@@ -117,6 +122,23 @@ public:
     virtual bool GetParam(const FString& Name, FMaterialParamValue& OutValue) const = 0;
     virtual EMaterialDomain GetEffectiveMaterialDomain() const = 0;
     virtual ELightingModel GetEffectiveLightingModel() const = 0;
+    bool IsWaterMaterial() const
+    {
+        FMaterialParamValue ParamValue;
+        // Water is identified explicitly by a material flag so the renderer
+        // never has to infer intent from file paths or shader names.
+        if (!GetParam(WaterMaterialParameterNames::IsWater, ParamValue) || ParamValue.Type != EMaterialParamType::Bool)
+        {
+            return false;
+        }
+
+        if (!std::holds_alternative<bool>(ParamValue.Value))
+        {
+            return false;
+        }
+
+        return std::get<bool>(ParamValue.Value);
+    }
 
     virtual void SetParam(const FString& Name, const FMaterialParamValue& Value) = 0;
 
@@ -250,6 +272,8 @@ public:
     bool IsComponentTransient() const { return Ownership == EMaterialInstanceOwnership::ComponentTransient; }
     bool HasLightingModelOverride() const { return bOverrideLightingModel; }
     ELightingModel GetLightingModelOverride() const { return LightingModelOverride; }
+    bool HasRasterizerTypeOverride() const { return bOverrideRasterizerType; }
+    ERasterizerType GetRasterizerTypeOverride() const { return RasterizerTypeOverride; }
     void SetLightingModelOverride(ELightingModel InLightingModel)
     {
         bOverrideLightingModel = true;
@@ -258,6 +282,15 @@ public:
     void ClearLightingModelOverride()
     {
         bOverrideLightingModel = false;
+    }
+    void SetRasterizerTypeOverride(ERasterizerType InRasterizerType)
+    {
+        bOverrideRasterizerType = true;
+        RasterizerTypeOverride = InRasterizerType;
+    }
+    void ClearRasterizerTypeOverride()
+    {
+        bOverrideRasterizerType = false;
     }
 
     void SetParam(const FString& Name, const FMaterialParamValue& Value)
@@ -295,6 +328,8 @@ private:
     EMaterialInstanceOwnership Ownership = EMaterialInstanceOwnership::ResourceManaged;
     bool bOverrideLightingModel = false;
     ELightingModel LightingModelOverride = ELightingModel::Phong;
+    bool bOverrideRasterizerType = false;
+    ERasterizerType RasterizerTypeOverride = ERasterizerType::SolidBackCull;
 
     friend class FResourceManager;
 };

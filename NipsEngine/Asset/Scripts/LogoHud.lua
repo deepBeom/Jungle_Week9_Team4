@@ -9,10 +9,8 @@ local NUMBER_SHEET = "Asset/Texture/UI/Number.png"
 local HUD_BG_SHEET = "Asset/Texture/UI/BG.png"
 local SCORE_BG_PATH = "Asset/Texture/UI/ScoreBoardBG.png"
 local ENDING_SHEET = "Asset/Texture/UI/Ending.png"
-local GAME_OVER_SCORE = 1557
 
 local MONEY_SHEET = "Asset/Texture/UI/Money.png"
-local MONEY_AMOUNT = 1557
 local MONEY_ICON_SIZE = 96
 local MONEY_FONT_SIZE = 56
 local MONEY_TEXT_W = 180
@@ -46,8 +44,8 @@ local PROGRESS_ANCHOR_SIZE = 84
 local PROGRESS_ANCHOR_OVERLAP = 0
 local PROGRESS_GAP_TOP = 10
 local PROGRESS_GAP_BOTTOM = 8
-local PROGRESS_STEP = 0.2
 local PROGRESS_ANIM_DURATION = 0.35
+local DEFAULT_WEIGHT_CAPACITY = 30.0
 local MONEY_Y = HEART_DRAW_H + PROGRESS_GAP_TOP
 local PROGRESS_Y = MONEY_Y + MONEY_ICON_SIZE + PROGRESS_GAP_BOTTOM
 local INGAME_HUD_W = math.max(HEART_ROW_W, PROGRESS_W, MONEY_ROW_W)
@@ -60,9 +58,10 @@ local GameOverPanel = nil
 local ProgressBg = nil
 local ProgressFill = nil
 local ProgressAnchor = nil
-local ProgressValue = 0.5
-local ProgressStartValue = 0.5
-local ProgressTargetValue = 0.5
+local MoneyText = nil
+local ProgressValue = 0.0
+local ProgressStartValue = 0.0
+local ProgressTargetValue = 0.0
 local ProgressAnimTime = PROGRESS_ANIM_DURATION
 local ShipWheel = nil
 local ShipWheelAngle = 0.0
@@ -96,6 +95,38 @@ local function Clamp01(value)
     return math.max(0.0, math.min(1.0, value or 0.0))
 end
 
+local function GetHudHealth()
+    if GetDriftSalvageHealth then
+        return GetDriftSalvageHealth()
+    end
+
+    return HEART_COUNT
+end
+
+local function GetHudMoney()
+    if GetDriftSalvageMoney then
+        return GetDriftSalvageMoney()
+    end
+
+    return 0
+end
+
+local function GetHudWeight()
+    if GetDriftSalvageWeight then
+        return GetDriftSalvageWeight()
+    end
+
+    return 0.0
+end
+
+local function GetHudWeightCapacity()
+    if GetDriftSalvageWeightCapacity then
+        return math.max(0.001, GetDriftSalvageWeightCapacity())
+    end
+
+    return DEFAULT_WEIGHT_CAPACITY
+end
+
 local function EaseSmoothStep(t)
     t = Clamp01(t)
     return t * t * (3.0 - 2.0 * t)
@@ -119,6 +150,17 @@ local function ApplyHeartFrame(index, frame)
 
     local u1, v1, u2, v2 = HeartUV(frame)
     heart:SetUV(u1, v1, u2, v2)
+end
+
+local function ApplyHeartHealth(health)
+    local clamped = math.max(0, math.min(HEART_COUNT, math.floor((health or 0) + 0.5)))
+    HeartHealth = clamped
+    bHeartAnimPlaying = false
+    HeartAnimIndex = 0
+
+    for i = 1, HEART_COUNT do
+        ApplyHeartFrame(i, i <= clamped and 0 or HEART_COLS - 1)
+    end
 end
 
 local function SetProgressTarget(value)
@@ -146,15 +188,33 @@ local function UpdateProgressBar(deltaTime)
     ApplyProgressValue(ProgressStartValue + (ProgressTargetValue - ProgressStartValue) * ratio)
 end
 
+local function SyncGameplayHud()
+    if not InGamePanel then return end
+
+    if MoneyText then
+        MoneyText:SetText(tostring(GetHudMoney()) .. "$")
+    end
+
+    local targetWeightRatio = Clamp01(GetHudWeight() / GetHudWeightCapacity())
+    if math.abs(targetWeightRatio - ProgressTargetValue) > 0.001 then
+        SetProgressTarget(targetWeightRatio)
+    end
+
+    local health = GetHudHealth()
+    if health ~= HeartHealth then
+        ApplyHeartHealth(health)
+    end
+end
+
 local function UpdateShipWheel(deltaTime)
     if not ShipWheel or not Input then return end
 
     local dt = deltaTime or 0.0
     local dir = 0
-    if Input.GetKey("Left") then
+    if Input.GetKey("Left") or Input.GetKey("A") then
         dir = dir - 1
     end
-    if Input.GetKey("Right") then
+    if Input.GetKey("Right") or Input.GetKey("D") then
         dir = dir + 1
     end
 
@@ -177,15 +237,18 @@ local function UpdateShipWheel(deltaTime)
 end
 
 local function HideInGameHud()
+    SetGameplayInputEnabled(false)
+
     if InGamePanel then
         UIManager.DestroyElement(InGamePanel)
         InGamePanel = nil
         ProgressBg = nil
         ProgressFill = nil
         ProgressAnchor = nil
-        ProgressValue = 0.5
-        ProgressStartValue = 0.5
-        ProgressTargetValue = 0.5
+        MoneyText = nil
+        ProgressValue = 0.0
+        ProgressStartValue = 0.0
+        ProgressTargetValue = 0.0
         ProgressAnimTime = PROGRESS_ANIM_DURATION
         HeartImages = {}
         bHeartAnimPlaying = false
@@ -207,6 +270,16 @@ end
 
 local function ShowInGameHud()
     if InGamePanel then return end
+
+    SetGameplayInputEnabled(true)
+    if ResetDriftSalvageStats then
+        ResetDriftSalvageStats()
+    end
+
+    ProgressValue = Clamp01(GetHudWeight() / GetHudWeightCapacity())
+    ProgressStartValue = ProgressValue
+    ProgressTargetValue = ProgressValue
+    ProgressAnimTime = PROGRESS_ANIM_DURATION
 
     InGamePanel = UIManager.CreateImage(nil, 20, 20, INGAME_HUD_W, INGAME_HUD_H, nil, nil)
     InGamePanel:SetColor(0.0, 0.0, 0.0, 0.0)
@@ -239,8 +312,8 @@ local function ShowInGameHud()
     moneyIcon:SetColor(1.25, 1.25, 1.25, 1.0)
 
     local moneyTextY = MONEY_Y + (MONEY_ICON_SIZE - MONEY_FONT_SIZE) * 0.5
-    local moneyText = UIManager.CreateText(InGamePanel, MONEY_ICON_SIZE + MONEY_GAP, moneyTextY, MONEY_TEXT_W, MONEY_FONT_SIZE, tostring(MONEY_AMOUNT) .. "$", MONEY_FONT_SIZE, nil)
-    moneyText:SetColor(1.0, 0.95, 0.25, 1.0)
+    MoneyText = UIManager.CreateText(InGamePanel, MONEY_ICON_SIZE + MONEY_GAP, moneyTextY, MONEY_TEXT_W, MONEY_FONT_SIZE, tostring(GetHudMoney()) .. "$", MONEY_FONT_SIZE, nil)
+    MoneyText:SetColor(1.0, 0.95, 0.25, 1.0)
 
     ShipWheel = UIManager.CreateImage(nil, SHIP_WHEEL_SCREEN_X, SHIP_WHEEL_SCREEN_Y, SHIP_WHEEL_SIZE, SHIP_WHEEL_SIZE, SHIP_WHEEL_SHEET, "RelativePos")
     ShipWheel:SetColor(1.0, 1.0, 1.0, 1.0)
@@ -251,11 +324,8 @@ local function ShowInGameHud()
     HeartAnimIndex = 0
     HeartAnimTime = 0.0
     HeartAnimFrame = 0
-    HeartHealth = HEART_COUNT
-    ProgressValue = 0.5
-    ProgressStartValue = 0.5
-    ProgressTargetValue = 0.5
-    ProgressAnimTime = PROGRESS_ANIM_DURATION
+    ApplyHeartHealth(GetHudHealth())
+    SyncGameplayHud()
 end
 
 local function HideScoreboard()
@@ -317,6 +387,8 @@ end
 local function ShowGameOver()
     if GameOverPanel then return end
 
+    SetGameplayInputEnabled(false)
+    local finalScore = GetHudMoney()
     HideInGameHud()
 
     GameOverPanel = UIManager.CreateImage(nil, 0.5, 0.5, 0.55, 0.55, nil, "FullRelative")
@@ -328,7 +400,7 @@ local function ShowGameOver()
     local endingImage = UIManager.CreateImage(GameOverPanel, 0.0, -0.34, 0.46, 0.42, ENDING_SHEET, "ParentRelative")
     endingImage:SetColor(1.0, 1.0, 1.0, 1.0)
 
-    local scoreText = UIManager.CreateText(GameOverPanel, -0.03, 0.0, 400, 72, "SCORE : " .. tostring(GAME_OVER_SCORE), 48.0, "RelativePos")
+    local scoreText = UIManager.CreateText(GameOverPanel, -0.03, 0.0, 400, 72, "SCORE : " .. tostring(finalScore), 48.0, "RelativePos")
     scoreText:SetColor(0.0, 0.0, 0.0, 1.0)
 
     local restartLabel = UIManager.CreateText(GameOverPanel, -0.01, 0.15, 280, 48, "RESTART", 48.0, "RelativePos")
@@ -370,6 +442,7 @@ end
 ShowHud = function()
     if MenuPanel then return end
 
+    SetGameplayInputEnabled(false)
     HideInGameHud()
     HideGameOver()
 
@@ -407,34 +480,9 @@ function OnUpdate(self, deltaTime)
         return
     end
 
-    if InGamePanel and Input and Input.GetKeyDown("N") then
-        SetProgressTarget(ProgressTargetValue + PROGRESS_STEP)
-    end
-
-    if InGamePanel and Input and Input.GetKeyDown("M") then
-        SetProgressTarget(ProgressTargetValue - PROGRESS_STEP)
-    end
-
+    SyncGameplayHud()
     UpdateProgressBar(deltaTime)
     UpdateShipWheel(deltaTime)
-
-    if InGamePanel and Input and Input.GetKeyDown("H") and not bHeartAnimPlaying and HeartHealth > 0 then
-        bHeartAnimPlaying = true
-        HeartAnimDir = 1
-        HeartAnimIndex = HeartHealth
-        HeartAnimTime = 0.0
-        HeartAnimFrame = 0
-        ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
-    end
-
-    if InGamePanel and Input and Input.GetKeyDown("G") and not bHeartAnimPlaying and HeartHealth < HEART_COUNT then
-        bHeartAnimPlaying = true
-        HeartAnimDir = -1
-        HeartAnimIndex = HeartHealth + 1
-        HeartAnimTime = 0.0
-        HeartAnimFrame = HEART_COLS - 1
-        ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
-    end
 
     if bHeartAnimPlaying then
         HeartAnimTime = HeartAnimTime + (deltaTime or 0.0)
@@ -459,9 +507,14 @@ function OnUpdate(self, deltaTime)
             ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
         end
     end
+
+    if InGamePanel and GetHudHealth() <= 0 then
+        ShowGameOver()
+    end
 end
 
 function OnDestroy(self)
+    SetGameplayInputEnabled(false)
     HideHud()
     HideScoreboard()
     HideGameOver()

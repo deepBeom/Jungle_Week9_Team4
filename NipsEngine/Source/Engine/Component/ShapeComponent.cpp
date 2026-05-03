@@ -446,11 +446,11 @@ void UCapsuleComponent::Serialize(FArchive& Ar)
     Ar << "CapsuleRadius" << CapsuleRadius;
 
     if (Ar.IsLoading() &&
-        IsNearlyEqual(CapsuleHalfHeight, 88.0f) &&
-        IsNearlyEqual(CapsuleRadius, 34.0f))
+        IsNearlyEqual(CapsuleHalfHeight, 20.0f) &&
+        IsNearlyEqual(CapsuleRadius, 5.0f))
     {
         CapsuleHalfHeight = 1.0f;
-        CapsuleRadius = 0.5f;
+        CapsuleRadius = 1.0f;
     }
 }
 

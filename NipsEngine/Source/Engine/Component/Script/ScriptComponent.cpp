@@ -404,12 +404,12 @@ void UScriptComponent::ApplyRuntimeFailurePolicy(bool bHadCallback, bool bSuccee
 {
     if (ShouldDisableAfterRuntimeFailure(bHadCallback, bSucceeded))
     {
-        printf("[Lua] Disabling script after %d consecutive callback failures: %s\n",
+        UE_LOG("[Lua] Disabling script after %d consecutive callback failures: %s\n",
             ConsecutiveRuntimeErrorCount,
             ScriptPath.c_str());
         if (CallbackContext && CallbackContext[0] != '\0')
         {
-            printf("[Lua] Last failed callback context: %s\n", CallbackContext);
+            UE_LOG("[Lua] Last failed callback context: %s\n", CallbackContext);
         }
         DisableScriptAfterFatalError();
     }

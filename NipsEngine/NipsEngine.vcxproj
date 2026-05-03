@@ -376,7 +376,11 @@
     </ClCompile>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\Engine\Core\SoundManager.cpp" />
+    <ClCompile Include="Source\Engine\DriftSalvage\BoatInputSystem.cpp" />
+    <ClCompile Include="Source\Engine\DriftSalvage\CollectionSystem.cpp" />
+    <ClCompile Include="Source\Engine\DriftSalvage\ExplosionSystem.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.cpp" />
+    <ClCompile Include="Source\Engine\Render\RingBatcher.cpp" />
     <ClCompile Include="Source\Engine\Render\UIBatcher.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaScriptSubsystem.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaBinder.cpp" />
@@ -486,6 +490,7 @@
     <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SubUVComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\TextRenderComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\WaterComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Light\AmbientLightComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Light\DirectionalLightComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Light\LightComponent.cpp" />
@@ -513,6 +518,7 @@
     <ClCompile Include="Source\Engine\GameFramework\DelegateTestActor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Level.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Pawn.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\OceanSystem.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\PrimitiveActors.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\World.cpp" />
     <ClCompile Include="Source\Engine\Geometry\AABB.cpp" />
@@ -761,7 +767,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Core\SoundManager.h" />
+    <ClInclude Include="Source\Engine\DriftSalvage\BoatInputSystem.h" />
+    <ClInclude Include="Source\Engine\DriftSalvage\CollectionSystem.h" />
+    <ClInclude Include="Source\Engine\DriftSalvage\ExplosionSystem.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.h" />
+    <ClInclude Include="Source\Engine\Render\RingBatcher.h" />
     <ClInclude Include="Source\Engine\Render\UIBatcher.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptSubsystem.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptInstance.h" />
@@ -817,6 +827,7 @@
     <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
     <ClInclude Include="Source\Engine\Component\SubUVComponent.h" />
     <ClInclude Include="Source\Engine\Component\TextRenderComponent.h" />
+    <ClInclude Include="Source\Engine\Component\WaterComponent.h" />
     <ClInclude Include="Source\Engine\Component\Light\AmbientLightComponent.h" />
     <ClInclude Include="Source\Engine\Component\Light\DirectionalLightComponent.h" />
     <ClInclude Include="Source\Engine\Component\Light\LightComponent.h" />
@@ -865,6 +876,7 @@
     <ClInclude Include="Source\Engine\GameFramework\DelegateTestActor.h" />
     <ClInclude Include="Source\Engine\GameFramework\Level.h" />
     <ClInclude Include="Source\Engine\GameFramework\Pawn.h" />
+    <ClInclude Include="Source\Engine\GameFramework\OceanSystem.h" />
     <ClInclude Include="Source\Engine\GameFramework\PrimitiveActors.h" />
     <ClInclude Include="Source\Engine\GameFramework\World.h" />
     <ClInclude Include="Source\Engine\GameFramework\WorldContext.h" />

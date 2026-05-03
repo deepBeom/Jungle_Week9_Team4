@@ -17,6 +17,7 @@
 #include "Component/StaticMeshComponent.h"
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
+#include "Component/WaterComponent.h"
 #include "Engine/GameFramework/Actor.h"
 
 namespace
@@ -158,6 +159,7 @@ namespace
         { "SubUV Component", "Common", &RegisterSubUVComponent },
         { "TextRender Component", "Common", &RegisterTextRenderComponent },
         { "Billboard Component", "Common", &RegisterBillboardComponent },
+        { "Water Component", "Common", &RegisterSimple<UWaterComponent> },
         { "HeightFog Component", "Common", &RegisterHeightFogComponent },
         { "SkyAtmosphere Component", "Common", &RegisterSimple<USkyAtmosphereComponent> },
 

@@ -27,6 +27,11 @@ namespace
             return ResourceManager.LoadShader(ShaderName, "mainVS", "mainPS", static_cast<const D3D_SHADER_MACRO*>(nullptr));
         }
 
+        if (ShaderName == "Shaders/Water.hlsl")
+        {
+            return ResourceManager.LoadShader(ShaderName, "mainVS", "mainPS", static_cast<const D3D_SHADER_MACRO*>(nullptr));
+        }
+
         if (ShaderName == "Shaders/OutlinePostProcess.hlsl")
         {
             return ResourceManager.LoadShader(ShaderName, "VS", "PS", static_cast<const D3D_SHADER_MACRO*>(nullptr));
@@ -953,8 +958,13 @@ void FResourceManager::InitializeDefaultResources(ID3D11Device* Device)
     else
         DefaultMat->MaterialParams["SpecularMap"] = FMaterialParamValue(DefaultWhite);
 
-    if (DefaultMat->MaterialData.bHasNormalTexture)
-        DefaultMat->MaterialParams["NormalMap"] = FMaterialParamValue(FResourceManager::Get().LoadTexture(DefaultMat->MaterialData.NormalTexPath, Device));
+    UTexture* PrimaryNormal = nullptr;
+    if (DefaultMat->MaterialData.NormalTextureCount > 0u)
+    {
+        PrimaryNormal = FResourceManager::Get().LoadTexture(DefaultMat->MaterialData.NormalTexPath[0], Device);
+    }
+    if (PrimaryNormal != nullptr)
+        DefaultMat->MaterialParams["NormalMap"] = FMaterialParamValue(PrimaryNormal);
     else
         DefaultMat->MaterialParams["NormalMap"] = FMaterialParamValue(DefaultNormal);
 
@@ -965,7 +975,7 @@ void FResourceManager::InitializeDefaultResources(ID3D11Device* Device)
 
     DefaultMat->MaterialParams["bHasDiffuseMap"] = FMaterialParamValue(DefaultMat->MaterialData.bHasDiffuseTexture);
     DefaultMat->MaterialParams["bHasSpecularMap"] = FMaterialParamValue(DefaultMat->MaterialData.bHasSpecularTexture);
-    DefaultMat->MaterialParams["bHasNormalMap"] = FMaterialParamValue(DefaultMat->MaterialData.bHasNormalTexture);
+    DefaultMat->MaterialParams["bHasNormalMap"] = FMaterialParamValue(PrimaryNormal != nullptr);
     DefaultMat->MaterialParams["bHasBumpMap"] = FMaterialParamValue(DefaultMat->MaterialData.bHasBumpTexture);
 
     DefaultMat->MaterialParams["ScrollUV"] = FMaterialParamValue(FVector2(0.0f, 0.0f));
@@ -1894,7 +1904,13 @@ bool FResourceManager::LoadMaterial(const FString& MtlFilePath, const FString& S
 
         if (MaterialData.bHasDiffuseTexture && !MaterialData.DiffuseTexPath.empty())  LoadTexture(MaterialData.DiffuseTexPath, CachedDevice.Get());
         if (MaterialData.bHasSpecularTexture && !MaterialData.SpecularTexPath.empty()) LoadTexture(MaterialData.SpecularTexPath, CachedDevice.Get());
-        if (MaterialData.bHasNormalTexture && !MaterialData.NormalTexPath.empty())     LoadTexture(MaterialData.NormalTexPath, CachedDevice.Get());
+        for (uint32 NormalIndex = 0; NormalIndex < MaterialData.NormalTextureCount; ++NormalIndex)
+        {
+            if (!MaterialData.NormalTexPath[NormalIndex].empty())
+            {
+                LoadTexture(MaterialData.NormalTexPath[NormalIndex], CachedDevice.Get());
+            }
+        }
         if (MaterialData.bHasBumpTexture && !MaterialData.BumpTexPath.empty())     LoadTexture(MaterialData.BumpTexPath, CachedDevice.Get());
     }
 
@@ -2059,6 +2075,10 @@ bool FResourceManager::SerializeMaterialInstance(const FString& MatInstFilePath,
     {
         Root["LightingModel"] = ToLightingModelString(MaterialInstance->GetLightingModelOverride());
     }
+    if (MaterialInstance->HasRasterizerTypeOverride())
+    {
+        Root["RasterizerType"] = ToRasterizerTypeString(MaterialInstance->GetRasterizerTypeOverride());
+    }
     JSON Params = JSON::Make(JSON::Class::Array);
     for (const auto& [ParamName, ParamValue] : MaterialInstance->OverridedParams)
     {
@@ -2191,6 +2211,19 @@ bool FResourceManager::DeserializeMaterial(const FString& MatFilePath)
             MatInstance->ClearLightingModelOverride();
         }
 
+        if (Root.hasKey("RasterizerType"))
+        {
+            ERasterizerType RasterizerType = ERasterizerType::SolidBackCull;
+            if (TryParseRasterizerType(Root["RasterizerType"].ToString(), RasterizerType))
+            {
+                MatInstance->SetRasterizerTypeOverride(RasterizerType);
+            }
+        }
+        else
+        {
+            MatInstance->ClearRasterizerTypeOverride();
+        }
+
         for (auto& Param : Root["OverridedParams"].ArrayRange())
         {
             FString ParamName = NormalizeLegacyMaterialParamName(Param["Name"].ToString());
@@ -2290,6 +2323,15 @@ bool FResourceManager::DeserializeMaterial(const FString& MatFilePath)
         TryParseLightingModel(Root["LightingModel"].ToString(), LightingModel);
     }
     Material->SetLightingModel(LightingModel);
+
+    if (Root.hasKey("RasterizerType"))
+    {
+        ERasterizerType RasterizerType = ERasterizerType::SolidBackCull;
+        if (TryParseRasterizerType(Root["RasterizerType"].ToString(), RasterizerType))
+        {
+            Material->RasterizerType = RasterizerType;
+        }
+    }
 
     for (auto& Param : Root["Params"].ArrayRange())
     {
@@ -2868,7 +2910,10 @@ size_t FResourceManager::GetMaterialMemorySize() const
         TotalSize += Mat.Name.capacity();
         TotalSize += Mat.DiffuseTexPath.capacity();
         TotalSize += Mat.SpecularTexPath.capacity();
-        TotalSize += Mat.NormalTexPath.capacity();
+        for (const FString& NormalTexPath : Mat.NormalTexPath)
+        {
+            TotalSize += NormalTexPath.capacity();
+        }
         TotalSize += Mat.BumpTexPath.capacity();
     }
 
