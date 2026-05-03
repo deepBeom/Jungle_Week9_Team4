@@ -5,6 +5,7 @@
 #include "Collision/CollisionSystem.h"
 #include "Render/Renderer/RenderFlow/ShadowAtlasManager.h"
 #include "DriftSalvage/CollectionSystem.h"
+#include "DriftSalvage/ExplosionSystem.h"
 #include "GameFramework/World.h"
 #include "GameFramework/Actor.h"
 #include "Object/ActorIterator.h"
@@ -87,6 +88,7 @@ namespace
 	void DrawDebugOverlap(FLineBatcher* LineBatcher, const FCollisionDebugContact& Contact);
 	void DrawDebugContactPoint(FLineBatcher* LineBatcher, const FVector& Location, float Size);
     void DrawCollectionRing(UWorld* World, FRingBatcher* RingBatcher);
+    void DrawExplosionDebugRings(UWorld* World, FLineBatcher* LineBatcher);
 
     bool IsRuntimeDebugShapeVisible(const UPrimitiveComponent* Primitive)
     {
@@ -228,6 +230,7 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 	}
 
     DrawCollectionRing(World, RingBatcher);
+    DrawExplosionDebugRings(World, LineBatcher);
 }
 
 // ─────────────────── Sub Collects ────────────────────────────────────────────────────────────
@@ -386,6 +389,35 @@ namespace
             InnerRadius,
             OuterRadius,
             Collection.GetRingColor().ToVector4());
+    }
+
+void DrawExplosionDebugRings(UWorld* World, FLineBatcher* LineBatcher)
+    {
+        if (!World || !LineBatcher)
+        {
+            return;
+        }
+
+        const FExplosionSystem& Explosion = World->GetExplosionSystem();
+        for (const FExplosionSystem::FDebugRing& Ring : Explosion.GetDebugRings())
+        {
+            if (Ring.Radius <= 0.0f || Ring.Lifetime <= 0.0f)
+            {
+                continue;
+            }
+
+            // 시간이 지날수록 ring이 커지면서 fade out — 충격파 느낌.
+            const float t = std::min(1.0f, Ring.Age / Ring.Lifetime);
+            const float DrawRadius = Ring.Radius * (0.6f + 0.4f * t);
+            const float Alpha = std::max(0.05f, 1.0f - t);
+
+            const FVector4 Color(1.0f, 0.45f, 0.1f, Alpha); // 주황색
+
+            // 3축 평면 wireframe circle — 폭발 구체 형태로 시각화.
+            LineBatcher->AddCircle(Ring.Center, FVector::ForwardVector, FVector::RightVector, DrawRadius, Color);
+            LineBatcher->AddCircle(Ring.Center, FVector::ForwardVector, FVector::UpVector,    DrawRadius, Color);
+            LineBatcher->AddCircle(Ring.Center, FVector::RightVector,   FVector::UpVector,    DrawRadius, Color);
+        }
     }
 
     FMatrix MakeViewSubUVSelectionMatrix(const USubUVComponent* SubUVComp, const FRenderBus& RenderBus)

@@ -7,6 +7,7 @@
 
 #include "Component/PrimitiveComponent.h"
 #include "Core/ActorTags.h"
+#include "Core/Logging/Log.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Math/Utils.h"
 #include "GameFramework/Actor.h"
@@ -178,6 +179,7 @@ void FCollectionSystem::TickFlights(float DeltaTime)
 
         if (t >= 1.0f)
         {
+            UE_LOG("[CollectBySpace] name=%s tag=%s", *Actor->GetName(), Actor->GetTag().c_str());
             Actor->Destroy();
             Flights.erase(Flights.begin() + i);
             continue;

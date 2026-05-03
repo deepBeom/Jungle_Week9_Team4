@@ -2,6 +2,8 @@
 #include "Object/Object.h"
 #include "GameFramework/Actor.h"
 #include "DriftSalvage/CollectionSystem.h"
+#include "DriftSalvage/ExplosionSystem.h"
+#include "DriftSalvage/BoatInputSystem.h"
 #include "Level.h"
 #include "Spatial/WorldSpatialIndex.h"
 #include "Collision/CollisionSystem.h"
@@ -106,6 +108,9 @@ public:
     FCollectionSystem& GetCollectionSystem() { return CollectionSystem; }
     const FCollectionSystem& GetCollectionSystem() const { return CollectionSystem; }
 
+    FExplosionSystem& GetExplosionSystem() { return ExplosionSystem; }
+    const FExplosionSystem& GetExplosionSystem() const { return ExplosionSystem; }
+    
 private:
     EWorldType WorldType = EWorldType::Editor;
     ULevel* PersistentLevel = nullptr;
@@ -118,4 +123,6 @@ private:
     TArray<AActor*> PendingDestroyActors;
     FCollisionSystem CollisionSystem;
     FCollectionSystem CollectionSystem;
+    FExplosionSystem ExplosionSystem;
+    FBoatInputSystem BoatInputSystem;
 };
