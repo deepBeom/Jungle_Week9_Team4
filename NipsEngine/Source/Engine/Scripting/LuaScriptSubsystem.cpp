@@ -11,10 +11,9 @@
 
 namespace
 {
-    // Rebuild all environment globals used by script callbacks.
-    void ConfigureInstanceEnvironment(FLuaScriptInstance& Instance, sol::state& Lua, AActor* Owner, UScriptComponent* OwnerComponent)
+    // Bind commonly used script globals into an already created environment.
+    void PopulateInstanceEnvironment(FLuaScriptInstance& Instance, AActor* Owner, UScriptComponent* OwnerComponent)
     {
-        Instance.Env = sol::environment(Lua, sol::create, Lua.globals());
         Instance.Env["Self"] = Owner;
         Instance.Env["Owner"] = Owner;
         Instance.Env["Component"] = OwnerComponent;
@@ -26,11 +25,18 @@ namespace
             }
         };
     }
+
+    // Recreate environment and then bind globals.
+    void RecreateAndPopulateInstanceEnvironment(FLuaScriptInstance& Instance, sol::state& Lua, AActor* Owner, UScriptComponent* OwnerComponent)
+    {
+        Instance.Env = sol::environment(Lua, sol::create, Lua.globals());
+        PopulateInstanceEnvironment(Instance, Owner, OwnerComponent);
+    }
 }
 
 void FLuaScriptSubsystem::LogFunctionError(const FString& FunctionName, const FString& ScriptPath, const char* ErrorMessage) const
 {
-    printf("[Lua Function Error] %s (%s) : %s\n",
+    UE_LOG("[Lua Function Error] %s (%s) : %s\n",
         FunctionName.c_str(),
         ScriptPath.c_str(),
         ErrorMessage);
@@ -106,7 +112,8 @@ std::shared_ptr<FLuaScriptInstance> FLuaScriptSubsystem::CreateScriptInstance(
     Instance->OwnerComponent = OwnerComponent;
     Instance->ScriptPath = ScriptPath;
 
-    ConfigureInstanceEnvironment(*Instance, Lua, Owner, OwnerComponent);
+    // Env was created in FLuaScriptInstance constructor; only bind globals here.
+    PopulateInstanceEnvironment(*Instance, Owner, OwnerComponent);
 
     ScriptInstances.push_back(Instance);
     LoadScript(Instance);
@@ -129,7 +136,7 @@ bool FLuaScriptSubsystem::LoadScript(std::shared_ptr<FLuaScriptInstance> Instanc
     if (!LoadedScript.valid())
     {
         sol::error Error = LoadedScript;
-        printf("[Lua Load Error] %s : %s\n", ResolvedScriptPath.c_str(), Error.what());
+        UE_LOG("[Lua Load Error] %s : %s\n", ResolvedScriptPath.c_str(), Error.what());
         return false;
     }
 
@@ -140,7 +147,7 @@ bool FLuaScriptSubsystem::LoadScript(std::shared_ptr<FLuaScriptInstance> Instanc
     if (!Result.valid())
     {
         sol::error Error = Result;
-        printf("[Lua Runtime Error] %s : %s\n", ResolvedScriptPath.c_str(), Error.what());
+        UE_LOG("[Lua Runtime Error] %s : %s\n", ResolvedScriptPath.c_str(), Error.what());
         return false;
     }
 
@@ -161,7 +168,7 @@ bool FLuaScriptSubsystem::ReloadScript(std::shared_ptr<FLuaScriptInstance> Insta
     FString ScriptPath = Instance->ScriptPath;
 
     // Recreate the environment completely so stale Lua globals/upvalues do not survive reload.
-    ConfigureInstanceEnvironment(*Instance, Lua, Owner, OwnerComponent);
+    RecreateAndPopulateInstanceEnvironment(*Instance, Lua, Owner, OwnerComponent);
 
     Instance->ScriptPath = ScriptPath;
     Instance->bLoaded = false;

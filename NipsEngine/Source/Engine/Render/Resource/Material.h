@@ -3,6 +3,7 @@
 #include "Object/Object.h"
 #include "Texture.h"
 #include "Shader.h"
+#include "Render/Common/WaterRenderingCommon.h"
 #include "RenderResources.h"
 #include <variant>
 
@@ -30,8 +31,10 @@ struct FMaterial
     FString SpecularTexPath;  // map_Ks
     bool	bHasSpecularTexture = { false };
 
-    FString NormalTexPath;     // norm / map_norm / map_Kn
-    bool	bHasNormalTexture = { false };
+    // Up to two normal maps can be retained from MTL for water use.
+    // Generic surface shading continues to use slot 0 through "NormalMap".
+    FString NormalTexPath[2];  // norm / map_norm / map_Kn
+    uint32  NormalTextureCount = 0;
 
     FString BumpTexPath;      // map_bump
     bool	bHasBumpTexture = { false };
@@ -117,6 +120,23 @@ public:
     virtual bool GetParam(const FString& Name, FMaterialParamValue& OutValue) const = 0;
     virtual EMaterialDomain GetEffectiveMaterialDomain() const = 0;
     virtual ELightingModel GetEffectiveLightingModel() const = 0;
+    bool IsWaterMaterial() const
+    {
+        FMaterialParamValue ParamValue;
+        // Water is identified explicitly by a material flag so the renderer
+        // never has to infer intent from file paths or shader names.
+        if (!GetParam(WaterMaterialParameterNames::IsWater, ParamValue) || ParamValue.Type != EMaterialParamType::Bool)
+        {
+            return false;
+        }
+
+        if (!std::holds_alternative<bool>(ParamValue.Value))
+        {
+            return false;
+        }
+
+        return std::get<bool>(ParamValue.Value);
+    }
 
     virtual void SetParam(const FString& Name, const FMaterialParamValue& Value) = 0;
 

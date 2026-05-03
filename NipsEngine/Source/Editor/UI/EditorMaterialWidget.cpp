@@ -47,6 +47,28 @@ namespace
             }
         }
     }
+
+    bool ShouldShowSecondaryWaterNormal(UMaterialInterface* Material)
+    {
+        if (Material == nullptr)
+        {
+            return false;
+        }
+
+        FMaterialParamValue SecondaryNormalValue;
+        if (!Material->GetParam("WaterNormalB", SecondaryNormalValue))
+        {
+            return false;
+        }
+
+        if (SecondaryNormalValue.Type != EMaterialParamType::Texture ||
+            !std::holds_alternative<UTexture*>(SecondaryNormalValue.Value))
+        {
+            return false;
+        }
+
+        return std::get<UTexture*>(SecondaryNormalValue.Value) != nullptr;
+    }
 }
 
 #define MAT_SEPARATOR() ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing();
@@ -437,6 +459,7 @@ void FEditorMaterialWidget::RenderMaterialProperties()
     TMap<FString, FMaterialParamValue> DisplayParams;
 
     SelectedMaterialPtr->GatherAllParams(DisplayParams);
+    const bool bShowSecondaryWaterNormal = ShouldShowSecondaryWaterNormal(SelectedMaterialPtr);
     bool bIsInstanced = SelectedMaterialPtr->IsA<UMaterialInstance>();
     const bool bCanEditBaseMaterial = IsEditableBaseMaterial(SelectedMaterialPtr);
     const bool bCanEditParams = bIsInstanced || bCanEditBaseMaterial;
@@ -448,6 +471,11 @@ void FEditorMaterialWidget::RenderMaterialProperties()
 
     for (auto& [ParamName, ParamValue] : DisplayParams)
     {
+        if (ParamName == "WaterNormalB" && !bShowSecondaryWaterNormal)
+        {
+            continue;
+        }
+
         switch (ParamValue.Type)
         {
         case EMaterialParamType::Bool:

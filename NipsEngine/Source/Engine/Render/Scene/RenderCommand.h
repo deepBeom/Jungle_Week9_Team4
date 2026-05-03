@@ -8,6 +8,7 @@
 
 #include "Render/Common/RenderTypes.h"
 #include "Render/Common/ViewTypes.h"
+#include "Render/Common/WaterRenderingCommon.h"
 #include "Render/Resource/Buffer.h"
 #include "Render/Resource/Material.h"
 #include "Render/Device/D3DDevice.h"
@@ -176,6 +177,52 @@ struct FFXAAConstants
     float  Padding;
 };
 
+// WaterShaderBindings::MaterialConstantBuffer in Shaders/Water.hlsl.
+// Per-water-primitive runtime data must come from component/collector path,
+// not from per-frame mutation of shared material instances.
+struct alignas(16) FWaterUniformData
+{
+    float Time = 0.0f;
+    float NormalStrength = 0.45f;
+    float Alpha = 1.0f;
+    float WaterSpecularPower = 96.0f;
+
+    FVector2 NormalTilingA = FVector2(4.0f, 4.0f);
+    FVector2 NormalScrollSpeedA = FVector2(0.03f, 0.01f);
+
+    FVector2 NormalTilingB = FVector2(2.5f, 2.5f);
+    FVector2 NormalScrollSpeedB = FVector2(-0.02f, 0.015f);
+
+    FVector BaseColor = FVector(0.08f, 0.22f, 0.33f);
+    float WaterSpecularIntensity = 0.75f;
+
+    uint32 bHasNormalMapA = 0u;
+    uint32 bHasNormalMapB = 0u;
+    float ColorVariationStrength = 0.15f;
+    float WaterFresnelPower = 5.0f;
+
+    float WaterFresnelIntensity = 0.45f;
+    float WaterLightContributionScale = 1.0f;
+    uint32 bEnableWaterSpecular = 1u;
+    uint32 WaterLocalLightCount = 0u;
+
+    uint32 bHasDiffuseMap = 0u;
+    float WorldUVScaleX = 0.02f;
+    float WorldUVScaleY = 0.02f;
+    float WorldUVBlendFactor = 1.0f;
+};
+
+static_assert(sizeof(FWaterUniformData) == 112, "FWaterUniformData layout must match Water.hlsl cbuffer b2.");
+
+struct FWaterRenderData
+{
+    bool bValid = false;
+    FWaterUniformData UniformData = {};
+    UTexture* Diffuse = nullptr; // t2
+    UTexture* NormalA = nullptr; // t0
+    UTexture* NormalB = nullptr; // t1
+};
+
 struct FSkyConstants
 {
     FMatrix InvView = FMatrix::Identity;
@@ -296,6 +343,8 @@ struct FRenderCommand
         FFogConstants Fog;
         FFXAAConstants FXAA;
     } Constants;
+
+    FWaterRenderData Water = {};
 
     ERenderCommandType Type = ERenderCommandType::Primitive;
 };
