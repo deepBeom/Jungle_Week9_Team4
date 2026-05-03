@@ -6,9 +6,10 @@
 #include "Engine/Runtime/SceneView.h"
 #include "Engine/Render/Renderer/Renderer.h"
 
-FGameRenderPipeline::FGameRenderPipeline(UGameEngine* InGameEngine, FRenderer& InRenderer) : GameEngine(InGameEngine)
+FGameRenderPipeline::FGameRenderPipeline(UGameEngine* InGameEngine, FRenderer& InRenderer)
+    : GameEngine(InGameEngine)
 {
-	Collector.Initialize(InRenderer.GetFD3DDevice().GetDevice());
+    Collector.Initialize(InRenderer.GetFD3DDevice().GetDevice());
 }
 
 FGameRenderPipeline::~FGameRenderPipeline()
@@ -18,8 +19,6 @@ FGameRenderPipeline::~FGameRenderPipeline()
 
 void FGameRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 {
-    (void)DeltaTime;
-
     if (!GameEngine || !GameEngine->GetWorld())
     {
         return;
@@ -27,7 +26,6 @@ void FGameRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 
     Renderer.BeginFrame();
     RenderViewport(Renderer);
-    Renderer.UseBackBufferRenderTargets();
     Renderer.EndFrame();
 }
 
@@ -41,20 +39,21 @@ void FGameRenderPipeline::RenderViewport(FRenderer& Renderer)
     }
 
     UWorld* World = ViewportClient->GetWorld();
-    const FShowFlags ShowFlags;
+    const FShowFlags ShowFlags = Bus.GetShowFlags();
     const EViewMode ViewMode = SceneView.ViewMode;
     const FFrustum& ViewFrustum = SceneView.CameraFrustum;
 
+    Renderer.GetDebugLineBatcher().Clear();
+    Collector.SetLineBatcher(&Renderer.GetDebugLineBatcher());
     Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum);
 
     Renderer.PrepareBatchers(Bus);
     Renderer.Render(Bus);
+    Renderer.PresentToBackBuffer(Renderer.GetCurrentSceneSRV());
 }
 
 bool FGameRenderPipeline::PrepareViewport(FRenderer& Renderer, FSceneView& OutSceneView, FGameViewportClient*& OutViewportClient)
 {
-    (void)Renderer;
-
     OutViewportClient = &GameEngine->GetViewportClient();
     if (OutViewportClient == nullptr || OutViewportClient->GetWorld() == nullptr)
     {
@@ -69,10 +68,19 @@ bool FGameRenderPipeline::PrepareViewport(FRenderer& Renderer, FSceneView& OutSc
         return false;
     }
 
+    FViewportRenderResource& ViewportResource = Renderer.AcquireViewportResource(static_cast<uint32>(Rect.Width), static_cast<uint32>(Rect.Height), 0);
+    FRenderTargetSet& RenderTargets = ViewportResource.GetView();
+    Renderer.BeginViewportFrame(&RenderTargets);
+
+    FShowFlags ShowFlags;
+    ShowFlags.bBVHBoundingVolume = true;
+    ShowFlags.bBoundingVolume = true;
+    ShowFlags.bEnableLOD = false;
+
     Bus.Clear();
     Bus.SetViewProjection(OutSceneView.ViewMatrix, OutSceneView.ProjectionMatrix);
     Bus.SetCameraPlane(OutSceneView.NearPlane, OutSceneView.FarPlane);
-    Bus.SetRenderSettings(OutSceneView.ViewMode, FShowFlags());
+    Bus.SetRenderSettings(OutSceneView.ViewMode, ShowFlags);
     Bus.SetViewportSize(FVector2(static_cast<float>(Rect.Width), static_cast<float>(Rect.Height)));
     Bus.SetViewportOrigin(FVector2(static_cast<float>(Rect.X), static_cast<float>(Rect.Y)));
     Bus.SetFXAAEnabled(!OutSceneView.bOrthographic);

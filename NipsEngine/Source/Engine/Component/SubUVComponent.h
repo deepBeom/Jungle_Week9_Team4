@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "PrimitiveComponent.h"
 #include "Core/ResourceTypes.h"
@@ -19,34 +19,39 @@ public:
 
     void SetBillboardEnabled(bool bEnable) { bIsBillboard = bEnable; }
 
-    // --- Particle Resource ---
+    // Particle resource.
     void SetParticle(const FName& InParticleName);
     const FParticleResource* GetParticle() const { return CachedParticle; }
     const FName& GetParticleName() const { return ParticleName; }
 
-    // --- SubUV Frame ---
+    // SubUV frame.
     void SetFrameIndex(uint32 InIndex) { FrameIndex = InIndex; }
     uint32 GetFrameIndex() const { return FrameIndex; }
 
-    // --- Playback ---
+    // Playback controls.
     void SetFrameRate(float InFPS) { PlayRate = InFPS; }
     void SetLoop(bool bInLoop) { bLoop = bInLoop; }
-    bool IsLoop()     const { return bLoop; }
+    bool IsLoop() const { return bLoop; }
     bool IsFinished() const { return !bLoop && bIsExecute; }
-    void Play() { FrameIndex = 0; TimeAccumulator = 0.0f; bIsExecute = false; } // 처음부터 다시 재생
+    void Play() { FrameIndex = 0; TimeAccumulator = 0.0f; bIsExecute = false; }
 
-    // --- Sprite Size (월드 공간 크기) ---
+    // Sprite size.
     void SetSpriteSize(float InWidth, float InHeight) { Width = InWidth; Height = InHeight; }
-    float GetWidth()  const { return Width; }
+    float GetWidth() const { return Width; }
     float GetHeight() const { return Height; }
 
-    static FMatrix MakeBillboardWorldMatrix(const FVector& WorldLocation, const FVector& WorldScale, const FVector& CameraForward, const FVector& CameraRight, const FVector& CameraUp);
+    static FMatrix MakeBillboardWorldMatrix(
+        const FVector& WorldLocation,
+        const FVector& WorldScale,
+        const FVector& CameraForward,
+        const FVector& CameraRight,
+        const FVector& CameraUp);
 
-    // --- Property / Serialization ---
+    // Property / serialization.
     void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
     void PostEditProperty(const char* PropertyName) override;
 
-    // --- PrimitiveComponent 인터페이스 ---
+    // Primitive component interface.
     EPrimitiveType GetPrimitiveType() const override { return PrimitiveType; }
     bool SupportsOutline() const override { return true; }
     static constexpr EPrimitiveType PrimitiveType = EPrimitiveType::EPT_SubUV;
@@ -64,10 +69,10 @@ private:
     FParticleResource* CachedParticle = nullptr;
 
     uint32 FrameIndex = 0;
-    float  Width = 1.0f;
-    float  Height = 1.0f;
-    float  PlayRate = 30.0f;
-    float  TimeAccumulator = 0.0f;
+    float Width = 1.0f;
+    float Height = 1.0f;
+    float PlayRate = 30.0f;
+    float TimeAccumulator = 0.0f;
 
     bool bIsBillboard = true;
     bool bLoop = true;

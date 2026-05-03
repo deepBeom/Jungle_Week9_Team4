@@ -35,7 +35,7 @@ public:
     void SetFogMaxOpacity(float InFogMaxOpacity) { FogMaxOpacity = InFogMaxOpacity; }
     float GetFogMaxOpacity() const { return FogMaxOpacity; }
 
-    // --- Property / Serialization ---
+    // Property / serialization.
     void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
     void PostEditProperty(const char* PropertyName) override;
 
@@ -48,7 +48,7 @@ private:
     float FogCutoffDistance = 1000;
     float FogMaxOpacity = 1.f;
 
-    // UPrimitiveComponent을(를) 통해 상속됨
+    // Implemented via UPrimitiveComponent interface.
     void UpdateWorldAABB() const override;
     bool RaycastMesh(const FRay& Ray, FHitResult& OutHitResult) override;
 };

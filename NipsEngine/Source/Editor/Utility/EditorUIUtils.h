@@ -63,7 +63,7 @@ struct FEditorViewportState
     bool bShowStatShadowAtlas = false;
 
     // 활성화된 통계의 순서를 기록 (최대 4개 유지용)
-    std::vector<EStatType> ActiveStatOrder;
+    TArray<EStatType> ActiveStatOrder;
 
     void UpdateStatOrder(EStatType Type, bool bEnabled)
     {

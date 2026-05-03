@@ -3,13 +3,13 @@
 #include "MovementComponent.h"
 
 class URotatingMovementComponent : public UMovementComponent
-{	
+{
 public:
     DECLARE_CLASS(URotatingMovementComponent, UMovementComponent)
 
     virtual void TickComponent(float DeltaTime) override;
 
-    // RotationRate: X=X축 각속도, Y=Y축 각속도, Z=Z축 각속도 (deg/s)
+    // RotationRate in degrees per second (X/Roll, Y/Pitch, Z/Yaw).
     void SetRotationSpeed(const FVector& InRotationRate) { RotationRate = InRotationRate; }
     const FVector& GetRotationRate() const { return RotationRate; }
 
@@ -19,15 +19,15 @@ public:
     void SetRotationInLocalSpace(bool bInLocalSpace) { bRotationInLocalSpace = bInLocalSpace; }
     bool IsRotationInLocalSpace() const { return bRotationInLocalSpace; }
 
-    virtual float GetMaxSpeed() const override { return 0.0f; } // 회전 컴포넌트이므로 0.0f 반환
+    virtual float GetMaxSpeed() const override { return 0.0f; } // Rotation-only component.
 
     virtual void Serialize(FArchive& Ar) override;
     virtual void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
 
 private:
-    // X=X축(Roll), Y=Y축(Pitch), Z=Z축(Yaw) 각속도 (deg/s)
+    // Angular velocity in degrees per second (Roll/Pitch/Yaw).
     FVector RotationRate = FVector(90.0f, 0.f, 0.f);
-    // 오브젝트 로컬 공간 기준 피벗 오프셋 (오브젝트 → 피벗 방향)
+    // Pivot offset in local space.
     FVector PivotTranslation = FVector::ZeroVector;
     
     bool bRotationInLocalSpace = true;

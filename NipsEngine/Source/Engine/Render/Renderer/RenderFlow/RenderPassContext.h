@@ -20,8 +20,9 @@ struct FRenderPassContext
     FFontBatcher* FontBatcher = nullptr;
     FSubUVBatcher* SubUVBatcher = nullptr;
     FLineBatcher* GridLineBatcher = nullptr;
-    FLineBatcher* EditorLineBatcher = nullptr;
+
     FUIManager*   UIManager = nullptr;
+    FLineBatcher* DebugLineBatcher = nullptr;
     ID3D11ShaderResourceView* SceneGlobalLightBufferSRV = nullptr;
     uint32 SceneGlobalLightCount = 0;
 };

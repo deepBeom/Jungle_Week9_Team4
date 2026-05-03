@@ -1,7 +1,7 @@
 ﻿#include "BlurPass.h"
 
 #include "Core/Paths.h"
-#include "UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 #include "ShadowAtlasManager.h"
 
 bool FBlurPass::Initialize()
@@ -588,3 +588,4 @@ bool FBlurPass::EnsurePointShadowBlurResources(ID3D11Device* Device)
 
     return true;
 }
+

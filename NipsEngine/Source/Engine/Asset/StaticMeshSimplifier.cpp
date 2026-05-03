@@ -2,7 +2,7 @@
 #include "StaticMesh.h"
 #include <algorithm>
 
-#include "Editor/UI/EditorConsoleWidget.h"
+#include "Core/Logging/Log.h"
 
 FStaticMeshSimplifier::FStaticMeshSimplifier(UStaticMesh* InTargetMesh)
     : TargetMesh(InTargetMesh)
@@ -95,7 +95,7 @@ void FStaticMeshSimplifier::BuildTopologicalVertices()
         return (ux << 42) | (uy << 21) | uz;
     };
 
-    std::unordered_map<uint64, TArray<int32>> CellMap;
+    TMap<uint64, TArray<int32>> CellMap;
     CellMap.reserve(Vertices.size());
 
     for (int32 i = 0; i < static_cast<int32>(Vertices.size()); ++i)
@@ -686,3 +686,4 @@ void FStaticMeshSimplifier::SaveCurrentStateAsLOD(int32 CurrentLOD, const TArray
     TargetLOD->LocalBounds = MeshData->LocalBounds;
     TargetLOD->PathFileName = MeshData->PathFileName;
 }
+

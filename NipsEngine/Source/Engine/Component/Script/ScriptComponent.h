@@ -80,7 +80,7 @@ public:
     bool ReloadScript();
 
     /** @brief Sets script path (normalized). */
-    void SetScriptPath(const std::string& InPath);
+    void SetScriptPath(const FString& InPath);
     /** @brief Returns script path currently assigned to this component. */
     const FString& GetScriptPath() const { return ScriptPath; }
     /** @brief Returns true when Lua script is loaded successfully. */

@@ -52,15 +52,15 @@ public:
 
     virtual bool SupportsOutline() const { return true; }
 
-    virtual void OnRegister() override;
-    virtual void OnUnregister() override;
-
 protected:
     void OnTransformDirty() override;
     void NotifySpatialIndexDirty() const;
+    void SerializeVisibilityState(FArchive& Ar);
+    void RegisterComponentWithWorld(class UWorld& World) override;
+    void UnregisterComponentFromWorld(class UWorld& World) override;
 
 protected:
     mutable FAABB WorldAABB;
     bool bIsVisible = true;
-    bool bEnableCull = true; // frustum, occlusion culling으로 컬링될지 여부 판정
+    bool bEnableCull = true; // Enable frustum/occlusion culling.
 };

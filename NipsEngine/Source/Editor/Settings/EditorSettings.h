@@ -18,7 +18,7 @@ public:
     FVector InitLookAt = FVector(0, 0, 0);
 
     // Viewport 레이아웃 상태
-    int32 ActiveViewportCount = 4;  // 현재 표시 중인 뷰포트 수 (1 또는 4)
+    int32 ActiveViewportCount = 1;  // 현재 표시 중인 뷰포트 수 (1 또는 4)
     int32 SingleViewportIndex = 0;  // ActiveViewportCount == 1 일 때 표시할 뷰포트 인덱스
 
     // Splitter layout
@@ -26,7 +26,7 @@ public:
     float SplitterHRatio = 0.5f;  // SplitterH (좌:우)
 
     // View
-    EViewMode ViewMode = EViewMode::Lit;
+    EViewMode ViewMode = EViewMode::Unlit;
     FShowFlags ShowFlags;
     bool bEnableFXAA = true;
     EShadowFilterType ShadowFilterType = EShadowFilterType::PCF;
@@ -39,7 +39,7 @@ public:
     // Camera Sensitivity
     float CameraMoveSensitivity = 1.0f;
     float CameraRotateSensitivity = 1.0f;
-    float CameraZoomSpeed = 5.0f;
+    float CameraZoomSpeed = 3.0f;
 
     // Spatial index / BVH maintenance
     int32 SpatialBatchRefitMinDirtyCount = 8;
@@ -47,9 +47,6 @@ public:
     int32 SpatialRotationStructuralChangeThreshold = 8;
     int32 SpatialRotationDirtyCountThreshold = 24;
     int32 SpatialRotationDirtyPercentThreshold = 30;
-
-    // File paths
-    FString DefaultSavePath = FPaths::ToUtf8(FPaths::SceneDir());
 
     void SaveToFile(const FString& Path) const;
     void LoadFromFile(const FString& Path);

@@ -22,6 +22,10 @@ void UScriptComponent::BeginPlay()
     RuntimeState = EScriptRuntimeState::Idle;
     ConsecutiveRuntimeErrorCount = 0;
 
+    // Keep runtime active state aligned with serialized toggle at PIE/Game start.
+    // This prevents stale runtime-only bIsActive values from silently blocking updates.
+    SetActive(bSerializedEnabled);
+
     if (!EnsureScriptInstance())
     {
         return;
@@ -128,19 +132,22 @@ void UScriptComponent::PostEditProperty(const char* PropertyName)
 {
     UActorComponent::PostEditProperty(PropertyName);
 
-    if (strcmp(PropertyName, "Script Path") == 0)
+    switch (PropertyNameId(PropertyName))
     {
+    case PropertyNameIdConstexpr("Script Path"):
         ScriptPath = FPaths::Normalize(ScriptPath);
         if (bHasBegunPlay)
         {
             ReloadScript();
         }
         return;
-    }
 
-    if (strcmp(PropertyName, "Script Enabled") == 0)
-    {
+    case PropertyNameIdConstexpr("Script Enabled"):
         SetActive(bSerializedEnabled);
+        return;
+
+    default:
+        return;
     }
 }
 
@@ -210,11 +217,13 @@ bool UScriptComponent::ReloadScript()
         return false;
     }
 
-    if (bHasBegunPlay && IsActive())
+    if (bHasBegunPlay)
     {
-        StartScriptIfNeeded();
+        // Re-sync active state from serialized toggle for deterministic reload behavior.
+        SetActive(bSerializedEnabled);
         if (IsActive())
         {
+            StartScriptIfNeeded();
             NotifyScriptEnabled();
         }
     }
@@ -222,7 +231,7 @@ bool UScriptComponent::ReloadScript()
     return true;
 }
 
-void UScriptComponent::SetScriptPath(const std::string& InPath)
+void UScriptComponent::SetScriptPath(const FString& InPath)
 {
     ScriptPath = FPaths::Normalize(InPath);
 }

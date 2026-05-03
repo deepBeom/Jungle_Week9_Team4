@@ -26,6 +26,13 @@
 namespace
 {
     constexpr float ShadowPreviewSize = 256.0f;
+    constexpr uint32 InvalidPropertyNameId = 0u;
+
+    constexpr uint32 PropIdTexturePath = PropertyNameIdConstexpr("Texture Path");
+    constexpr uint32 PropIdStaticMesh = PropertyNameIdConstexpr("StaticMesh");
+    constexpr uint32 PropIdScriptPath = PropertyNameIdConstexpr("Script Path");
+    constexpr uint32 PropIdFont = PropertyNameIdConstexpr("Font");
+    constexpr uint32 PropIdParticle = PropertyNameIdConstexpr("Particle");
 
     const ImU32 ColorGridLine = IM_COL32(255, 255, 255, 35);
     const ImU32 ColorEmptyBg = IM_COL32(0, 0, 0, 150);
@@ -43,6 +50,34 @@ namespace
 
     // ─────────────────── Helper ───────────────────────────
     int32 ExtractActorID(const AActor* Actor);
+
+    TArray<FString> GetStringPropertyOptions(uint32 PropNameId, UEditorEngine* EditorEngine)
+    {
+        switch (PropNameId)
+        {
+        case PropIdTexturePath:
+            return FResourceManager::Get().GetTextureFilePath();
+        case PropIdStaticMesh:
+            return FResourceManager::Get().GetStaticMeshPaths();
+        case PropIdScriptPath:
+            return EditorEngine ? EditorEngine->GetLuaScriptSubsystem().GetAvailableScriptPaths() : TArray<FString>{};
+        default:
+            return {};
+        }
+    }
+
+    TArray<FString> GetNamePropertyOptions(uint32 PropNameId)
+    {
+        switch (PropNameId)
+        {
+        case PropIdFont:
+            return FResourceManager::Get().GetFontNames();
+        case PropIdParticle:
+            return FResourceManager::Get().GetParticleNames();
+        default:
+            return {};
+        }
+    }
 }
 
 void FEditorPropertyWidget::Initialize(UEditorEngine* InEditorEngine)
@@ -240,13 +275,14 @@ void FEditorPropertyWidget::RenderAddComponentPopup(AActor* PrimaryActor)
 
     if (ImGui::BeginPopup("AddComponentPopup"))
     {
-        const char* CurrentCategory = nullptr;
+        uint32 CurrentCategoryId = InvalidPropertyNameId;
         for (const FComponentMenuEntry& Entry : FEditorComponentFactory::GetMenuRegistry())
         {
-            if (CurrentCategory == nullptr || strcmp(CurrentCategory, Entry.Category) != 0)
+            const uint32 EntryCategoryId = PropertyNameId(Entry.Category);
+            if (CurrentCategoryId != EntryCategoryId)
             {
-                CurrentCategory = Entry.Category;
-                ImGui::SeparatorText(CurrentCategory);
+                CurrentCategoryId = EntryCategoryId;
+                ImGui::SeparatorText(Entry.Category);
             }
 
             if (ImGui::Selectable(Entry.DisplayName))
@@ -551,6 +587,25 @@ void FEditorPropertyWidget::RenderComponentProperties()
 		RenderInterpControlPoints(InterpComp);
 	}
 
+    // Special: Script component utilities
+	if (UScriptComponent* ScriptComp = Cast<UScriptComponent>(SelectedComponent))
+	{
+		ImGui::Spacing();
+		ImGui::Separator();
+		if (ImGui::Button("Reload Script", ImVec2(-1, 0)))
+        {
+            ScriptComp->ReloadScript();
+        }
+        if (ImGui::Button("Refresh Script List", ImVec2(-1, 0)))
+		{
+			EditorEngine->GetLuaScriptSubsystem().RefreshAvailableScriptPaths();
+		}
+		ImGui::TextDisabled("Loaded: %s", ScriptComp->IsScriptLoaded() ? "Yes" : "No");
+		ImGui::TextDisabled("Active: %s", ScriptComp->IsActive() ? "Yes" : "No");
+		ImGui::TextDisabled("Tick Enabled: %s", ScriptComp->IsComponentTickEnabled() ? "Yes" : "No");
+		ImGui::TextDisabled("Editor Only: %s", ScriptComp->IsEditorOnly() ? "Yes" : "No");
+	}
+
 	// Special: Light component — override camera with light's perspective
 	if (SelectedComponent->IsA<ULightComponent>())
 	{
@@ -630,87 +685,80 @@ void FEditorPropertyWidget::RenderSceneComponentRefWidget(FPropertyDescriptor& P
 // 개별 데이터 타입(bool, float, Vec3 등)에 맞는 최적화된 ImGui 위젯을 렌더링합니다.
 bool FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 {
-	bool bChanged = false;
+    bool bChanged = false;
+    const uint32 PropNameId = PropertyNameId(Prop.Name);
 
-	switch (Prop.Type)
-	{
-	case EPropertyType::Bool:
-	{
-		bool* Val = static_cast<bool*>(Prop.ValuePtr);
-		bChanged = ImGui::Checkbox(Prop.Name, Val);
-		break;
-	}
-	case EPropertyType::Int:
-	{
-		int32* Val = static_cast<int32*>(Prop.ValuePtr);
-		bChanged = ImGui::DragInt(Prop.Name, Val);
-		break;
-	}
-	case EPropertyType::Float:
-	{
-		float* Val = static_cast<float*>(Prop.ValuePtr);
-		if (Prop.Min != 0.0f || Prop.Max != 0.0f)
-			bChanged = ImGui::DragFloat(Prop.Name, Val, Prop.Speed, Prop.Min, Prop.Max);
-		else
-			bChanged = ImGui::DragFloat(Prop.Name, Val, Prop.Speed);
-		break;
-	}
-	case EPropertyType::Vec3:
-	{
-		float* Val = static_cast<float*>(Prop.ValuePtr);
-		bChanged = ImGui::DragFloat3(Prop.Name, Val, Prop.Speed);
-		break;
-	}
-	case EPropertyType::Vec4:
-	{
-		float* Val = static_cast<float*>(Prop.ValuePtr);
-		bChanged = ImGui::ColorEdit4(Prop.Name, Val);
-		break;
-	}
-	case EPropertyType::Color:
-	{
-		FColor* Val = static_cast<FColor*>(Prop.ValuePtr);
-		bChanged = ImGui::ColorEdit4(Prop.Name, &Val->R);
-		break;
-	}
-	case EPropertyType::String:
-	{
-		FString* Val = static_cast<FString*>(Prop.ValuePtr);
-		TArray<FString> Options;
-		if (strcmp(Prop.Name, "Texture Path") == 0)
-			Options = FResourceManager::Get().GetTextureFilePath();
-		else if (strcmp(Prop.Name, "StaticMesh") == 0)
-			Options = FResourceManager::Get().GetStaticMeshPaths();
-		bChanged = EditorUIUtils::RenderStringComboOrInput(Prop.Name, *Val, Options);
-		break;
-	}
-	case EPropertyType::Name:
-	{
-		FName* Val = static_cast<FName*>(Prop.ValuePtr);
-		FString Current = Val->ToString();
-		TArray<FString> Options;
-		if (strcmp(Prop.Name, "Font") == 0)
-			Options = FResourceManager::Get().GetFontNames();
-		else if (strcmp(Prop.Name, "Particle") == 0)
-			Options = FResourceManager::Get().GetParticleNames();
-		if (EditorUIUtils::RenderStringComboOrInput(Prop.Name, Current, Options))
-		{
-			*Val = FName(Current);
-			bChanged = true;
-		}
-		break;
-	}
-	case EPropertyType::Enum:
-	{
-		int* Val = static_cast<int*>(Prop.ValuePtr);
-		if (Prop.EnumNames && Prop.EnumCount)
-			bChanged = ImGui::Combo(Prop.Name, Val, Prop.EnumNames, Prop.EnumCount);
-		break;
-	}
-	case EPropertyType::Vec3Array:
-	{
-		TArray<FVector>* Arr = static_cast<TArray<FVector>*>(Prop.ValuePtr);
-		int32 ToRemove = -1;
+    switch (Prop.Type)
+    {
+    case EPropertyType::Bool:
+    {
+        bool* Val = static_cast<bool*>(Prop.ValuePtr);
+        bChanged = ImGui::Checkbox(Prop.Name, Val);
+        break;
+    }
+    case EPropertyType::Int:
+    {
+        int32* Val = static_cast<int32*>(Prop.ValuePtr);
+        bChanged = ImGui::DragInt(Prop.Name, Val);
+        break;
+    }
+    case EPropertyType::Float:
+    {
+        float* Val = static_cast<float*>(Prop.ValuePtr);
+        if (Prop.Min != 0.0f || Prop.Max != 0.0f)
+            bChanged = ImGui::DragFloat(Prop.Name, Val, Prop.Speed, Prop.Min, Prop.Max);
+        else
+            bChanged = ImGui::DragFloat(Prop.Name, Val, Prop.Speed);
+        break;
+    }
+    case EPropertyType::Vec3:
+    {
+        float* Val = static_cast<float*>(Prop.ValuePtr);
+        bChanged = ImGui::DragFloat3(Prop.Name, Val, Prop.Speed);
+        break;
+    }
+    case EPropertyType::Vec4:
+    {
+        float* Val = static_cast<float*>(Prop.ValuePtr);
+        bChanged = ImGui::ColorEdit4(Prop.Name, Val);
+        break;
+    }
+    case EPropertyType::Color:
+    {
+        FColor* Val = static_cast<FColor*>(Prop.ValuePtr);
+        bChanged = ImGui::ColorEdit4(Prop.Name, &Val->R);
+        break;
+    }
+    case EPropertyType::String:
+    {
+        FString* Val = static_cast<FString*>(Prop.ValuePtr);
+        TArray<FString> Options = GetStringPropertyOptions(PropNameId, EditorEngine);
+        bChanged = EditorUIUtils::RenderStringComboOrInput(Prop.Name, *Val, Options);
+        break;
+    }
+    case EPropertyType::Name:
+    {
+        FName* Val = static_cast<FName*>(Prop.ValuePtr);
+        FString Current = Val->ToString();
+        TArray<FString> Options = GetNamePropertyOptions(PropNameId);
+        if (EditorUIUtils::RenderStringComboOrInput(Prop.Name, Current, Options))
+        {
+            *Val = FName(Current);
+            bChanged = true;
+        }
+        break;
+    }
+    case EPropertyType::Enum:
+    {
+        int* Val = static_cast<int*>(Prop.ValuePtr);
+        if (Prop.EnumNames && Prop.EnumCount)
+            bChanged = ImGui::Combo(Prop.Name, Val, Prop.EnumNames, Prop.EnumCount);
+        break;
+    }
+    case EPropertyType::Vec3Array:
+    {
+        TArray<FVector>* Arr = static_cast<TArray<FVector>*>(Prop.ValuePtr);
+        int32 ToRemove = -1;
 
 		ImGui::Text("%s", Prop.Name);
 		ImGui::Spacing();

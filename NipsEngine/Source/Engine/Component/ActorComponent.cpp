@@ -1,4 +1,6 @@
 ﻿#include "ActorComponent.h"
+
+#include "GameFramework/Actor.h"
 #include "Object/ObjectFactory.h"
 
 DEFINE_CLASS(UActorComponent, UObject)
@@ -53,11 +55,54 @@ void UActorComponent::SetActive(bool bNewActive)
 
 void UActorComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
 {
-    // OutProps.push_back({"Active", EPropertyType::Bool, &bIsActive});
-    // OutProps.push_back({"Auto Activate", EPropertyType::Bool, &bAutoActivate});
     OutProps.push_back({"Enable Tick", EPropertyType::Bool, &bCanEverTick});
     OutProps.push_back({"Editor Only", EPropertyType::Bool, &bIsEditorOnly});
-    // Hidden In Editor 값은 프로퍼티 창에 노출하지 않음
+}
+
+void UActorComponent::OnRegister()
+{
+    if (bRegistered)
+    {
+        return;
+    }
+
+    UWorld* World = nullptr;
+    if (!TryGetOwnerWorld(World))
+    {
+        return;
+    }
+
+    RegisterComponentWithWorld(*World);
+    bRegistered = true;
+}
+
+void UActorComponent::OnUnregister()
+{
+    if (!bRegistered)
+    {
+        return;
+    }
+
+    UWorld* World = nullptr;
+    if (!TryGetOwnerWorld(World))
+    {
+        return;
+    }
+
+    UnregisterComponentFromWorld(*World);
+    bRegistered = false;
+}
+
+bool UActorComponent::TryGetOwnerWorld(UWorld*& OutWorld) const
+{
+    OutWorld = nullptr;
+    if (Owner == nullptr)
+    {
+        return false;
+    }
+
+    OutWorld = Owner->GetFocusedWorld();
+    return OutWorld != nullptr;
 }
 
 void UActorComponent::Serialize(FArchive& Ar)

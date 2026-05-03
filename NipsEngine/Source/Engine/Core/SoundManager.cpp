@@ -1,4 +1,4 @@
-#include "SoundManager.h"
+﻿#include "SoundManager.h"
 #include "Core/Paths.h"
 #include <filesystem>
 
@@ -25,15 +25,15 @@ void FSoundManager::ScanAndLoad()
 		if (!Entry.is_regular_file()) continue;
 
 		const fs::path& FilePath = Entry.path();
-		const std::wstring Ext = FilePath.extension().wstring();
+		const FWString Ext = FilePath.extension().wstring();
 
 		if (Ext != L".wav" && Ext != L".mp3" && Ext != L".ogg") continue;
 
 		const FString RelPath = FPaths::ToRelativeString(FilePath.generic_wstring());
-		const std::string AbsPath = FPaths::ToAbsoluteString(FPaths::ToWide(RelPath));
+		const FString AbsPath = FPaths::ToAbsoluteString(FPaths::ToWide(RelPath));
 
 		// generic_wstring()은 항상 / 구분자를 사용하므로 /BGM/ 검사로 충분
-		const bool bIsBGM = FilePath.generic_wstring().find(L"/BGM/") != std::wstring::npos;
+		const bool bIsBGM = FilePath.generic_wstring().find(L"/BGM/") != FWString::npos;
 
 		const FMOD_MODE Mode = bIsBGM
 			? (FMOD_LOOP_NORMAL | FMOD_CREATESTREAM)

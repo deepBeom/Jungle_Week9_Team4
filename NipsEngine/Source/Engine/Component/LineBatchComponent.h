@@ -13,8 +13,7 @@ struct FLineVertex
 
 class UMaterialInterface;
 
-// 사용하지 않는 컴포넌트입니다.
-// RenderProxy가 도입되면 사용될 예정입니다.
+// Currently unused. Planned for use after RenderProxy integration.
 class ULineBatchComponent : public UPrimitiveComponent
 {
 public:

@@ -76,6 +76,8 @@ void AStaticMeshActor::InitDefaultComponents()
 
 void AStaticMeshActor::BeginPlay()
 {
+    AActor::BeginPlay();
+
     for (UActorComponent* Comp : GetComponents())
     {
         UShapeComponent* ShapeComp = Cast<UShapeComponent>(Comp);

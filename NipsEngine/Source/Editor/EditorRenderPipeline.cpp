@@ -57,8 +57,8 @@ void FEditorRenderPipeline::RenderViewport(FRenderer& Renderer, int32 ViewportIn
     const EViewMode ViewMode = SceneView.ViewMode;
     const FFrustum& ViewFrustum = SceneView.CameraFrustum;
 
-    Renderer.GetEditorLineBatcher().Clear();
-    Collector.SetLineBatcher(&Renderer.GetEditorLineBatcher());
+    Renderer.GetDebugLineBatcher().Clear();
+    Collector.SetLineBatcher(&Renderer.GetDebugLineBatcher());
     Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum);
     ViewportCullingStats[ViewportIndex] = Collector.GetLastCullingStats();
     ViewportDecalStats[ViewportIndex] = Collector.GetLastDecalStats();
@@ -109,7 +109,7 @@ bool FEditorRenderPipeline::PrepareViewport(FRenderer& Renderer, int32 ViewportI
     }
 
     FSceneViewport& SceneViewport = Editor->GetViewportLayout().GetSceneViewport(ViewportIndex);
-    FViewportRenderResource& ViewportResource = Editor->GetRenderer().AcquireViewportResource(&SceneViewport, Rect.Width, Rect.Height, ViewportIndex);
+    FViewportRenderResource& ViewportResource = Editor->GetRenderer().AcquireViewportResource(Rect.Width, Rect.Height, ViewportIndex);
     SceneViewport.SetRenderTargetSet(&ViewportResource.GetView());
 
     Renderer.BeginViewportFrame(SceneViewport.GetViewportRenderTargets());

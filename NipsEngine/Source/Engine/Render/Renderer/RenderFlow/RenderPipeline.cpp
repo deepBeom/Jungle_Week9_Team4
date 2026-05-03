@@ -14,7 +14,7 @@
 #include "TranslucentRenderPass.h"
 #include "SelectionMaskRenderPass.h"
 #include "GridRenderPass.h"
-#include "EditorRenderPass.h"
+#include "LineBatchRenderPass.h"
 #include "DepthLessRenderPass.h"
 #include "DepthPrepassRenderPass.h"
 #include "PostProcessOutlineRenderPass.h"
@@ -22,6 +22,7 @@
 #include "BlurPass.h"
 #include "HitMapRenderPass.h"
 #include "ToonOutlineRenderPass.h"
+#include "Core/Logging/Log.h"
 #include "UIRenderPass.h"
 #include "UI/EditorConsoleWidget.h"
 
@@ -113,8 +114,8 @@ bool FRenderPipeline::Initialize()
     GridRenderPass = std::make_shared<FGridRenderPass>();
     GridRenderPass->Initialize();
 
-    EditorRenderPass = std::make_shared<FEditorRenderPass>();
-    EditorRenderPass->Initialize();
+    LineBatchRenderPass = std::make_shared<FLineBatchRenderPass>();
+    LineBatchRenderPass->Initialize();
 
     DepthLessRenderPass = std::make_shared<FDepthLessRenderPass>();
     DepthLessRenderPass->Initialize();
@@ -156,8 +157,9 @@ bool FRenderPipeline::Initialize()
     RenderPasses.push_back(TranslucentRenderPass);
     RenderPasses.push_back(SelectionMaskRenderPass);
     RenderPasses.push_back(GridRenderPass);
+    RenderPasses.push_back(LineBatchRenderPass);
     RenderPasses.push_back(UIRenderPass);      // 게임 UI — 그리드 뒤, 에디터 앞
-    RenderPasses.push_back(EditorRenderPass);
+
     RenderPasses.push_back(DepthLessRenderPass);
     RenderPasses.push_back(PostProcessOutlineRenderPass);
 
@@ -334,10 +336,10 @@ void FRenderPipeline::Release()
         GridRenderPass.reset();
     }
 
-    if (EditorRenderPass)
+    if (LineBatchRenderPass)
     {
-        EditorRenderPass->Release();
-        EditorRenderPass.reset();
+        LineBatchRenderPass->Release();
+        LineBatchRenderPass.reset();
     }
 
     if (DepthLessRenderPass)
@@ -358,3 +360,4 @@ void FRenderPipeline::Release()
         UIRenderPass.reset();
     }
 }
+

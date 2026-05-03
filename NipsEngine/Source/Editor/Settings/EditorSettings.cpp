@@ -62,9 +62,6 @@ namespace EditorKey
     constexpr const char* RotationStructuralChangeThreshold = "RotationStructuralChangeThreshold";
     constexpr const char* RotationDirtyCountThreshold = "RotationDirtyCountThreshold";
     constexpr const char* RotationDirtyPercentThreshold = "RotationDirtyPercentThreshold";
-
-    // Paths
-    constexpr const char* DefaultSavePath = "DefaultSavePath";
 }
 
 void FEditorSettings::SaveToFile(const FString& Path) const
@@ -137,7 +134,6 @@ void FEditorSettings::SaveToFile(const FString& Path) const
 
     // Paths
     JSON PathsObj = Object();
-    PathsObj[EditorKey::DefaultSavePath] = DefaultSavePath;
     Root[EditorKey::Paths] = PathsObj;
 
     // Ensure directory exists
@@ -337,14 +333,5 @@ void FEditorSettings::LoadFromFile(const FString& Path)
             SpatialRotationDirtyPercentThreshold =
                 std::clamp<int32>(Value, 1, 100);
         }
-    }
-
-    // Paths
-    if (Root.hasKey(EditorKey::Paths))
-    {
-        JSON PathsObj = Root[EditorKey::Paths];
-
-        if (PathsObj.hasKey(EditorKey::DefaultSavePath))
-            DefaultSavePath = PathsObj[EditorKey::DefaultSavePath].ToString();
     }
 }

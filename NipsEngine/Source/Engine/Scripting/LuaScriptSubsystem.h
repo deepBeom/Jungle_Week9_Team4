@@ -62,12 +62,12 @@ public:
      * @param Instance Target script instance.
      * @param FunctionName Lua callback name to check.
      */
-    bool HasFunction(std::shared_ptr<FLuaScriptInstance> Instance, const std::string& FunctionName) const;
+    bool HasFunction(std::shared_ptr<FLuaScriptInstance> Instance, const FString& FunctionName) const;
 
     template <typename... Args>
     bool CallFunction(
         std::shared_ptr<FLuaScriptInstance> Instance,
-        const std::string& FunctionName,
+        const FString& FunctionName,
         Args&&... args)
     {
         if (!CanInvoke(Instance))
@@ -112,7 +112,7 @@ private:
     /** @brief Resolves project-relative script path to absolute normalized path. */
     FString ResolveScriptPath(const FString& ScriptPath) const;
     /** @brief Logs callback runtime errors in a consistent format. */
-    void LogFunctionError(const std::string& FunctionName, const FString& ScriptPath, const char* ErrorMessage) const;
+    void LogFunctionError(const FString& FunctionName, const FString& ScriptPath, const char* ErrorMessage) const;
 
 private:
     /** Shared Lua VM for all script instances (state isolation is environment-based). */

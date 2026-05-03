@@ -7,8 +7,10 @@
 #include "Core/Paths.h"
 #include "Render/Resource/ObjMtlLoader.h"
 #include "Render/Scene/RenderCommand.h"
+#if WITH_EDITOR
 #include "Settings/EditorSettings.h"
-#include "UI/EditorConsoleWidget.h"
+#endif
+#include "Core/Logging/Log.h"
 
 #include "DDSTextureLoader.h"
 #include "SimpleJSON/json.hpp"
@@ -139,9 +141,9 @@ namespace
 
     struct FCompiledShaderMacroData
     {
-        std::vector<std::string> Names;
-        std::vector<std::string> Values;
-        std::vector<D3D_SHADER_MACRO> Macros;
+        TArray<FString> Names;
+        TArray<FString> Values;
+        TArray<D3D_SHADER_MACRO> Macros;
     };
 
     FCompiledShaderMacroData BuildCompiledShaderMacroData(const TArray<FShaderMacro>& Macros)
@@ -186,7 +188,7 @@ namespace
     {
         std::ifstream File(FilePath, std::ios::binary);
         if (!File) return Seed;
-        std::vector<char> Buffer((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
+        TArray<char> Buffer((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
         return ShaderCacheFNV1a(Buffer.data(), Buffer.size(), Seed);
     }
 
@@ -196,7 +198,7 @@ namespace
         std::error_code EC;
         if (!std::filesystem::exists(Dir, EC)) return Seed;
 
-        std::vector<std::filesystem::path> Includes;
+        TArray<std::filesystem::path> Includes;
         for (auto It = std::filesystem::recursive_directory_iterator(Dir, EC);
             !EC && It != std::filesystem::recursive_directory_iterator();
             It.increment(EC))
@@ -211,7 +213,7 @@ namespace
         uint64_t Hash = Seed;
         for (const auto& IncPath : Includes)
         {
-            const std::string Name = IncPath.filename().string();
+            const FString Name = IncPath.filename().string();
             Hash = ShaderCacheFNV1a(Name.data(), Name.size(), Hash);
             Hash = ShaderCacheHashFile(IncPath, Hash);
         }
@@ -223,7 +225,7 @@ namespace
         return std::filesystem::path(FPaths::RootDir()) / L"Asset" / L"ShaderCache";
     }
 
-    std::string ComputeShaderCacheKey(const FShaderCompileKey& Key, const char* Entry, const char* Target)
+    FString ComputeShaderCacheKey(const FShaderCompileKey& Key, const char* Entry, const char* Target)
     {
         uint64_t Hash = 14695981039346656037ULL;
 
@@ -249,10 +251,10 @@ namespace
 
         char Buffer[24];
         std::snprintf(Buffer, sizeof(Buffer), "%016llx", static_cast<unsigned long long>(Hash));
-        return std::string(Buffer);
+        return FString(Buffer);
     }
 
-    bool TryLoadCachedShaderBlob(const std::string& CacheKey, ID3DBlob** OutBlob)
+    bool TryLoadCachedShaderBlob(const FString& CacheKey, ID3DBlob** OutBlob)
     {
         const std::filesystem::path Path = ShaderCacheDir() / (CacheKey + ".cso");
         std::error_code EC;
@@ -276,7 +278,7 @@ namespace
         return true;
     }
 
-    void SaveCachedShaderBlob(const std::string& CacheKey, ID3DBlob* Blob)
+    void SaveCachedShaderBlob(const FString& CacheKey, ID3DBlob* Blob)
     {
         if (!Blob) return;
         std::error_code EC;
@@ -514,7 +516,7 @@ void FResourceManager::LoadFromAssetDirectory(const FString& Path)
         }
 
         const fs::path& FilePath = Entry.path();
-        const std::wstring Extension = FilePath.extension().wstring();
+        const FWString Extension = FilePath.extension().wstring();
 
         if (Extension == L".meta")
         {
@@ -630,7 +632,7 @@ void FResourceManager::RefreshFromAssetDirectory(const FString& Path)
             }
 
             const fs::path& FilePath = Entry.path();
-            const std::wstring Extension = FilePath.extension().wstring();
+            const FWString Extension = FilePath.extension().wstring();
 
             if (Extension == L".meta" || Extension == L".bin")
             {
@@ -803,7 +805,7 @@ FTextureAssetMeta FResourceManager::LoadOrCreateTextureMeta(const std::filesyste
     }
 
     // 2. 없으면 기본 생성
-    const std::wstring ParentDir = FilePath.parent_path().filename().wstring();
+    const FWString ParentDir = FilePath.parent_path().filename().wstring();
 
     if (ParentDir == L"Font")
     {
@@ -1007,7 +1009,7 @@ void FResourceManager::ReleaseGPUResources()
     }
     MaterialInstances.clear();
 
-    std::unordered_set<UShader*> UniqueShaders;
+    TSet<UShader*> UniqueShaders;
     for (auto& [Key, Shader] : Shaders)
     {
         if (Shader)
@@ -1194,7 +1196,7 @@ bool FResourceManager::CompileShaderVariant(const FShaderCompileKey& NormalizedK
                                 const char* ShaderModel,
                                 TComPtr<ID3DBlob>& OutBlob) -> bool
     {
-        const std::string CacheKey = ComputeShaderCacheKey(NormalizedKey, EntryPoint.c_str(), ShaderModel);
+        const FString CacheKey = ComputeShaderCacheKey(NormalizedKey, EntryPoint.c_str(), ShaderModel);
 
         ID3DBlob* CachedBlob = nullptr;
         if (TryLoadCachedShaderBlob(CacheKey, &CachedBlob))
@@ -2584,6 +2586,7 @@ UStaticMesh* FResourceManager::LoadStaticMeshWithOptions(const FString& Path, co
     UStaticMesh* LoadedMesh = UObjectManager::Get().CreateObject<UStaticMesh>();
     LoadedMesh->SetMeshData(LoadedMeshData);
 
+#if WITH_EDITOR
     if (FEditorSettings::Get().ShowFlags.bEnableLOD)
     {
         const auto LodStart = std::chrono::steady_clock::now();
@@ -2597,6 +2600,9 @@ UStaticMesh* FResourceManager::LoadStaticMeshWithOptions(const FString& Path, co
     {
         UE_LOG("[StaticMeshLoad] LOD generation skipped for %s (Enable LOD is off)", Path.c_str());
     }
+#else
+    UE_LOG("[StaticMeshLoad] LOD generation skipped for %s (non-editor build)", Path.c_str());
+#endif
 
     StaticMeshes.insert({CacheKey, LoadedMesh});
 
@@ -2868,3 +2874,4 @@ size_t FResourceManager::GetMaterialMemorySize() const
 
     return TotalSize;
 }
+
