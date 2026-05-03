@@ -6,9 +6,15 @@
 #include "Core/ResourceManager.h"
 #include "Core/Logging/Log.h"
 #include "SceneLightBinding.h"
+#include <cstring>
 
 namespace
 {
+    constexpr uint32 WaterMaterialConstantBufferRegister = 2;
+    constexpr uint32 WaterNormalATextureRegister = 0;
+    constexpr uint32 WaterNormalBTextureRegister = 1;
+    constexpr uint32 WaterDiffuseTextureRegister = 2;
+
     UShader* ResolveOpaqueShaderOverride(const FRenderPassContext* Context)
     {
         if (!Context || !Context->RenderBus)
@@ -22,6 +28,57 @@ namespace
         }
 
         return FResourceManager::Get().GetShader("Shaders/UberUnlit.hlsl");
+    }
+
+    bool EnsureWaterMaterialConstantBuffer(ID3D11Device* Device, TComPtr<ID3D11Buffer>& WaterMaterialConstantBuffer)
+    {
+        if (WaterMaterialConstantBuffer)
+        {
+            return true;
+        }
+
+        D3D11_BUFFER_DESC Desc = {};
+        Desc.ByteWidth = sizeof(FWaterUniformData);
+        Desc.Usage = D3D11_USAGE_DYNAMIC;
+        Desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        Desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        return SUCCEEDED(Device->CreateBuffer(&Desc, nullptr, WaterMaterialConstantBuffer.GetAddressOf()));
+    }
+
+    bool BindWaterDrawResources(const FRenderPassContext* Context, const FRenderCommand& Cmd, TComPtr<ID3D11Buffer>& WaterMaterialConstantBuffer)
+    {
+        if (Context == nullptr || Context->Device == nullptr || Context->DeviceContext == nullptr)
+        {
+            return false;
+        }
+
+        if (!EnsureWaterMaterialConstantBuffer(Context->Device, WaterMaterialConstantBuffer))
+        {
+            return false;
+        }
+
+        D3D11_MAPPED_SUBRESOURCE Mapped = {};
+        if (FAILED(Context->DeviceContext->Map(WaterMaterialConstantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped)))
+        {
+            return false;
+        }
+
+        std::memcpy(Mapped.pData, &Cmd.Water.UniformData, sizeof(FWaterUniformData));
+        Context->DeviceContext->Unmap(WaterMaterialConstantBuffer.Get(), 0);
+
+        ID3D11Buffer* WaterCB = WaterMaterialConstantBuffer.Get();
+        Context->DeviceContext->VSSetConstantBuffers(WaterMaterialConstantBufferRegister, 1, &WaterCB);
+        Context->DeviceContext->PSSetConstantBuffers(WaterMaterialConstantBufferRegister, 1, &WaterCB);
+
+        ID3D11ShaderResourceView* WaterSurfaceSRVs[3] =
+        {
+            Cmd.Water.NormalA ? Cmd.Water.NormalA->GetSRV() : nullptr,
+            Cmd.Water.NormalB ? Cmd.Water.NormalB->GetSRV() : nullptr,
+            Cmd.Water.Diffuse ? Cmd.Water.Diffuse->GetSRV() : nullptr
+        };
+
+        Context->DeviceContext->PSSetShaderResources(WaterNormalATextureRegister, 3, WaterSurfaceSRVs);
+        return true;
     }
 }
 
@@ -63,7 +120,15 @@ bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)
 
     UShader* ShaderOverride = ResolveOpaqueShaderOverride(Context);
     UShader* WaterShader = FResourceManager::Get().GetShader("Shaders/Water.hlsl");
+    if (WaterShader == nullptr)
+    {
+        FResourceManager::Get().LoadShader("Shaders/Water.hlsl", "mainVS", "mainPS", static_cast<const D3D_SHADER_MACRO*>(nullptr));
+        WaterShader = FResourceManager::Get().GetShader("Shaders/Water.hlsl");
+    }
     static bool bWaterShaderMissingLogged = false;
+    static bool bWaterDirectionalMissingLogged = false;
+    static bool bWaterGlobalLightBufferMissingLogged = false;
+    static bool bWaterConstantBufferUpdateFailedLogged = false;
 
     SceneLightBinding::BindResources(Context,
         VisibleLightConstantBuffer,
@@ -106,7 +171,8 @@ bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)
         if (Cmd.Material)
         {
             UShader* PerCommandShaderOverride = ShaderOverride;
-            if (Cmd.Material->IsWaterMaterial())
+            const bool bUseWaterPath = Cmd.Water.bValid || Cmd.Material->IsWaterMaterial();
+            if (bUseWaterPath)
             {
                 if (WaterShader)
                 {
@@ -117,12 +183,53 @@ bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)
                     UE_LOG("[Water] Dedicated water shader is not loaded (Shaders/Water.hlsl). Falling back to material shader.");
                     bWaterShaderMissingLogged = true;
                 }
+
+                if (Context->SceneGlobalLightBufferSRV == nullptr && !bWaterGlobalLightBufferMissingLogged)
+                {
+                    UE_LOG("[Water] Global light buffer is missing. Water falls back to Stage 1 animated color only.");
+                    bWaterGlobalLightBufferMissingLogged = true;
+                }
+
+                if (Context->RenderBus != nullptr && !bWaterDirectionalMissingLogged)
+                {
+                    bool bHasDirectionalLight = false;
+                    for (const FRenderLight& Light : Context->RenderBus->GetLights())
+                    {
+                        if (Light.Type == static_cast<uint32>(ELightType::LightType_Directional))
+                        {
+                            bHasDirectionalLight = true;
+                            break;
+                        }
+                    }
+
+                    if (!bHasDirectionalLight)
+                    {
+                        UE_LOG("[Water] Directional light is missing. Water keeps Stage 1 animation and uses available local-light highlights.");
+                        bWaterDirectionalMissingLogged = true;
+                    }
+                }
             }
 
             Cmd.Material->Bind(Context->DeviceContext, Context->RenderBus, &Cmd.PerObjectConstants, PerCommandShaderOverride, Context);
             ID3D11DepthStencilState* DepthStencilState =
                 FResourceManager::Get().GetOrCreateDepthStencilState(EDepthStencilType::DepthReadOnly);
             Context->DeviceContext->OMSetDepthStencilState(DepthStencilState, 0);
+
+            if (bUseWaterPath)
+            {
+                if (!Cmd.Water.bValid && !bWaterConstantBufferUpdateFailedLogged)
+                {
+                    UE_LOG("[Water] Missing water draw data. Falling back to material-only parameters.");
+                    bWaterConstantBufferUpdateFailedLogged = true;
+                }
+
+                if (Cmd.Water.bValid && !BindWaterDrawResources(Context, Cmd, WaterMaterialConstantBuffer) &&
+                    !bWaterConstantBufferUpdateFailedLogged)
+                {
+                    UE_LOG("[Water] Failed to update/bind water material constant buffer (b2).");
+                    bWaterConstantBufferUpdateFailedLogged = true;
+                }
+            }
         }
 
         SceneLightBinding::BindResources(
@@ -161,12 +268,23 @@ bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)
 
 bool FOpaqueRenderPass::End(const FRenderPassContext* Context)
 {
+    if (Context && Context->DeviceContext)
+    {
+        ID3D11Buffer* NullCB = nullptr;
+        Context->DeviceContext->VSSetConstantBuffers(WaterMaterialConstantBufferRegister, 1, &NullCB);
+        Context->DeviceContext->PSSetConstantBuffers(WaterMaterialConstantBufferRegister, 1, &NullCB);
+
+        ID3D11ShaderResourceView* NullWaterSRVs[3] = { nullptr, nullptr, nullptr };
+        Context->DeviceContext->PSSetShaderResources(WaterNormalATextureRegister, 3, NullWaterSRVs);
+    }
+
     SceneLightBinding::UnbindResources(Context ? Context->DeviceContext : nullptr);
     return true;
 }
 
 bool FOpaqueRenderPass::Release()
 {
+    WaterMaterialConstantBuffer.Reset();
     VisibleLightConstantBuffer.Reset();
     DirectionalShadowConstantBuffer.Reset();
     SpotShadowInfoConstantBuffer.Reset();

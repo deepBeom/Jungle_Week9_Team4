@@ -9,6 +9,7 @@
 #include "Component/StaticMeshComponent.h"
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
+#include "Component/WaterComponent.h"
 #include "Component/Light/LightComponent.h"
 #include "Core/ResourceManager.h"
 #include "Engine/Asset/StaticMesh.h"
@@ -16,9 +17,11 @@
 #include "GameFramework/World.h"
 #include "Geometry/OBB.h"
 #include "Render/LineBatcher.h"
+#include "Render/Renderer/RenderFlow/LightCullingPass.h"
 #include "Render/Resource/Material.h"
 #include "Render/Resource/MeshBufferManager.h"
 #include "Runtime/Stats/ScopeCycleCounter.h"
+#include <algorithm>
 #include <cmath>
 #include <chrono>
 #include <unordered_set>
@@ -46,148 +49,121 @@ namespace
     }
 
     template<typename T>
-    bool TryGetTypedParam(UMaterialInterface* Material, const FString& ParamName, EMaterialParamType ParamType, T& OutValue)
+    T* FindComponentByType(const AActor* Actor)
     {
-        if (Material == nullptr)
+        if (Actor == nullptr)
         {
-            return false;
+            return nullptr;
         }
 
-        FMaterialParamValue ParamValue;
-        if (!Material->GetParam(ParamName, ParamValue) || ParamValue.Type != ParamType || !std::holds_alternative<T>(ParamValue.Value))
+        for (UActorComponent* Component : Actor->GetComponents())
         {
-            return false;
+            if (T* TypedComponent = Cast<T>(Component))
+            {
+                return TypedComponent;
+            }
         }
 
-        OutValue = std::get<T>(ParamValue.Value);
-        return true;
+        return nullptr;
     }
 
-    void ConfigureWaterMaterial(UMaterialInterface* Material)
+    void ConfigureWaterRenderData(const UStaticMeshComponent* StaticMeshComp, UMaterialInterface* Material, FRenderCommand& Cmd)
     {
-        if (Material == nullptr || !Material->IsWaterMaterial())
+        if (StaticMeshComp == nullptr || Material == nullptr)
         {
             return;
         }
 
-        // Water material contract:
-        // - t0: WaterNormalA, t1: WaterNormalB, s0: SampleState(wrap)
-        // - b2: Time/tiling/scroll/strength/base color parameters
+        const UWaterComponent* WaterComponent = FindComponentByType<UWaterComponent>(StaticMeshComp->GetOwner());
+        const bool bUseWaterPath = (WaterComponent != nullptr) || Material->IsWaterMaterial();
+        if (!bUseWaterPath)
+        {
+            return;
+        }
+
+        // Water contract:
+        // - t0: WaterNormalA, t1: WaterNormalB
+        // - b2: FWaterUniformData in RenderCommand.h (bound in FOpaqueRenderPass)
         static std::unordered_set<FString> MissingNormalWarnedMaterials;
         static std::unordered_set<FString> MissingNormalAWarnedMaterials;
         static std::unordered_set<FString> MissingNormalBWarnedMaterials;
+        static bool bWaterLocalLightClampWarned = false;
 
-        constexpr float DefaultNormalStrength = 0.45f;
-        constexpr float DefaultAlpha = 1.0f;
-        constexpr float DefaultColorVariationStrength = 0.15f;
-        const FVector2 DefaultNormalTilingA = FVector2(4.0f, 4.0f);
-        const FVector2 DefaultNormalScrollSpeedA = FVector2(0.03f, 0.01f);
-        const FVector2 DefaultNormalTilingB = FVector2(2.5f, 2.5f);
-        const FVector2 DefaultNormalScrollSpeedB = FVector2(-0.02f, 0.015f);
-        const FVector DefaultBaseColor = FVector(0.08f, 0.22f, 0.33f);
-
-        if (UMaterial* BaseMaterial = Cast<UMaterial>(Material))
-        {
-            BaseMaterial->SamplerType = ESamplerType::EST_Linear;
-            BaseMaterial->BlendType = EBlendType::Opaque;
-            BaseMaterial->RasterizerType = ERasterizerType::SolidNoCull;
-            BaseMaterial->DepthStencilType = EDepthStencilType::Default;
-        }
-        else if (UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(Material))
-        {
-            if (MaterialInstance->Parent)
-            {
-                MaterialInstance->Parent->SamplerType = ESamplerType::EST_Linear;
-                MaterialInstance->Parent->BlendType = EBlendType::Opaque;
-                MaterialInstance->Parent->RasterizerType = ERasterizerType::SolidNoCull;
-                MaterialInstance->Parent->DepthStencilType = EDepthStencilType::Default;
-            }
-        }
-
+        constexpr uint32 MaxWaterLocalLights = 8u;
         static const auto WaterTimeStart = std::chrono::steady_clock::now();
+
+        const FLightCullingOutputs& LightOutputs = FLightCullingPass::GetOutputs();
+        const uint32 RawPointLightCount = LightOutputs.PointLightCount;
+        const uint32 ClampedPointLightCount = std::min(RawPointLightCount, MaxWaterLocalLights);
+        if (RawPointLightCount > MaxWaterLocalLights && !bWaterLocalLightClampWarned)
+        {
+            UE_LOG("[Water] Local light count (%u) exceeds water shader limit (%u). Clamping for stable Stage 2 specular.",
+                RawPointLightCount, MaxWaterLocalLights);
+            bWaterLocalLightClampWarned = true;
+        }
+
+        Cmd.Water.bValid = true;
+        Cmd.Water.UniformData = FWaterUniformData{};
+
         const auto WaterTimeNow = std::chrono::steady_clock::now();
         const float WaterElapsedSeconds =
             std::chrono::duration<float>(WaterTimeNow - WaterTimeStart).count();
-        Material->SetFloat("Time", WaterElapsedSeconds);
 
-        float NormalStrength = DefaultNormalStrength;
-        if (!TryGetTypedParam(Material, "NormalStrength", EMaterialParamType::Float, NormalStrength))
+        if (WaterComponent != nullptr)
         {
-            Material->SetFloat("NormalStrength", DefaultNormalStrength);
+            WaterComponent->FillWaterUniformData(Cmd.Water.UniformData, WaterElapsedSeconds, ClampedPointLightCount);
         }
-
-        float Alpha = DefaultAlpha;
-        if (!TryGetTypedParam(Material, "Alpha", EMaterialParamType::Float, Alpha))
+        else
         {
-            Material->SetFloat("Alpha", DefaultAlpha);
-        }
-
-        float ColorVariationStrength = DefaultColorVariationStrength;
-        if (!TryGetTypedParam(Material, "ColorVariationStrength", EMaterialParamType::Float, ColorVariationStrength))
-        {
-            Material->SetFloat("ColorVariationStrength", DefaultColorVariationStrength);
-        }
-
-        FVector2 NormalTilingA = DefaultNormalTilingA;
-        if (!TryGetTypedParam(Material, "NormalTilingA", EMaterialParamType::Vector2, NormalTilingA))
-        {
-            Material->SetVector2("NormalTilingA", DefaultNormalTilingA);
-        }
-
-        FVector2 NormalScrollSpeedA = DefaultNormalScrollSpeedA;
-        if (!TryGetTypedParam(Material, "NormalScrollSpeedA", EMaterialParamType::Vector2, NormalScrollSpeedA))
-        {
-            Material->SetVector2("NormalScrollSpeedA", DefaultNormalScrollSpeedA);
-        }
-
-        FVector2 NormalTilingB = DefaultNormalTilingB;
-        if (!TryGetTypedParam(Material, "NormalTilingB", EMaterialParamType::Vector2, NormalTilingB))
-        {
-            Material->SetVector2("NormalTilingB", DefaultNormalTilingB);
-        }
-
-        FVector2 NormalScrollSpeedB = DefaultNormalScrollSpeedB;
-        if (!TryGetTypedParam(Material, "NormalScrollSpeedB", EMaterialParamType::Vector2, NormalScrollSpeedB))
-        {
-            Material->SetVector2("NormalScrollSpeedB", DefaultNormalScrollSpeedB);
-        }
-
-        FVector BaseColor = DefaultBaseColor;
-        if (!TryGetTypedParam(Material, "BaseColor", EMaterialParamType::Vector3, BaseColor))
-        {
-            Material->SetVector3("BaseColor", DefaultBaseColor);
+            Cmd.Water.UniformData.Time = WaterElapsedSeconds;
+            Cmd.Water.UniformData.WaterLocalLightCount = ClampedPointLightCount;
         }
 
         UTexture* DefaultNormal = FResourceManager::Get().GetTexture("DefaultNormal");
-        UTexture* WaterNormalA = nullptr;
-        UTexture* WaterNormalB = nullptr;
-        const bool bHasTextureParamA = TryGetTextureParam(Material, "WaterNormalA", WaterNormalA);
-        const bool bHasTextureParamB = TryGetTextureParam(Material, "WaterNormalB", WaterNormalB);
-        const bool bHasNormalA = bHasTextureParamA && WaterNormalA != nullptr && WaterNormalA != DefaultNormal;
-        const bool bHasNormalB = bHasTextureParamB && WaterNormalB != nullptr && WaterNormalB != DefaultNormal;
-        const FString MaterialName = Material->GetName();
+        UTexture* DefaultWhite = FResourceManager::Get().GetTexture("DefaultWhite");
+        UTexture* MaterialDiffuse = nullptr;
+        UTexture* MaterialNormal = nullptr;
+        UTexture* MaterialNormalA = nullptr;
+        UTexture* MaterialNormalB = nullptr;
+        TryGetTextureParam(Material, "DiffuseMap", MaterialDiffuse);
+        TryGetTextureParam(Material, "NormalMap", MaterialNormal);
+        TryGetTextureParam(Material, "WaterNormalA", MaterialNormalA);
+        TryGetTextureParam(Material, "WaterNormalB", MaterialNormalB);
+        UTexture* EffectiveDiffuse = MaterialDiffuse;
+        // Water normals now come from material/mtl data only.
+        // Priority: WaterNormalA > NormalMap (legacy/mtl normal) > fallback flat normal.
+        UTexture* EffectiveNormalA = MaterialNormalA != nullptr ? MaterialNormalA : MaterialNormal;
+        UTexture* EffectiveNormalB = MaterialNormalB;
 
-        if (!bHasTextureParamA || WaterNormalA == nullptr)
+        const FString MaterialName = Material->GetName();
+        if (EffectiveNormalA == nullptr)
         {
-            Material->SetTexture("WaterNormalA", DefaultNormal);
             if (MissingNormalAWarnedMaterials.insert(MaterialName).second)
             {
-                UE_LOG("[Water] Material '%s' is missing WaterNormalA. Using fallback flat normal.", MaterialName.c_str());
+                UE_LOG("[Water] Material '%s' is missing WaterNormalA/NormalMap. Using fallback flat normal.", MaterialName.c_str());
             }
+            EffectiveNormalA = DefaultNormal;
         }
 
-        if (!bHasTextureParamB || WaterNormalB == nullptr)
+        if (EffectiveNormalB == nullptr)
         {
-            Material->SetTexture("WaterNormalB", DefaultNormal);
             if (MissingNormalBWarnedMaterials.insert(MaterialName).second)
             {
                 UE_LOG("[Water] Material '%s' is missing WaterNormalB. Water animation will use single-normal mode.",
                     MaterialName.c_str());
             }
+            EffectiveNormalB = DefaultNormal;
         }
 
-        Material->SetBool("bHasNormalMapA", bHasNormalA);
-        Material->SetBool("bHasNormalMapB", bHasNormalB);
+        const bool bHasNormalA = EffectiveNormalA != nullptr && EffectiveNormalA != DefaultNormal;
+        const bool bHasNormalB = EffectiveNormalB != nullptr && EffectiveNormalB != DefaultNormal;
+        const bool bHasDiffuseMap = EffectiveDiffuse != nullptr && EffectiveDiffuse != DefaultWhite;
+        Cmd.Water.UniformData.bHasNormalMapA = bHasNormalA ? 1u : 0u;
+        Cmd.Water.UniformData.bHasNormalMapB = bHasNormalB ? 1u : 0u;
+        Cmd.Water.UniformData.bHasDiffuseMap = bHasDiffuseMap ? 1u : 0u;
+        Cmd.Water.Diffuse = EffectiveDiffuse != nullptr ? EffectiveDiffuse : DefaultWhite;
+        Cmd.Water.NormalA = EffectiveNormalA;
+        Cmd.Water.NormalB = EffectiveNormalB;
 
         if (!bHasNormalA && !bHasNormalB)
         {
@@ -553,11 +529,6 @@ void FPrimitiveRenderCollector::CollectFromComponent(
                 }
             }
 
-            if (Material->IsWaterMaterial())
-            {
-                ConfigureWaterMaterial(Material);
-            }
-
             FRenderCommand Cmd = {};
             Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), FColor::White().ToVector4() };
             Cmd.Type = ERenderCommandType::StaticMesh;
@@ -566,6 +537,10 @@ void FPrimitiveRenderCollector::CollectFromComponent(
             Cmd.SectionIndexStart = Section.StartIndex;
             Cmd.SectionIndexCount = Section.IndexCount;
             Cmd.Material = Material;
+
+            // Water runtime params are component-owned and copied to per-draw command data.
+            // Shared material instances are intentionally not mutated here.
+            ConfigureWaterRenderData(StaticMeshComp, Material, Cmd);
 
             RenderBus.AddCommand(ERenderPass::Opaque, Cmd);
 

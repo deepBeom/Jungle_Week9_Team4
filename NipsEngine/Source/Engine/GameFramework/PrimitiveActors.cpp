@@ -11,6 +11,8 @@
 #include "Component/StaticMeshComponent.h"
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
+#include "Component/WaterComponent.h"
+#include "Core/ResourceManager.h"
 #include "Engine/Core/SoundManager.h"
 
 #include "Component/ObjectTypeComponent.h"
@@ -20,6 +22,9 @@ REGISTER_FACTORY(ASceneActor)
 
 DEFINE_CLASS(AStaticMeshActor, AActor)
 REGISTER_FACTORY(AStaticMeshActor)
+
+DEFINE_CLASS(AWaterActor, AActor)
+REGISTER_FACTORY(AWaterActor)
 
 DEFINE_CLASS(ASubUVActor, AActor)
 REGISTER_FACTORY(ASubUVActor)
@@ -72,6 +77,27 @@ void AStaticMeshActor::InitDefaultComponents()
     SetRootComponent(StaticMesh);
 
     AddComponent<UObjectTypeComponent>();
+}
+
+void AWaterActor::InitDefaultComponents()
+{
+    static constexpr const char* DefaultWaterMeshPath = "Asset/Mesh/Water/Wave.obj";
+
+    auto* StaticMesh = AddComponent<UStaticMeshComponent>();
+    SetRootComponent(StaticMesh);
+    AddComponent<UObjectTypeComponent>();
+    AddComponent<UWaterComponent>();
+
+    UStaticMesh* WaterMesh = FResourceManager::Get().LoadStaticMesh(DefaultWaterMeshPath);
+    if (WaterMesh == nullptr)
+    {
+        UE_LOG("[Water] Failed to load default water mesh: %s", DefaultWaterMeshPath);
+        return;
+    }
+
+    StaticMesh->SetStaticMesh(WaterMesh);
+    // Keep the mesh's own slot materials (OBJ/MTL or assigned material instance).
+    // Runtime water behavior is driven per-object through UWaterComponent uniforms.
 }
 
 void AStaticMeshActor::BeginPlay()

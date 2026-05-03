@@ -26,6 +26,15 @@ public:
     virtual void BeginPlay() override;
 };
 
+class AWaterActor : public AActor
+{
+public:
+    DECLARE_CLASS(AWaterActor, AActor)
+    AWaterActor() = default;
+
+    void InitDefaultComponents();
+};
+
 class ASubUVActor : public AActor
 {
 public:

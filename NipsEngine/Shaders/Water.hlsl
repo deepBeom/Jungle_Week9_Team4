@@ -26,14 +26,14 @@ cbuffer WaterPerObject : register(b1)
     float4 PrimitiveColor;
 }
 
-// b2: Stage 1 water controls
-// Time drives UV scrolling. Later stages can extend this block with specular/depth-foam data.
+// b2: per-draw water data from UWaterComponent -> FWaterUniformData.
+// Runtime water animation/highlight values are not written into shared material instances.
 cbuffer WaterMaterial : register(b2)
 {
     float Time;
     float NormalStrength;
     float Alpha;
-    float _WaterMaterialPad0;
+    float WaterSpecularPower;
 
     float2 NormalTilingA;
     float2 NormalScrollSpeedA;
@@ -42,17 +42,102 @@ cbuffer WaterMaterial : register(b2)
     float2 NormalScrollSpeedB;
 
     float3 BaseColor;
-    float _WaterMaterialPad1;
+    float WaterSpecularIntensity;
 
     uint bHasNormalMapA;
     uint bHasNormalMapB;
     float ColorVariationStrength;
-    float _WaterMaterialPad2;
+    float WaterFresnelPower;
+
+    float WaterFresnelIntensity;
+    float WaterLightContributionScale;
+    uint bEnableWaterSpecular;
+    uint WaterLocalLightCount;
+
+    uint bHasDiffuseMap;
+    float _WaterMaterialPad3;
+    float _WaterMaterialPad4;
+    float _WaterMaterialPad5;
 }
 
 // t0/t1: optional water normal or noise textures.
+// t2: optional diffuse tint texture from mesh material slot.
 Texture2D WaterNormalA : register(t0);
 Texture2D WaterNormalB : register(t1);
+Texture2D DiffuseMap : register(t2);
+
+// b3/t3 are shared with the forward lighting path.
+// Direction convention:
+// Global directional light Direction is treated as "surface -> light" in this engine.
+cbuffer WaterLightingInfo : register(b3)
+{
+    uint SceneGlobalLightCount;
+    float3 _WaterLightingInfoPad0;
+}
+
+struct FGPULight
+{
+    uint Type;
+    float Intensity;
+    float Radius;
+    float FalloffExponent;
+
+    float3 Color;
+    float SpotInnerCos;
+
+    float3 Position;
+    float SpotOuterCos;
+
+    float3 Direction;
+    uint bCastShadows;
+
+    int ShadowMapIndex;
+    float ShadowBias;
+    float Padding0;
+    float Padding1;
+};
+
+StructuredBuffer<FGPULight> GlobalLights : register(t3);
+
+// b4/t8 are reused from the existing local-light forward buffers.
+cbuffer VisibleLightInfo : register(b4)
+{
+    uint TileCountX;
+    uint TileCountY;
+    uint TileSize;
+    uint MaxPointLightsPerTile;
+    uint MaxSpotLightsPerTile;
+    uint PointLightCount;
+    uint SpotLightCount;
+    float _VisibleLightInfoPad0;
+}
+
+struct FVisibleLightData
+{
+    float3 WorldPos;
+    float Radius;
+
+    float3 Color;
+    float Intensity;
+
+    float RadiusFalloff;
+    uint Type;
+    float SpotInnerCos;
+    float SpotOuterCos;
+
+    float3 Direction;
+    uint bCastShadows;
+
+    int ShadowMapIndex;
+    float ShadowBias;
+    float Padding0;
+    float Padding1;
+};
+
+StructuredBuffer<FVisibleLightData> PointLights : register(t8);
+
+static const uint LIGHT_TYPE_DIRECTIONAL = 0u;
+static const uint MAX_WATER_LOCAL_LIGHTS = 8u;
 
 struct FWaterVSInput
 {
@@ -142,6 +227,58 @@ float3 ResolveWaterWorldNormal(FWaterPSInput Input, float2 UV)
     return normalize(mul(WaterNormalTS, TBN));
 }
 
+float ComputeWaterSpecular(float3 NormalWS, float3 ViewDirWS, float3 LightDirWS, float SpecularPower)
+{
+    const float3 HalfVec = normalize(ViewDirWS + LightDirWS);
+    const float NdotH = saturate(dot(NormalWS, HalfVec));
+    return pow(NdotH, max(SpecularPower, 1.0f));
+}
+
+float3 ComputeDirectionalWaterSpecular(float3 NormalWS, float3 ViewDirWS)
+{
+    float3 SpecularAccum = 0.0f.xxx;
+    [loop]
+    for (uint LightIndex = 0u; LightIndex < SceneGlobalLightCount; ++LightIndex)
+    {
+        const FGPULight Light = GlobalLights[LightIndex];
+        if (Light.Type != LIGHT_TYPE_DIRECTIONAL)
+        {
+            continue;
+        }
+
+        const float3 LightDirWS = normalize(Light.Direction);
+        const float Spec = ComputeWaterSpecular(NormalWS, ViewDirWS, LightDirWS, WaterSpecularPower);
+        SpecularAccum += Light.Color * (Light.Intensity * Spec);
+    }
+    return SpecularAccum;
+}
+
+float3 ComputePointWaterSpecular(float3 WorldPos, float3 NormalWS, float3 ViewDirWS)
+{
+    float3 SpecularAccum = 0.0f.xxx;
+    const uint LocalLightLimit = min(min(PointLightCount, WaterLocalLightCount), MAX_WATER_LOCAL_LIGHTS);
+
+    [loop]
+    for (uint LightIndex = 0u; LightIndex < LocalLightLimit; ++LightIndex)
+    {
+        const FVisibleLightData Light = PointLights[LightIndex];
+        const float3 ToLight = Light.WorldPos - WorldPos;
+        const float Distance = length(ToLight);
+        if (Distance <= 1.0e-4f || Distance >= Light.Radius)
+        {
+            continue;
+        }
+
+        const float3 LightDirWS = ToLight / Distance;
+        float Attenuation = saturate(1.0f - (Distance / max(Light.Radius, 1.0e-4f)));
+        Attenuation *= Attenuation;
+
+        const float Spec = ComputeWaterSpecular(NormalWS, ViewDirWS, LightDirWS, WaterSpecularPower);
+        SpecularAccum += Light.Color * (Light.Intensity * Spec * Attenuation);
+    }
+    return SpecularAccum;
+}
+
 FWaterPSInput mainVS(FWaterVSInput Input)
 {
     FWaterPSInput Output;
@@ -162,11 +299,27 @@ FWaterPSOutput mainPS(FWaterPSInput Input)
     const float3 ViewDir = normalize(CameraPosition - Input.WorldPos);
     const float Fresnel = pow(1.0f - saturate(dot(WaterWorldNormal, ViewDir)), 3.0f);
     const float WaveTint = WaterWorldNormal.x * 0.5f + WaterWorldNormal.y * 0.5f;
+    const float FallbackFlow = sin((Input.UV.x + Input.UV.y) * 6.0f + Time * 1.7f);
+    const bool bHasAnyWaterNormal = (bHasNormalMapA != 0u) || (bHasNormalMapB != 0u);
+    const float AnimatedSignal = bHasAnyWaterNormal ? WaveTint : (FallbackFlow * 0.5f);
+    const float3 DiffuseTint = (bHasDiffuseMap != 0u) ? DiffuseMap.Sample(SampleState, Input.UV).rgb : 1.0f.xxx;
 
     // Stage 1: subtle animated color response only. Specular/refraction/foam are reserved for later stages.
-    float3 FinalColor = BaseColor;
-    FinalColor *= (1.0f + WaveTint * ColorVariationStrength);
+    float3 FinalColor = BaseColor * DiffuseTint;
+    FinalColor *= (1.0f + AnimatedSignal * ColorVariationStrength);
     FinalColor += Fresnel * (0.08f * PrimitiveColor.rgb);
+
+    // Stage 2: animated normal drives specular highlight shape/motion.
+    if (bLightingEnabled > 0.5f && bEnableWaterSpecular != 0u)
+    {
+        float3 SpecularColor = ComputeDirectionalWaterSpecular(WaterWorldNormal, ViewDir);
+        SpecularColor += ComputePointWaterSpecular(Input.WorldPos, WaterWorldNormal, ViewDir);
+
+        const float FresnelBoost = 1.0f + pow(1.0f - saturate(dot(WaterWorldNormal, ViewDir)), max(WaterFresnelPower, 1.0f))
+            * WaterFresnelIntensity;
+        FinalColor += SpecularColor * (WaterSpecularIntensity * WaterLightContributionScale * FresnelBoost);
+    }
+
     FinalColor *= PrimitiveColor.rgb;
 
     if (bIsWireframe > 0.5f)

@@ -14,6 +14,7 @@ protected:
     bool End(const FRenderPassContext* Context) override;
 
 private:
+    TComPtr<ID3D11Buffer> WaterMaterialConstantBuffer;
     TComPtr<ID3D11Buffer> VisibleLightConstantBuffer;
     TComPtr<ID3D11Buffer> DirectionalShadowConstantBuffer;
     TComPtr<ID3D11Buffer> SpotShadowInfoConstantBuffer;

@@ -202,6 +202,7 @@ namespace
     static const FPlacementActorEntry PlacementActorTypes[] = {
         { "Scene", SpawnActorAt<ASceneActor> },
         { "StaticMesh", SpawnActorAt<AStaticMeshActor> },
+        { "Water", SpawnActorAt<AWaterActor> },
         { "TextRender", SpawnActorAt<ATextRenderActor> },
         { "SubUV", SpawnActorAt<ASubUVActor> },
         { "Billboard", SpawnActorAt<ABillboardActor> },
