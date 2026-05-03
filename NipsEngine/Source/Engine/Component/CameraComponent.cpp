@@ -120,7 +120,7 @@ void UCameraComponent::Serialize(FArchive& Ar)
 
 void UCameraComponent::SetViewRotationDegrees(float PitchDegrees, float YawDegrees)
 {
-    PitchDegrees = MathUtil::Clamp(PitchDegrees, -89.0f, 89.0f);
+    PitchDegrees = MathUtil::Clamp(PitchDegrees, -89.9f, 89.9f);
 
     // Current engine convention inferred from existing code:
     // RelativeRotation.Y = Pitch
