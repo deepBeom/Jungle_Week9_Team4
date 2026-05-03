@@ -4,8 +4,12 @@
 #include "Engine/Component/ActorComponent.h"
 #include "Engine/Core/CollisionTypes.h"
 #include "Engine/Core/Logging/Timer.h"
+#include "Engine/Core/ResourceManager.h"
 #include "Engine/GameFramework/Actor.h"
+#include "Engine/Input/InputSystem.h"
 #include "Engine/Runtime/Engine.h"
+#include "Engine/UI/UIElement.h"
+#include "Engine/UI/UIManager.h"
 
 namespace
 {
@@ -121,6 +125,213 @@ namespace
             });
     }
 
+    // mode 문자열 → FUICreateParams 변환 헬퍼
+    FUICreateParams ParseUICreateParams(const std::string& Mode)
+    {
+        if (Mode == "FullRelative")   return FUICreateParams::FullRelative();
+        if (Mode == "ParentRelative") return FUICreateParams::ParentRelative();
+        if (Mode == "RelativePos")    return FUICreateParams::RelativePos();
+        if (Mode == "Centered")       return FUICreateParams::Centered();
+        return {};
+    }
+
+    // sol::object 에서 FUIElement* 추출 (nil·비 userdata 는 nullptr 반환)
+    FUIElement* ExtractUIElement(sol::object Obj)
+    {
+        if (!Obj.valid() || Obj.get_type() != sol::type::userdata) return nullptr;
+        if (auto* p = Obj.as<sol::optional<FUIImage*>>().value_or(nullptr))       return p;
+        if (auto* p = Obj.as<sol::optional<FUIText*>>().value_or(nullptr))        return p;
+        if (auto* p = Obj.as<sol::optional<FUIProgressBar*>>().value_or(nullptr)) return p;
+        return nullptr;
+    }
+
+    void BindUITypes(sol::state& Lua)
+    {
+        // --- FUIElement 베이스 ---
+        // SetVisible/Position/Size/Interactable + hover delegate 등록
+        Lua.new_usertype<FUIElement>(
+            "UIElement",
+            "SetVisible",      &FUIElement::SetVisible,
+            "IsVisible",       &FUIElement::IsVisible,
+            "GetPosition",     [](FUIElement* E) -> std::tuple<float, float>
+            {
+                return E ? std::make_tuple(E->LocalPosition.X, E->LocalPosition.Y)
+                         : std::make_tuple(0.f, 0.f);
+            },
+            "SetPosition",     [](FUIElement* E, float X, float Y)
+            {
+                if (E) E->LocalPosition = FVector2(X, Y);
+            },
+            "GetSize",         [](FUIElement* E) -> std::tuple<float, float>
+            {
+                return E ? std::make_tuple(E->Size.X, E->Size.Y)
+                         : std::make_tuple(0.f, 0.f);
+            },
+            "SetSize",         [](FUIElement* E, float W, float H)
+            {
+                if (E) E->Size = FVector2(W, H);
+            },
+            "SetInteractable", [](FUIElement* E, bool bEnabled)
+            {
+                if (E) E->bInteractable = bEnabled;
+            },
+            // element:OnHoverEnter(function() ... end)  — 누적 등록
+            "OnHoverEnter",    [](FUIElement* E, sol::protected_function Cb)
+            {
+                if (!E) return;
+                E->OnHoverEnter.Add([cb = std::move(Cb)]() mutable { cb(); });
+            },
+            "OnHoverExit",     [](FUIElement* E, sol::protected_function Cb)
+            {
+                if (!E) return;
+                E->OnHoverExit.Add([cb = std::move(Cb)]() mutable { cb(); });
+            },
+            // element:OnClick(function() ... end)  — 좌클릭 Down 프레임에 발생
+            "OnClick",         [](FUIElement* E, sol::protected_function Cb)
+            {
+                if (!E) return;
+                E->OnClick.Add([cb = std::move(Cb)]() mutable { cb(); });
+            }
+        );
+
+        // --- FUIImage ---
+        Lua.new_usertype<FUIImage>(
+            "UIImage",
+            sol::base_classes, sol::bases<FUIElement>(),
+            "SetColor",   [](FUIImage* I, float R, float G, float B, float A)
+            {
+                if (I) I->TintColor = FVector4(R, G, B, A);
+            },
+            "SetTexture", [](FUIImage* I, const FString& Name)
+            {
+                if (I) I->Texture = FResourceManager::Get().LoadTexture(Name);
+            },
+            // 스프라이트 시트 UV 크롭: image:SetUV(minX, minY, maxX, maxY)
+            "SetUV",      [](FUIImage* I, float MinX, float MinY, float MaxX, float MaxY)
+            {
+                if (I) I->SetUV({ MinX, MinY }, { MaxX, MaxY });
+            }
+        );
+
+        // --- FUIText ---
+        Lua.new_usertype<FUIText>(
+            "UIText",
+            sol::base_classes, sol::bases<FUIElement>(),
+            "SetText",    [](FUIText* T, const FString& Text)
+            {
+                if (T) T->Text = Text;
+            },
+            "GetText",    [](FUIText* T) -> FString
+            {
+                return T ? T->Text : FString();
+            },
+            "SetColor",   [](FUIText* T, float R, float G, float B, float A)
+            {
+                if (T) T->Color = FVector4(R, G, B, A);
+            },
+            "SetFontSize",[](FUIText* T, float Size)
+            {
+                if (T) T->FontSize = Size;
+            }
+        );
+
+        // --- FUIProgressBar ---
+        Lua.new_usertype<FUIProgressBar>(
+            "UIProgressBar",
+            sol::base_classes, sol::bases<FUIElement>(),
+            "SetValue",     [](FUIProgressBar* B, float V)
+            {
+                if (B) B->SetValue(V);
+            },
+            "GetValue",     [](FUIProgressBar* B) -> float
+            {
+                return B ? B->GetValue() : 0.f;
+            },
+            "SetFillColor", [](FUIProgressBar* B, float R, float G, float B2, float A)
+            {
+                if (B) B->FillColor = FVector4(R, G, B2, A);
+            },
+            "SetBgColor",   [](FUIProgressBar* B, float R, float G, float B2, float A)
+            {
+                if (B) B->BgColor = FVector4(R, G, B2, A);
+            }
+        );
+
+        // --- UIManager 글로벌 테이블 ---
+        // 호출 형식:
+        //   UIManager.CreateImage(parent, x, y, w, h, textureName, mode)
+        //   UIManager.CreateText(parent, x, y, w, h, text, fontSize, mode)
+        //   UIManager.CreateProgressBar(parent, x, y, w, h, mode)
+        //   UIManager.DestroyElement(element)
+        //
+        // parent / textureName / mode 는 모두 nil 가능 (옵션)
+        // mode 문자열: "FullRelative", "ParentRelative", "RelativePos", "Centered"
+        sol::table UIManagerTable = Lua.create_table();
+
+        UIManagerTable.set_function("CreateImage",
+            [](sol::object ParentObj, float X, float Y, float W, float H,
+               sol::object TexObj, sol::object ModeObj) -> FUIImage*
+            {
+                FUIElement* Parent = ExtractUIElement(ParentObj);
+
+                UTexture* Tex = nullptr;
+                if (TexObj.get_type() == sol::type::string)
+                    Tex = FResourceManager::Get().LoadTexture(TexObj.as<FString>());
+
+                FUICreateParams Params;
+                if (ModeObj.get_type() == sol::type::string)
+                    Params = ParseUICreateParams(ModeObj.as<std::string>());
+
+                // 텍스처 없이 색상도 지정 안 하면 완전 투명 (패널 용도)
+                const FVector4 Color = (Tex != nullptr) ? FVector4(1, 1, 1, 1)
+                                                        : FVector4(0, 0, 0, 0);
+                return FUIManager::Get().CreateImage(
+                    Parent, FVector2(X, Y), FVector2(W, H), Tex, Color, Params);
+            });
+
+        UIManagerTable.set_function("CreateText",
+            [](sol::object ParentObj, float X, float Y, float W, float H,
+               const FString& Text, sol::object FontSizeObj, sol::object ModeObj) -> FUIText*
+            {
+                FUIElement* Parent = ExtractUIElement(ParentObj);
+
+                float FontSize = 16.f;
+                if (FontSizeObj.get_type() == sol::type::number)
+                    FontSize = FontSizeObj.as<float>();
+
+                FUICreateParams Params;
+                if (ModeObj.get_type() == sol::type::string)
+                    Params = ParseUICreateParams(ModeObj.as<std::string>());
+
+                return FUIManager::Get().CreateText(
+                    Parent, FVector2(X, Y), FVector2(W, H), Text, FontSize, {0, 0, 0, 1}, Params);
+            });
+
+        UIManagerTable.set_function("CreateProgressBar",
+            [](sol::object ParentObj, float X, float Y, float W, float H,
+               sol::object ModeObj) -> FUIProgressBar*
+            {
+                FUIElement* Parent = ExtractUIElement(ParentObj);
+
+                FUICreateParams Params;
+                if (ModeObj.get_type() == sol::type::string)
+                    Params = ParseUICreateParams(ModeObj.as<std::string>());
+
+                return FUIManager::Get().CreateProgressBar(
+                    Parent, FVector2(X, Y), FVector2(W, H),
+                    {0.8f, 0.1f, 0.1f, 1.f}, {0.2f, 0.2f, 0.2f, 1.f}, Params);
+            });
+
+        UIManagerTable.set_function("DestroyElement",
+            [](sol::object Obj)
+            {
+                FUIElement* Element = ExtractUIElement(Obj);
+                if (Element) FUIManager::Get().DestroyElement(Element);
+            });
+
+        Lua["UIManager"] = UIManagerTable;
+    }
+
     void BindActorType(sol::state& Lua)
     {
         Lua.new_usertype<AActor>(
@@ -220,10 +431,48 @@ void LuaBinder::BindEngineTypes(sol::state& Lua)
     BindMathTypes(Lua);
     BindComponentType(Lua);
     BindActorType(Lua);
+    BindUITypes(Lua);
 }
 
 void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 {
+    sol::table InputTable = Lua.create_table();
+    auto ToVirtualKey = [](const std::string& Key) -> int
+    {
+        if (Key.empty())
+        {
+            return 0;
+        }
+
+        unsigned char Ch = static_cast<unsigned char>(Key[0]);
+        if (Ch >= 'a' && Ch <= 'z')
+        {
+            Ch = static_cast<unsigned char>(Ch - 'a' + 'A');
+        }
+
+        return static_cast<int>(Ch);
+    };
+
+    InputTable.set_function("GetKeyDown", [ToVirtualKey](const std::string& Key)
+    {
+        const int VK = ToVirtualKey(Key);
+        return VK > 0 && InputSystem::Get().GetKeyDown(VK);
+    });
+
+    InputTable.set_function("GetKey", [ToVirtualKey](const std::string& Key)
+    {
+        const int VK = ToVirtualKey(Key);
+        return VK > 0 && InputSystem::Get().GetKey(VK);
+    });
+
+    InputTable.set_function("GetKeyUp", [ToVirtualKey](const std::string& Key)
+    {
+        const int VK = ToVirtualKey(Key);
+        return VK > 0 && InputSystem::Get().GetKeyUp(VK);
+    });
+
+    Lua["Input"] = InputTable;
+
     Lua.set_function("Log", [](const FString& Message)
     {
         printf("[Lua] %s\n", Message.c_str());

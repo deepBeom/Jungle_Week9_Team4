@@ -80,51 +80,52 @@ void FUIBatcher::AddQuad(FVector2 ScreenXY,
                          FVector2 QuadSize,
                          FVector2 ViewportWH,
                          UTexture* Texture,
-                         FVector4 Color)
+                         FVector4 Color,
+                         FVector2 UVMin,
+                         FVector2 UVMax)
 {
     // 픽셀 좌표를 NDC로 변환
-    FVector2 LeftTop = { ScreenXY.X , ScreenXY.Y};
-    FVector2 RightTop = { ScreenXY.X + QuadSize.X, ScreenXY.Y };
-    FVector2 LeftBottom = { ScreenXY.X, ScreenXY.Y + QuadSize.Y };
-    FVector2 RightBottom = { ScreenXY.X + QuadSize.X, ScreenXY.Y + QuadSize.Y };
+    FVector2 LeftTop     = { ScreenXY.X,               ScreenXY.Y               };
+    FVector2 RightTop    = { ScreenXY.X + QuadSize.X,  ScreenXY.Y               };
+    FVector2 LeftBottom  = { ScreenXY.X,               ScreenXY.Y + QuadSize.Y  };
+    FVector2 RightBottom = { ScreenXY.X + QuadSize.X,  ScreenXY.Y + QuadSize.Y  };
 
     auto ScreenToNDC = [&](FVector2 ScreenPos) -> FVector2 {
         float ndc_x = ScreenPos.X / ViewportWH.X * 2 - 1;
         float ndc_y = -ScreenPos.Y / ViewportWH.Y * 2 + 1;
         return FVector2(ndc_x, ndc_y);
-        };
+    };
 
-    LeftTop = ScreenToNDC(LeftTop);
-    RightTop = ScreenToNDC(RightTop);
-    LeftBottom = ScreenToNDC(LeftBottom);
+    LeftTop     = ScreenToNDC(LeftTop);
+    RightTop    = ScreenToNDC(RightTop);
+    LeftBottom  = ScreenToNDC(LeftBottom);
     RightBottom = ScreenToNDC(RightBottom);
 
-    // 텍스처가 바뀌면 새 배치 시작 — SubUVBatcher와 동일한 배치 분류 방식
+    // 텍스처가 바뀌면 새 배치 시작
     if (Batches.empty() || Batches.back().Texture != Texture)
     {
         FUIBatch Batch;
-        Batch.Texture     = Texture;
-        Batch.IndexStart  = static_cast<uint32>(Indices.size());
-        Batch.IndexCount  = 0;
-        Batch.BaseVertex  = static_cast<int32>(Vertices.size());
+        Batch.Texture    = Texture;
+        Batch.IndexStart = static_cast<uint32>(Indices.size());
+        Batch.IndexCount = 0;
+        Batch.BaseVertex = static_cast<int32>(Vertices.size());
         Batches.push_back(Batch);
     }
 
     const uint32 LocalBase = static_cast<uint32>(Vertices.size())
         - static_cast<uint32>(Batches.back().BaseVertex);
 
-    // 좌상 -> 우상 -> 좌하 -> 우하
-    Vertices.push_back({ LeftTop, {0, 0}, Color });
-    Vertices.push_back({ RightTop, {1, 0}, Color });
-    Vertices.push_back({ LeftBottom, {0, 1}, Color });
-    Vertices.push_back({ RightBottom, {1, 1}, Color });
+    // 좌상 → 우상 → 좌하 → 우하  (UV는 UVMin/UVMax 범위로 매핑)
+    Vertices.push_back({ LeftTop,     { UVMin.X, UVMin.Y }, Color });
+    Vertices.push_back({ RightTop,    { UVMax.X, UVMin.Y }, Color });
+    Vertices.push_back({ LeftBottom,  { UVMin.X, UVMax.Y }, Color });
+    Vertices.push_back({ RightBottom, { UVMax.X, UVMax.Y }, Color });
 
-    Indices.push_back(LocalBase + 0); 
-    Indices.push_back(LocalBase + 1); 
+    Indices.push_back(LocalBase + 0);
+    Indices.push_back(LocalBase + 1);
     Indices.push_back(LocalBase + 2);
-
-    Indices.push_back(LocalBase + 1); 
-    Indices.push_back(LocalBase + 3); 
+    Indices.push_back(LocalBase + 1);
+    Indices.push_back(LocalBase + 3);
     Indices.push_back(LocalBase + 2);
 
     Batches.back().IndexCount += 6;

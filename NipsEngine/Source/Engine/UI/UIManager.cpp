@@ -1,4 +1,5 @@
 ﻿#include "UIManager.h"
+#include "Engine/Input/InputSystem.h"
 #include "Engine/Render/UIBatcher.h"
 #include "Engine/Render/FontBatcher.h"
 #include "Core/ResourceManager.h"
@@ -111,6 +112,8 @@ void FUIManager::Update(float ViewportW, float ViewportH)
     FontBatcher->Clear();
     FontBatcher->ClearUI();
 
+    TickHoverEvents();
+
     std::sort(RootElements.begin(), RootElements.end(),
         [](const FUIElement* A, const FUIElement* B)
         {
@@ -165,7 +168,7 @@ void FUIManager::RenderRecursive(FUIElement* Element, float ViewportW, float Vie
     {
         auto* Img = static_cast<FUIImage*>(Element);
         UIBatcher->AddQuad(WorldPos, Size, { ViewportW, ViewportH },
-            Img->Texture, Img->TintColor);
+            Img->Texture, Img->TintColor, Img->UVMin, Img->UVMax);
         break;
     }
     case EUIElementType::ProgressBar:
@@ -272,4 +275,100 @@ void FUIManager::DestroyRecursive(FUIElement* Element)
         AllElements.erase(It);
 
     delete Element;
+}
+
+void FUIManager::TickHoverEvents()
+{
+    const POINT MousePos = InputSystem::Get().GetMousePos();
+    const float MouseX   = static_cast<float>(MousePos.x);
+    const float MouseY   = static_cast<float>(MousePos.y);
+    const bool  bClicked = InputSystem::Get().GetKeyDown(VK_LBUTTON);
+
+    // 이벤트를 루프 후 일괄 발화해 콜백 내 DestroyElement 로 인한 iterator 무효화를 방지
+    enum class EUIEvent : uint8 { HoverEnter, HoverExit, Click };
+    struct FPendingEvent { FUIElement* Element; EUIEvent Type; };
+    std::vector<FPendingEvent> Pending;
+
+    for (FUIElement* Element : AllElements)
+    {
+        if (!Element->bInteractable || !Element->IsWorldVisible()) continue;
+
+        const FVector2 ResolvedPos = ResolvePosition(Element);
+        FVector2       HitSize     = ResolveSize(Element);
+
+        // FUIText 는 렌더 높이가 FontSize 픽셀 (CharH = 20 * FontSize/20 = FontSize)
+        // Size.Y 가 더 작으면 히트박스가 텍스트 상단만 커버하므로 맞춰 준다
+        if (Element->GetType() == EUIElementType::Text)
+        {
+            const FUIText* Txt = static_cast<const FUIText*>(Element);
+            const float    Ch  = Txt->FontSize;
+            if (Ch > HitSize.Y) HitSize.Y = Ch;
+            const float TextW = Ch * static_cast<float>(Txt->Text.size());
+            if (TextW > HitSize.X) HitSize.X = TextW;
+        }
+
+        // RenderRecursive 와 동일한 Anchor 오프셋 적용
+        FVector2 TopLeft = ResolvedPos;
+        switch (Element->Anchor)
+        {
+        case EUIAnchor::Center:
+            TopLeft = { ResolvedPos.X - HitSize.X * 0.5f, ResolvedPos.Y - HitSize.Y * 0.5f };
+            break;
+        case EUIAnchor::TopRight:
+            TopLeft = { ResolvedPos.X - HitSize.X, ResolvedPos.Y };
+            break;
+        case EUIAnchor::BottomLeft:
+            TopLeft = { ResolvedPos.X, ResolvedPos.Y - HitSize.Y };
+            break;
+        case EUIAnchor::BottomRight:
+            TopLeft = { ResolvedPos.X - HitSize.X, ResolvedPos.Y - HitSize.Y };
+            break;
+        default:
+            break;
+        }
+
+        const bool bHit = MouseX >= TopLeft.X && MouseX <= TopLeft.X + HitSize.X
+                       && MouseY >= TopLeft.Y && MouseY <= TopLeft.Y + HitSize.Y;
+
+        if (bHit && !Element->bIsHovered)
+        {
+            Element->bIsHovered = true;
+            Pending.push_back({ Element, EUIEvent::HoverEnter });
+        }
+        else if (!bHit && Element->bIsHovered)
+        {
+            Element->bIsHovered = false;
+            Pending.push_back({ Element, EUIEvent::HoverExit });
+        }
+
+        if (bHit && bClicked)
+            Pending.push_back({ Element, EUIEvent::Click });
+    }
+
+    // 루프 종료 후 발화 — 콜백이 DestroyElement 를 호출해도 안전
+    // 콜백 중 element 가 삭제됐을 경우 AllElements 에서 빠지므로 find 로 생존 확인
+    for (const FPendingEvent& Ev : Pending)
+    {
+        const bool bAlive = std::find(AllElements.begin(), AllElements.end(), Ev.Element)
+                            != AllElements.end();
+        if (!bAlive) continue;
+
+        switch (Ev.Type)
+        {
+        case EUIEvent::HoverEnter: Ev.Element->OnHoverEnter.Broadcast(); break;
+        case EUIEvent::HoverExit:  Ev.Element->OnHoverExit.Broadcast();  break;
+        case EUIEvent::Click:      Ev.Element->OnClick.Broadcast();      break;
+        }
+    }
+}
+
+void FUIManager::ClearAllHoverDelegates()
+{
+    for (FUIElement* Element : AllElements)
+    {
+        Element->OnHoverEnter.RemoveAll();
+        Element->OnHoverExit.RemoveAll();
+        Element->OnClick.RemoveAll();
+        Element->bIsHovered = false;
+    }
 }

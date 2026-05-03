@@ -57,6 +57,9 @@ public:
     // Element와 그 자식 전체를 트리에서 제거하고 메모리 해제
     void DestroyElement(FUIElement* Element);
 
+    // Lua 상태 소멸 전 모든 hover 델리게이트를 비워 dangling sol::function 방지
+    void ClearAllHoverDelegates();
+
 private:
     // Element를 UIBatcher에 제출하고 자식을 재귀 순회
     void RenderRecursive(FUIElement* Element, float ViewportW, float ViewportH);
@@ -66,6 +69,9 @@ private:
 
     // RootElements에서 제거 (자식 정리는 DestroyRecursive가 처리)
     void DestroyRecursive(FUIElement* Element);
+
+    // 매 Update마다 마우스 위치로 interactable element의 hover 상태를 갱신
+    void TickHoverEvents();
 
 private:
     FUIBatcher*         UIBatcher      = nullptr;

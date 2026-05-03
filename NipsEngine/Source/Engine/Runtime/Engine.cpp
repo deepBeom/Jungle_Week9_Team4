@@ -41,6 +41,8 @@ void UEngine::Shutdown()
 	RenderPipeline.reset();
 	FResourceManager::Get().ReleaseGPUResources();
 	FSoundManager::Get().Release();
+	// Lua state 소멸 전에 UI hover 델리게이트 해제 (sol::function dangling 방지)
+	FUIManager::Get().ClearAllHoverDelegates();
 	LuaScriptSubsystem.Shutdown();
 	Renderer.Release();
 }

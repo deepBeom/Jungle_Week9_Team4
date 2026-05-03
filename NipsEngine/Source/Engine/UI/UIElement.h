@@ -3,6 +3,7 @@
 #include "Core/CoreTypes.h"
 #include "Core/Containers/Array.h"
 #include "Core/Containers/String.h"
+#include "Core/Delegate/MulticastDelegate.h"
 #include "Math/Vector2.h"
 #include "Engine/Render/Resource/Texture.h"
 
@@ -112,6 +113,14 @@ public:
     bool        IsVisible()          const  { return bVisible; }
     FUIElement* GetParent()          const  { return Parent; }
 
+    // 상호작용 이벤트 — bInteractable=true 이고 UIManager가 hit test를 통과한 경우에 발생
+    TMulticastDelegate<void()> OnHoverEnter;
+    TMulticastDelegate<void()> OnHoverExit;
+    TMulticastDelegate<void()> OnClick;      // 좌클릭 Down 프레임에 발생
+
+    bool bInteractable = false;  // true 일 때만 UIManager 가 hover/click 검사를 수행
+    bool bIsHovered    = false;  // UIManager 내부 상태 추적용 (직접 수정 금지)
+
     const TArray<FUIElement*>& GetChildren() const { return Children; }
 
     void AddChild(FUIElement* Child)
@@ -153,9 +162,14 @@ public:
 
     EUIElementType GetType() const override { return EUIElementType::Image; }
 
+    // 스프라이트 시트에서 특정 셀만 잘라낼 때 사용 (기본값 = 전체 텍스처)
+    void SetUV(FVector2 InMin, FVector2 InMax) { UVMin = InMin; UVMax = InMax; }
+
 public:
     UTexture* Texture   = nullptr;
     FVector4  TintColor = { 1.f, 1.f, 1.f, 1.f };
+    FVector2  UVMin     = { 0.f, 0.f };
+    FVector2  UVMax     = { 1.f, 1.f };
 };
 
 

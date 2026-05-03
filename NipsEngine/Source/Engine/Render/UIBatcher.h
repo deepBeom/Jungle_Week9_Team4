@@ -33,11 +33,14 @@ public:
     void Release();
 
     // 픽셀 좌표 기준으로 쿼드 추가
+    // UVMin/UVMax 생략 시 전체 텍스처 ({0,0}→{1,1})
     void AddQuad(FVector2 ScreenXY,
         FVector2 QuadSize,
         FVector2 ViewportWH,
         UTexture* Texture,
-        FVector4 Color);
+        FVector4 Color,
+        FVector2 UVMin = { 0.f, 0.f },
+        FVector2 UVMax = { 1.f, 1.f });
 
     void Clear();
     void Flush(ID3D11DeviceContext* Context, const FRenderBus* RenderBus);
