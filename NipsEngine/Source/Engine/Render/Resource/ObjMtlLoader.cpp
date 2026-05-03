@@ -3,13 +3,17 @@
 #include "Core/Paths.h"
 #include "Core/ResourceManager.h"
 #include "Core/Logging/Log.h"
+#include "Render/Common/WaterRenderingCommon.h"
 
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include <unordered_set>
 
 namespace
 {
+    constexpr uint32 MaxMaterialNormalTextureCount = 2u;
+
     FString ToLowerAscii(FString Value)
     {
         std::transform(Value.begin(), Value.end(), Value.begin(), [](unsigned char CharValue)
@@ -112,6 +116,29 @@ namespace
                EndsWithInsensitive(Stem, "norm") ||
                EndsWithInsensitive(Stem, "nrm");
     }
+
+    void AddMaterialNormalTexture(FMaterial& MaterialData, const FString& NormalTexPath, const FString& MaterialName, bool& bOutWarnedForOverflow)
+    {
+        if (NormalTexPath.empty())
+        {
+            return;
+        }
+
+        if (MaterialData.NormalTextureCount >= MaxMaterialNormalTextureCount)
+        {
+            if (!bOutWarnedForOverflow)
+            {
+                UE_LOG("[ObjMtlLoader] Material '%s' has more than %u normal maps. Extra normals are ignored.",
+                    MaterialName.c_str(),
+                    MaxMaterialNormalTextureCount);
+                bOutWarnedForOverflow = true;
+            }
+            return;
+        }
+
+        MaterialData.NormalTexPath[MaterialData.NormalTextureCount] = NormalTexPath;
+        ++MaterialData.NormalTextureCount;
+    }
 }
 
 bool FObjMtlLoader::Load(const FString& FilePath, TMap<FString, UMaterial*>& OutMaterialAssets, ID3D11Device* Device)
@@ -152,6 +179,7 @@ bool FObjMtlLoader::Load(const FString& FilePath, TMap<FString, UMaterial*>& Out
 
     UMaterial* Current = nullptr;
     FString    Line;
+    std::unordered_set<FString> WarnedNormalOverflowMaterials;
 
     auto ParseFVector = [](std::istringstream& InISS) -> FVector
         {
@@ -243,8 +271,12 @@ bool FObjMtlLoader::Load(const FString& FilePath, TMap<FString, UMaterial*>& Out
         }
         else if (LowerToken == "norm" || LowerToken == "map_norm" || LowerToken == "map_kn")
         {
-            Current->MaterialData.NormalTexPath = ResolveTexPath(ISS);
-            Current->MaterialData.bHasNormalTexture = true;
+            bool bWarnedForOverflow = WarnedNormalOverflowMaterials.find(Current->Name) != WarnedNormalOverflowMaterials.end();
+            AddMaterialNormalTexture(Current->MaterialData, ResolveTexPath(ISS), Current->Name, bWarnedForOverflow);
+            if (bWarnedForOverflow)
+            {
+                WarnedNormalOverflowMaterials.insert(Current->Name);
+            }
         }
         // 범프 맵은 그레이스케일로 높이값이 저장되어 있고 추후 노말로 변환한다고 한다.
         else if (LowerToken == "map_bump" || LowerToken == "bump")
@@ -252,8 +284,12 @@ bool FObjMtlLoader::Load(const FString& FilePath, TMap<FString, UMaterial*>& Out
             const FString ResolvedTexPath = ResolveTexPath(ISS);
             if (IsStrongNormalStem(ResolvedTexPath))
             {
-                Current->MaterialData.NormalTexPath = ResolvedTexPath;
-                Current->MaterialData.bHasNormalTexture = true;
+                bool bWarnedForOverflow = WarnedNormalOverflowMaterials.find(Current->Name) != WarnedNormalOverflowMaterials.end();
+                AddMaterialNormalTexture(Current->MaterialData, ResolvedTexPath, Current->Name, bWarnedForOverflow);
+                if (bWarnedForOverflow)
+                {
+                    WarnedNormalOverflowMaterials.insert(Current->Name);
+                }
                 UE_LOG("[ObjMtlLoader] Promoted bump token to NormalMap by filename heuristic: %s", ResolvedTexPath.c_str());
             }
             else
@@ -285,10 +321,30 @@ bool FObjMtlLoader::Load(const FString& FilePath, TMap<FString, UMaterial*>& Out
         else
             Mat->MaterialParams["SpecularMap"] = FMaterialParamValue(DefaultWhite);
 
-        if (Mat->MaterialData.bHasNormalTexture)
-            Mat->MaterialParams["NormalMap"] = FMaterialParamValue(FResourceManager::Get().LoadTexture(Mat->MaterialData.NormalTexPath, Device));
+        UTexture* PrimaryNormal = nullptr;
+        if (Mat->MaterialData.NormalTextureCount > 0u)
+        {
+            PrimaryNormal = FResourceManager::Get().LoadTexture(Mat->MaterialData.NormalTexPath[0], Device);
+        }
+
+        if (PrimaryNormal != nullptr)
+        {
+            Mat->MaterialParams["NormalMap"] = FMaterialParamValue(PrimaryNormal);
+        }
         else
+        {
             Mat->MaterialParams["NormalMap"] = FMaterialParamValue(DefaultNormal);
+        }
+
+        if (Mat->MaterialData.NormalTextureCount > 1u)
+        {
+            UTexture* SecondaryNormal = FResourceManager::Get().LoadTexture(Mat->MaterialData.NormalTexPath[1], Device);
+            if (SecondaryNormal != nullptr)
+            {
+                // Water-only optional secondary normal. Keep NormalMap as legacy primary.
+                Mat->MaterialParams[WaterMaterialParameterNames::WaterNormalB] = FMaterialParamValue(SecondaryNormal);
+            }
+        }
 
         if (Mat->MaterialData.bHasBumpTexture)
             Mat->MaterialParams["BumpMap"] = FMaterialParamValue(FResourceManager::Get().LoadTexture(Mat->MaterialData.BumpTexPath, Device));
@@ -297,7 +353,7 @@ bool FObjMtlLoader::Load(const FString& FilePath, TMap<FString, UMaterial*>& Out
 
         Mat->MaterialParams["bHasDiffuseMap"] = FMaterialParamValue(Mat->MaterialData.bHasDiffuseTexture);
         Mat->MaterialParams["bHasSpecularMap"] = FMaterialParamValue(Mat->MaterialData.bHasSpecularTexture);
-        Mat->MaterialParams["bHasNormalMap"] = FMaterialParamValue(Mat->MaterialData.bHasNormalTexture);
+        Mat->MaterialParams["bHasNormalMap"] = FMaterialParamValue(PrimaryNormal != nullptr);
         Mat->MaterialParams["bHasBumpMap"] = FMaterialParamValue(Mat->MaterialData.bHasBumpTexture);
 
         Mat->MaterialParams["ScrollUV"] = FMaterialParamValue(FVector2(0.0f, 0.0f));

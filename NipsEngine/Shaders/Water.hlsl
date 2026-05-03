@@ -55,9 +55,9 @@ cbuffer WaterMaterial : register(b2)
     uint WaterLocalLightCount;
 
     uint bHasDiffuseMap;
-    float _WaterMaterialPad3;
-    float _WaterMaterialPad4;
-    float _WaterMaterialPad5;
+    float WorldUVScaleX;
+    float WorldUVScaleY;
+    float WorldUVBlendFactor;
 }
 
 // t0/t1: optional water normal or noise textures.
@@ -179,9 +179,16 @@ float3 BuildFallbackWorldTangent(float3 WorldNormal)
     return normalize(cross(UpCandidate, WorldNormal));
 }
 
+float2 BuildWaterSampleUV(FWaterPSInput Input)
+{
+    const float2 MeshUV = Input.UV;
+    const float2 WorldProjectedUV = Input.WorldPos.xy * float2(WorldUVScaleX, WorldUVScaleY);
+    return lerp(MeshUV, WorldProjectedUV, saturate(WorldUVBlendFactor));
+}
+
 float3 ResolveWaterWorldNormal(FWaterPSInput Input, float2 UV)
 {
-    float3 GeometricNormal = normalize(Input.WorldNormal);
+    const float3 GeometricNormal = normalize(Input.WorldNormal);
 
     float3 N1 = float3(0.0f, 0.0f, 1.0f);
     if (bHasNormalMapA != 0u)
@@ -201,27 +208,9 @@ float3 ResolveWaterWorldNormal(FWaterPSInput Input, float2 UV)
     WaterNormalTS.xy *= NormalStrength;
     WaterNormalTS = normalize(WaterNormalTS);
 
-    float3 WorldTangent = Input.WorldTangent - GeometricNormal * dot(Input.WorldTangent, GeometricNormal);
-    if (dot(WorldTangent, WorldTangent) <= 1.0e-8f)
-    {
-        WorldTangent = BuildFallbackWorldTangent(GeometricNormal);
-    }
-    else
-    {
-        WorldTangent = normalize(WorldTangent);
-    }
-
-    float3 WorldBitangent = Input.WorldBitangent;
-    WorldBitangent = WorldBitangent - GeometricNormal * dot(WorldBitangent, GeometricNormal);
-    WorldBitangent = WorldBitangent - WorldTangent * dot(WorldBitangent, WorldTangent);
-    if (dot(WorldBitangent, WorldBitangent) <= 1.0e-8f)
-    {
-        WorldBitangent = normalize(cross(GeometricNormal, WorldTangent));
-    }
-    else
-    {
-        WorldBitangent = normalize(WorldBitangent);
-    }
+    // Water-only stable TBN: avoid seam artifacts from imported tangent splits.
+    const float3 WorldTangent = BuildFallbackWorldTangent(GeometricNormal);
+    const float3 WorldBitangent = normalize(cross(GeometricNormal, WorldTangent));
 
     const float3x3 TBN = float3x3(WorldTangent, WorldBitangent, GeometricNormal);
     return normalize(mul(WaterNormalTS, TBN));
@@ -295,14 +284,15 @@ FWaterPSOutput mainPS(FWaterPSInput Input)
 {
     FWaterPSOutput Output;
 
-    const float3 WaterWorldNormal = ResolveWaterWorldNormal(Input, Input.UV);
+    const float2 WaterSampleUV = BuildWaterSampleUV(Input);
+    const float3 WaterWorldNormal = ResolveWaterWorldNormal(Input, WaterSampleUV);
     const float3 ViewDir = normalize(CameraPosition - Input.WorldPos);
     const float Fresnel = pow(1.0f - saturate(dot(WaterWorldNormal, ViewDir)), 3.0f);
     const float WaveTint = WaterWorldNormal.x * 0.5f + WaterWorldNormal.y * 0.5f;
-    const float FallbackFlow = sin((Input.UV.x + Input.UV.y) * 6.0f + Time * 1.7f);
+    const float FallbackFlow = sin((WaterSampleUV.x + WaterSampleUV.y) * 6.0f + Time * 1.7f);
     const bool bHasAnyWaterNormal = (bHasNormalMapA != 0u) || (bHasNormalMapB != 0u);
     const float AnimatedSignal = bHasAnyWaterNormal ? WaveTint : (FallbackFlow * 0.5f);
-    const float3 DiffuseTint = (bHasDiffuseMap != 0u) ? DiffuseMap.Sample(SampleState, Input.UV).rgb : 1.0f.xxx;
+    const float3 DiffuseTint = (bHasDiffuseMap != 0u) ? DiffuseMap.Sample(SampleState, WaterSampleUV).rgb : 1.0f.xxx;
 
     // Stage 1: subtle animated color response only. Specular/refraction/foam are reserved for later stages.
     float3 FinalColor = BaseColor * DiffuseTint;

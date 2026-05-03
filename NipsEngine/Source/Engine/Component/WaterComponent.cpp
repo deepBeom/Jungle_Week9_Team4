@@ -23,6 +23,9 @@ void UWaterComponent::Serialize(FArchive& Ar)
     Ar << "NormalTilingBY" << NormalTilingBY;
     Ar << "NormalScrollSpeedBX" << NormalScrollSpeedBX;
     Ar << "NormalScrollSpeedBY" << NormalScrollSpeedBY;
+    Ar << "WorldUVScaleX" << WorldUVScaleX;
+    Ar << "WorldUVScaleY" << WorldUVScaleY;
+    Ar << "WorldUVBlendFactor" << WorldUVBlendFactor;
 
     Ar << "BaseColor" << BaseColor;
     Ar << "WaterSpecularPower" << WaterSpecularPower;
@@ -50,6 +53,9 @@ void UWaterComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProp
     OutProps.push_back({ "NormalTilingBY", EPropertyType::Float, &NormalTilingBY, 0.01f, 32.0f, 0.01f });
     OutProps.push_back({ "NormalScrollSpeedBX", EPropertyType::Float, &NormalScrollSpeedBX, -5.0f, 5.0f, 0.001f });
     OutProps.push_back({ "NormalScrollSpeedBY", EPropertyType::Float, &NormalScrollSpeedBY, -5.0f, 5.0f, 0.001f });
+    OutProps.push_back({ "WorldUVScaleX", EPropertyType::Float, &WorldUVScaleX, 0.0001f, 1.0f, 0.0005f });
+    OutProps.push_back({ "WorldUVScaleY", EPropertyType::Float, &WorldUVScaleY, 0.0001f, 1.0f, 0.0005f });
+    OutProps.push_back({ "WorldUVBlendFactor", EPropertyType::Float, &WorldUVBlendFactor, 0.0f, 1.0f, 0.01f });
 
     OutProps.push_back({ "BaseColor", EPropertyType::Color, &BaseColor });
     OutProps.push_back({ "WaterSpecularPower", EPropertyType::Float, &WaterSpecularPower, 1.0f, 512.0f, 1.0f });
@@ -77,6 +83,9 @@ void UWaterComponent::FillWaterUniformData(FWaterUniformData& OutData, float Tim
     OutData.NormalScrollSpeedA = FVector2(NormalScrollSpeedAX, NormalScrollSpeedAY);
     OutData.NormalTilingB = FVector2(NormalTilingBX, NormalTilingBY);
     OutData.NormalScrollSpeedB = FVector2(NormalScrollSpeedBX, NormalScrollSpeedBY);
+    OutData.WorldUVScaleX = WorldUVScaleX;
+    OutData.WorldUVScaleY = WorldUVScaleY;
+    OutData.WorldUVBlendFactor = WorldUVBlendFactor;
 
     OutData.BaseColor = FVector(BaseColor.R, BaseColor.G, BaseColor.B);
     OutData.WaterSpecularIntensity = WaterSpecularIntensity;

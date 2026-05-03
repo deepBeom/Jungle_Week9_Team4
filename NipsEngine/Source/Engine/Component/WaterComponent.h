@@ -19,6 +19,7 @@ public:
     void FillWaterUniformData(FWaterUniformData& OutData, float TimeSeconds, uint32 LocalLightCount) const;
 
 private:
+    // Stage 1 animated surface parameters.
     float NormalStrength = 0.45f;
     float Alpha = 1.0f;
     float ColorVariationStrength = 0.15f;
@@ -32,7 +33,11 @@ private:
     float NormalTilingBY = 2.5f;
     float NormalScrollSpeedBX = -0.02f;
     float NormalScrollSpeedBY = 0.015f;
+    float WorldUVScaleX = 0.02f;
+    float WorldUVScaleY = 0.02f;
+    float WorldUVBlendFactor = 1.0f;
 
+    // Stage 2 highlight parameters.
     FColor BaseColor = FColor(0.08f, 0.22f, 0.33f, 1.0f);
     float WaterSpecularPower = 96.0f;
     float WaterSpecularIntensity = 0.75f;

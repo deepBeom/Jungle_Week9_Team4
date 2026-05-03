@@ -8,6 +8,7 @@
 
 #include "Render/Common/RenderTypes.h"
 #include "Render/Common/ViewTypes.h"
+#include "Render/Common/WaterRenderingCommon.h"
 #include "Render/Resource/Buffer.h"
 #include "Render/Resource/Material.h"
 #include "Render/Device/D3DDevice.h"
@@ -176,7 +177,7 @@ struct FFXAAConstants
     float  Padding;
 };
 
-// b2 in Shaders/Water.hlsl.
+// WaterShaderBindings::MaterialConstantBuffer in Shaders/Water.hlsl.
 // Per-water-primitive runtime data must come from component/collector path,
 // not from per-frame mutation of shared material instances.
 struct alignas(16) FWaterUniformData
@@ -206,9 +207,9 @@ struct alignas(16) FWaterUniformData
     uint32 WaterLocalLightCount = 0u;
 
     uint32 bHasDiffuseMap = 0u;
-    float Padding0 = 0.0f;
-    float Padding1 = 0.0f;
-    float Padding2 = 0.0f;
+    float WorldUVScaleX = 0.02f;
+    float WorldUVScaleY = 0.02f;
+    float WorldUVBlendFactor = 1.0f;
 };
 
 static_assert(sizeof(FWaterUniformData) == 112, "FWaterUniformData layout must match Water.hlsl cbuffer b2.");
@@ -217,9 +218,9 @@ struct FWaterRenderData
 {
     bool bValid = false;
     FWaterUniformData UniformData = {};
-    UTexture* Diffuse = nullptr;
-    UTexture* NormalA = nullptr;
-    UTexture* NormalB = nullptr;
+    UTexture* Diffuse = nullptr; // t2
+    UTexture* NormalA = nullptr; // t0
+    UTexture* NormalB = nullptr; // t1
 };
 
 struct FSkyConstants

@@ -3,6 +3,7 @@
 #include "Object/Object.h"
 #include "Texture.h"
 #include "Shader.h"
+#include "Render/Common/WaterRenderingCommon.h"
 #include "RenderResources.h"
 #include <variant>
 
@@ -30,8 +31,10 @@ struct FMaterial
     FString SpecularTexPath;  // map_Ks
     bool	bHasSpecularTexture = { false };
 
-    FString NormalTexPath;     // norm / map_norm / map_Kn
-    bool	bHasNormalTexture = { false };
+    // Up to two normal maps can be retained from MTL for water use.
+    // Generic surface shading continues to use slot 0 through "NormalMap".
+    FString NormalTexPath[2];  // norm / map_norm / map_Kn
+    uint32  NormalTextureCount = 0;
 
     FString BumpTexPath;      // map_bump
     bool	bHasBumpTexture = { false };
@@ -120,7 +123,9 @@ public:
     bool IsWaterMaterial() const
     {
         FMaterialParamValue ParamValue;
-        if (!GetParam("bIsWater", ParamValue) || ParamValue.Type != EMaterialParamType::Bool)
+        // Water is identified explicitly by a material flag so the renderer
+        // never has to infer intent from file paths or shader names.
+        if (!GetParam(WaterMaterialParameterNames::IsWater, ParamValue) || ParamValue.Type != EMaterialParamType::Bool)
         {
             return false;
         }

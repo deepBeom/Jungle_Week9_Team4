@@ -14,6 +14,7 @@
 #include "Component/WaterComponent.h"
 #include "Core/ResourceManager.h"
 #include "Engine/Core/SoundManager.h"
+#include "Render/Common/WaterRenderingCommon.h"
 
 #include "Component/ObjectTypeComponent.h"
 
@@ -81,17 +82,15 @@ void AStaticMeshActor::InitDefaultComponents()
 
 void AWaterActor::InitDefaultComponents()
 {
-    static constexpr const char* DefaultWaterMeshPath = "Asset/Mesh/Water/Wave.obj";
-
     auto* StaticMesh = AddComponent<UStaticMeshComponent>();
     SetRootComponent(StaticMesh);
     AddComponent<UObjectTypeComponent>();
     AddComponent<UWaterComponent>();
 
-    UStaticMesh* WaterMesh = FResourceManager::Get().LoadStaticMesh(DefaultWaterMeshPath);
+    UStaticMesh* WaterMesh = FResourceManager::Get().LoadStaticMesh(WaterDefaultAssets::MeshPath);
     if (WaterMesh == nullptr)
     {
-        UE_LOG("[Water] Failed to load default water mesh: %s", DefaultWaterMeshPath);
+        UE_LOG("[Water] Failed to load default water mesh: %s", WaterDefaultAssets::MeshPath);
         return;
     }
 
