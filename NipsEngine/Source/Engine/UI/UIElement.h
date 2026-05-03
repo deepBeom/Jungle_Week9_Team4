@@ -142,6 +142,7 @@ public:
 public:
     FVector2        LocalPosition;                              // 부모 기준 상대 좌표 (Anchor 기준점)
     FVector2        Size;
+    float           RotationDegrees = 0.f;
     float           LocalZOrder    = 0.f;
     EUIAnchor       Anchor         = EUIAnchor::TopLeft;
     EUIPositionMode PositionMode   = EUIPositionMode::Absolute; // 픽셀 or 비율

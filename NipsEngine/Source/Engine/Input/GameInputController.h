@@ -1,9 +1,12 @@
-#pragma once
+﻿#pragma once
 
 #include <sol/sol.hpp>
 #include "Core/Containers/String.h"
+#include "Core/Logging/Log.h"
 
 class UWorld;
+class APawn;
+class UCameraComponent;
 class FViewportCamera;
 class FWindowsWindow;
 class InputSystem;
@@ -13,7 +16,12 @@ class FGameInputController
 public:
     void SetWindow(FWindowsWindow* InWindow) { Window = InWindow; }
     void SetCamera(FViewportCamera* InCamera);
-    void SetWorld(UWorld* InWorld) { World = InWorld; }
+    void SetWorld(UWorld* InWorld)
+    {
+        World = InWorld;
+        ControlledPawn = nullptr;
+        ControlledCameraComponent = nullptr;
+    }
     void SetViewportRect(float InX, float InY, float InWidth, float InHeight);
     void SetScriptPath(const FString& InScriptPath);
 
@@ -22,21 +30,29 @@ public:
     void Tick(float DeltaTime);
     void Reset();
 
-    void SetMouseCaptured(bool bCaptured);
-    bool IsMouseCaptured() const { return bMouseCaptured; }
+    void SetCursorHidden(bool bHidden);
+    void SetMouseLocked(bool bLocked);
+    void SetCursorHiddenAllowed(bool bAllowed);
+    void SetMouseLockAllowed(bool bAllowed);
+
+    bool IsCursorHidden() const { return bCursorHidden; }
+    bool IsMouseLocked() const { return bMouseLocked; }
 
 private:
+    // 프로젝트의 전역 sol에 통합되어야 함..
     template <typename... Args>
     bool CallLuaFunction(const char* FunctionName, Args&&... ArgsToForward)
     {
         if (!bScriptLoaded)
         {
+            UE_LOG("[Lua] Script not loaded");
             return false;
         }
 
         sol::object FunctionObject = ScriptEnvironment[FunctionName];
         if (!FunctionObject.valid() || FunctionObject.get_type() != sol::type::function)
         {
+            UE_LOG("[Lua] Function '%s' not found in script '%s'", FunctionName, LoadedScriptPath.c_str());
             return false;
         }
 
@@ -45,7 +61,7 @@ private:
         if (!Result.valid())
         {
             sol::error Error = Result;
-            printf("[Lua Input Error] %s (%s): %s\n", FunctionName, LoadedScriptPath.c_str(), Error.what());
+            UE_LOG("[Lua] Runtime Error in function '%s': %s", FunctionName, Error.what());
             return false;
         }
 
@@ -56,8 +72,12 @@ private:
     bool LoadScript();
     void InstallBindings();
     FString ResolveScriptPath() const;
+    void RefreshControlledPawn();
+    void SyncViewportCameraFromPawn();
     void TickLuaInput(InputSystem& Input);
     void TickFallbackInput(InputSystem& Input);
+    void ApplyCursorVisibilityState();
+    void ApplyMouseLockState();
 
     void ApplyFallbackKeyDown(int32 KeyCode);
     void ApplyFallbackMouseMove(float DeltaX, float DeltaY);
@@ -80,6 +100,8 @@ private:
     float ViewportHeight = 0.0f;
     float CachedLocalMouseX = 0.0f;
     float CachedLocalMouseY = 0.0f;
+    APawn* ControlledPawn = nullptr;
+    UCameraComponent* ControlledCameraComponent = nullptr;
 
     float MoveSpeed = 15.0f;
     float LookSensitivity = 0.15f;
@@ -93,7 +115,12 @@ private:
     float PendingYaw = 0.0f;
     float PendingPitch = 0.0f;
 
-    bool bMouseCaptured = false;
+    bool bCursorHidden = false;               // 실제 커서 숨김 상태입니다.
+    bool bMouseLocked = false;                // 실제 마우스 고정 상태입니다.
+    bool bRequestsCursorHidden = false;       // Lua/게임플레이가 커서 숨김을 원하는 상태입니다.
+    bool bRequestsMouseLock = false;          // Lua/게임플레이가 마우스 고정을 원하는 상태입니다.
+    bool bAllowsCursorHidden = true;          // PIE/에디터 상태에서 커서 숨김을 적용할 수 있는지 나타냅니다.
+    bool bAllowsMouseLock = true;             // PIE/에디터 상태에서 마우스 고정을 적용할 수 있는지 나타냅니다.
     bool bScriptLoadAttempted = false;
     bool bScriptLoaded = false;
 

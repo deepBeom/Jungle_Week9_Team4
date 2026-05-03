@@ -1,7 +1,11 @@
-#include "Engine/Input/GameInputController.h"
+﻿#include "Engine/Input/GameInputController.h"
 
 #include <cmath>
+#include "Engine/Component/CameraComponent.h"
+#include "Engine/Component/SceneComponent.h"
 #include "Engine/Core/Paths.h"
+#include "Engine/GameFramework/Pawn.h"
+#include "Engine/GameFramework/World.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Math/Utils.h"
 #include "Engine/Runtime/Engine.h"
@@ -51,6 +55,9 @@ void FGameInputController::Tick(float DeltaTime)
         return;
     }
 
+    RefreshControlledPawn();
+    SyncViewportCameraFromPawn();
+
     EnsureScriptLoaded();
 
     InputSystem& Input = InputSystem::Get();
@@ -73,6 +80,7 @@ void FGameInputController::Tick(float DeltaTime)
     }
 
     ApplyPendingMovement(DeltaTime);
+    SyncViewportCameraFromPawn();
 }
 
 void FGameInputController::TickLuaInput(InputSystem& Input)
@@ -152,18 +160,132 @@ void FGameInputController::Reset()
     PendingUp = 0.0f;
     PendingYaw = 0.0f;
     PendingPitch = 0.0f;
-    SetMouseCaptured(true);
+    bRequestsCursorHidden = false;
+    bRequestsMouseLock = false;
+    bAllowsCursorHidden = true;
+    bAllowsMouseLock = true;
+    ApplyCursorVisibilityState();
+    ApplyMouseLockState();
+    ControlledPawn = nullptr;
+    ControlledCameraComponent = nullptr;
     SyncAnglesFromCamera();
 }
 
-void FGameInputController::SetMouseCaptured(bool bCaptured)
+void FGameInputController::SetCursorHidden(bool bHidden)
 {
-    bMouseCaptured = bCaptured;
+    bRequestsCursorHidden = bHidden;
+    ApplyCursorVisibilityState();
+}
+
+void FGameInputController::SetMouseLocked(bool bLocked)
+{
+    bRequestsMouseLock = bLocked;
+    ApplyMouseLockState();
+}
+
+void FGameInputController::SetCursorHiddenAllowed(bool bAllowed)
+{
+    bAllowsCursorHidden = bAllowed;
+    ApplyCursorVisibilityState();
+}
+
+void FGameInputController::SetMouseLockAllowed(bool bAllowed)
+{
+    bAllowsMouseLock = bAllowed;
+    ApplyMouseLockState();
+}
+
+void FGameInputController::RefreshControlledPawn()
+{
+    if (World == nullptr || World->GetPersistentLevel() == nullptr)
+    {
+        ControlledPawn = nullptr;
+        ControlledCameraComponent = nullptr;
+        SyncAnglesFromCamera();
+        return;
+    }
+
+    const bool bCurrentPawnInvalid =
+        ControlledPawn == nullptr ||
+        !UObject::IsValid(ControlledPawn) ||
+        ControlledPawn->IsPendingDestroy() ||
+        ControlledPawn->GetFocusedWorld() != World;
+
+    if (bCurrentPawnInvalid)
+    {
+        ControlledPawn = nullptr;
+        const TArray<AActor*>& Actors = World->GetPersistentLevel()->GetActors();
+        for (AActor* Actor : Actors)
+        {
+            APawn* Pawn = Cast<APawn>(Actor);
+            if (!Pawn || Pawn->IsPendingDestroy())
+            {
+                continue;
+            }
+
+            ControlledPawn = Pawn;
+            break;
+        }
+    }
+
+    ControlledCameraComponent = ControlledPawn ? ControlledPawn->GetCameraComponent() : nullptr;
+
+    if (ControlledCameraComponent)
+    {
+        const FVector Forward =
+            ControlledCameraComponent->GetWorldTransform().GetUnitAxis(EAxis::X).GetSafeNormal();
+        Pitch = MathUtil::RadiansToDegrees(std::asin(MathUtil::Clamp(Forward.Z, -1.0f, 1.0f)));
+        Yaw = MathUtil::RadiansToDegrees(std::atan2(Forward.Y, Forward.X));
+        return;
+    }
+
+    SyncAnglesFromCamera();
+}
+
+void FGameInputController::SyncViewportCameraFromPawn()
+{
+    if (!Camera || !ControlledCameraComponent)
+    {
+        return;
+    }
+
+    const FTransform CameraTransform = ControlledCameraComponent->GetWorldTransform();
+    const FCameraState& CameraState = ControlledCameraComponent->GetCameraState();
+
+    Camera->SetLocation(CameraTransform.GetLocation());
+    Camera->SetRotation(CameraTransform.GetRotation());
+    Camera->SetNearPlane(CameraState.NearZ);
+    Camera->SetFarPlane(CameraState.FarZ);
+
+    if (CameraState.bIsOrthogonal)
+    {
+        Camera->SetProjectionType(EViewportProjectionType::Orthographic);
+        const float AspectRatio = Camera->GetAspectRatio() > 0.0f ? Camera->GetAspectRatio() : 1.0f;
+        Camera->SetOrthoHeight(CameraState.OrthoWidth / AspectRatio);
+    }
+    else
+    {
+        Camera->SetProjectionType(EViewportProjectionType::Perspective);
+        Camera->SetFOV(CameraState.FOV);
+    }
+}
+
+void FGameInputController::ApplyCursorVisibilityState()
+{
+    const bool bShouldHideCursor = bRequestsCursorHidden && bAllowsCursorHidden;
+    bCursorHidden = bShouldHideCursor;
 
     InputSystem& Input = InputSystem::Get();
-    Input.SetCursorVisibility(!bCaptured);
+    Input.SetCursorVisibility(!bShouldHideCursor);
+}
 
-    if (!bCaptured)
+void FGameInputController::ApplyMouseLockState()
+{
+    const bool bShouldLockMouse = bRequestsMouseLock && bAllowsMouseLock;
+    bMouseLocked = bShouldLockMouse;
+
+    InputSystem& Input = InputSystem::Get();
+    if (!bShouldLockMouse)
     {
         Input.LockMouse(false);
         return;
@@ -255,14 +377,24 @@ void FGameInputController::InstallBindings()
         PendingPitch += Value;
     };
 
-    ScriptEnvironment["SetMouseCaptured"] = [this](bool bCaptured)
+    ScriptEnvironment["SetCursorHidden"] = [this](bool bHidden)
     {
-        SetMouseCaptured(bCaptured);
+        SetCursorHidden(bHidden);
     };
 
-    ScriptEnvironment["IsMouseCaptured"] = [this]()
+    ScriptEnvironment["IsCursorHidden"] = [this]()
     {
-        return bMouseCaptured;
+        return bCursorHidden;
+    };
+
+    ScriptEnvironment["SetMouseLocked"] = [this](bool bLocked)
+    {
+        SetMouseLocked(bLocked);
+    };
+
+    ScriptEnvironment["IsMouseLocked"] = [this]()
+    {
+        return bMouseLocked;
     };
 
     ScriptEnvironment["SetMoveSpeed"] = [this](float Value)
@@ -315,7 +447,7 @@ void FGameInputController::ApplyFallbackKeyDown(int32 KeyCode)
 
 void FGameInputController::ApplyFallbackMouseMove(float DeltaX, float DeltaY)
 {
-    if (!bMouseCaptured)
+    if (!bMouseLocked)
     {
         return;
     }
@@ -328,12 +460,32 @@ void FGameInputController::ApplyFallbackMouseClick(const char* ButtonName, bool 
 {
     if (std::string_view(ButtonName) == "RightMouseButton")
     {
-        SetMouseCaptured(bPressed);
+        SetCursorHidden(bPressed);
+        SetMouseLocked(bPressed);
     }
 }
 
 void FGameInputController::ApplyPendingMovement(float DeltaTime)
 {
+    if (ControlledPawn)
+    {
+        USceneComponent* Root = ControlledPawn->GetRootComponent();
+        UCameraComponent* CameraComponent = ControlledPawn->GetCameraComponent();
+
+        Root->AddWorldOffset(ControlledPawn->GetForwardVector() * (PendingForward * MoveSpeed * DeltaTime));
+        Root->AddWorldOffset(ControlledPawn->GetRightVector() * (PendingRight * MoveSpeed * DeltaTime));
+        Root->AddWorldOffset(ControlledPawn->GetUpVector() * (PendingUp * MoveSpeed * DeltaTime));
+        Root->Rotate(PendingYaw * LookSensitivity, 0.0f);
+
+        if (CameraComponent)
+        {
+            CameraComponent->AddPitchInput(-PendingPitch * LookSensitivity);
+        }
+
+        RefreshControlledPawn();
+        return;
+    }
+
     if (!Camera)
     {
         return;
@@ -350,13 +502,10 @@ void FGameInputController::ApplyPendingMovement(float DeltaTime)
         Camera->SetLocation(Camera->GetLocation() + Move);
     }
 
-    if (!MathUtil::IsNearlyZero(PendingYaw) || !MathUtil::IsNearlyZero(PendingPitch))
-    {
-        Yaw += PendingYaw * LookSensitivity;
-        Pitch += PendingPitch * LookSensitivity;
-        Pitch = MathUtil::Clamp(Pitch, -89.0f, 89.0f);
-        UpdateCameraRotation();
-    }
+    Yaw += PendingYaw * LookSensitivity;
+    Pitch += PendingPitch * LookSensitivity;
+    Pitch = MathUtil::Clamp(Pitch, -89.9f, 89.9f);
+    UpdateCameraRotation();
 }
 
 void FGameInputController::UpdateCameraRotation()

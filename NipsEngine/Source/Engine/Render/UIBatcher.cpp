@@ -1,4 +1,5 @@
 ﻿#include <d3d11.h>
+#include <cmath>
 #include "UIBatcher.h"
 #include "Core/CoreTypes.h"
 #include "Core/ResourceManager.h"
@@ -82,13 +83,38 @@ void FUIBatcher::AddQuad(FVector2 ScreenXY,
                          UTexture* Texture,
                          FVector4 Color,
                          FVector2 UVMin,
-                         FVector2 UVMax)
+                         FVector2 UVMax,
+                         float RotationDegrees)
 {
     // 픽셀 좌표를 NDC로 변환
     FVector2 LeftTop     = { ScreenXY.X,               ScreenXY.Y               };
     FVector2 RightTop    = { ScreenXY.X + QuadSize.X,  ScreenXY.Y               };
     FVector2 LeftBottom  = { ScreenXY.X,               ScreenXY.Y + QuadSize.Y  };
     FVector2 RightBottom = { ScreenXY.X + QuadSize.X,  ScreenXY.Y + QuadSize.Y  };
+
+    if (RotationDegrees != 0.f)
+    {
+        const float Pi = 3.14159265358979323846f;
+        const float Radians = RotationDegrees * Pi / 180.f;
+        const float CosA = std::cos(Radians);
+        const float SinA = std::sin(Radians);
+        const FVector2 Center = { ScreenXY.X + QuadSize.X * 0.5f, ScreenXY.Y + QuadSize.Y * 0.5f };
+
+        auto RotateAroundCenter = [&](FVector2 Pos) -> FVector2
+        {
+            const float X = Pos.X - Center.X;
+            const float Y = Pos.Y - Center.Y;
+            return {
+                Center.X + X * CosA - Y * SinA,
+                Center.Y + X * SinA + Y * CosA
+            };
+        };
+
+        LeftTop = RotateAroundCenter(LeftTop);
+        RightTop = RotateAroundCenter(RightTop);
+        LeftBottom = RotateAroundCenter(LeftBottom);
+        RightBottom = RotateAroundCenter(RightBottom);
+    }
 
     auto ScreenToNDC = [&](FVector2 ScreenPos) -> FVector2 {
         float ndc_x = ScreenPos.X / ViewportWH.X * 2 - 1;

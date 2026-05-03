@@ -1,4 +1,4 @@
-﻿#include "Editor/Viewport/EditorViewportClient.h"
+#include "Editor/Viewport/EditorViewportClient.h"
 
 #include <algorithm>
 #include <unordered_set>
@@ -38,13 +38,15 @@ void FEditorViewportClient::StartPIE(UWorld* InWorld)
     InputRouter.GetGameInputController().SetWorld(InWorld);
     InputRouter.GetGameInputController().SetCamera(&Camera);
     InputRouter.GetPIEController().Reset();
-    InputRouter.GetGameInputController().SetMouseCaptured(true);
+    InputRouter.GetGameInputController().SetCursorHidden(true);
+    InputRouter.GetGameInputController().SetMouseLocked(true);
     InputRouter.SetMode(EViewportInputMode::PIE);
 }
 
 void FEditorViewportClient::EndPIE(UWorld* InWorld)
 {
     World = InWorld;
+    InputRouter.GetGameInputController().SetWorld(nullptr);
     InputRouter.GetGameInputController().Reset();
     InputRouter.GetEditorController().SetWorld(InWorld);
     InputRouter.GetEditorController().ResetTargetLocation();
@@ -343,21 +345,6 @@ void FEditorViewportClient::TickInteraction(float DeltaTime)
             bBoxSelecting = false;
         }
     }
-}
-
-void FEditorViewportClient::LockCursorToViewport()
-{
-    POINT Origin = { Viewport->GetRect().X, Viewport->GetRect().Y };
-    if (Window)
-    {
-        ::ClientToScreen(Window->GetHWND(), &Origin);
-    }
-
-    InputSystem::Get().LockMouse(true,
-                                 static_cast<float>(Origin.x),
-                                 static_cast<float>(Origin.y),
-                                 static_cast<float>(Viewport->GetRect().Width),
-                                 static_cast<float>(Viewport->GetRect().Height));
 }
 
 bool FEditorViewportClient::TryProjectWorldToViewport(const FVector& WorldPos, float& OutViewportX, float& OutViewportY, float& OutDepth) const

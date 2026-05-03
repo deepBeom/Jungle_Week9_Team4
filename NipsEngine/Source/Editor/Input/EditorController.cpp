@@ -65,7 +65,6 @@ void FEditorController::Tick(float DeltaTime)
         ResetTargetLocation();
     }
 
-    TickCursorCapture();
     TickMouseInput();
     TickKeyboardInput(DeltaTime);
     TickEditorShortcuts();
@@ -85,25 +84,6 @@ void FEditorController::ResetTargetLocation()
 
     TargetLocation = Camera->GetLocation();
     bTargetLocationInitialized = true;
-}
-
-void FEditorController::TickCursorCapture()
-{
-    InputSystem& Input = InputSystem::Get();
-    const bool bCtrlDown = Input.GetKey(VK_CONTROL);
-    const bool bDragBegin = (Input.GetKeyDown(VK_RBUTTON) && !bCtrlDown) || Input.GetKeyDown(VK_MBUTTON);
-    const bool bDragEnd = Input.GetKeyUp(VK_RBUTTON) || Input.GetKeyUp(VK_MBUTTON);
-
-    if (bDragBegin)
-    {
-        Input.SetCursorVisibility(false);
-        ViewportClient->LockCursorToViewport();
-    }
-    else if (bDragEnd)
-    {
-        Input.SetCursorVisibility(true);
-        Input.LockMouse(false);
-    }
 }
 
 void FEditorController::TickMouseInput()

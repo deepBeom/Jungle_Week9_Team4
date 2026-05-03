@@ -33,7 +33,11 @@ void FViewportInputRouter::Tick(float DeltaTime)
 
     case EViewportInputMode::PIE:
         PIEController.Tick(DeltaTime, GameInputController);
-        if (!PIEController.ShouldBlockGameplayInput())
+        if (PIEController.ShouldBlockGameplayInput())
+        {
+            EditorController.Tick(DeltaTime);
+        }
+        else
         {
             GameInputController.Tick(DeltaTime);
         }
