@@ -1,8 +1,9 @@
-﻿#include "Game/GameEngine.h"
+#include "Game/GameEngine.h"
 #include "Game/GameViewportClient.h"
 #include "Game/GameRenderPipeline.h"
 #include "Core/Paths.h"
 #include "Engine/GameFramework/World.h"
+#include "Engine/Input/InputSystem.h"
 #include "Serialization/SceneSaveManager.h"
 
 #include <filesystem>
@@ -50,8 +51,11 @@ bool UGameEngine::LoadStartLevel()
 
 void UGameEngine::Tick(float DeltaTime)
 {
+	InputSystem::Get().Tick();
 	ViewportClient.Tick(DeltaTime);
-	UEngine::Tick(DeltaTime);
+	WorldTick(DeltaTime);
+	++FrameCounter;
+	Render(DeltaTime);
 }
 
 void UGameEngine::OnWindowResized(uint32 Width, uint32 Height)

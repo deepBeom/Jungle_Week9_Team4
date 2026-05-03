@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <windows.h>
 #include "Core/Singleton.h"
 #include "Runtime/ViewportRect.h"
@@ -25,6 +25,8 @@ class InputSystem : public TSingleton<InputSystem>
     bool GetKeyDown(int VK) const { return CurrentStates[VK] && !PrevStates[VK]; }
     bool GetKey(int VK) const { return CurrentStates[VK]; }
     bool GetKeyUp(int VK) const { return !CurrentStates[VK] && PrevStates[VK]; }
+    bool IsMouseLocked() const { return bIsMouseLocked; }
+    bool IsCursorVisible() const { return bIsCursorVisible; }
 
     // Mouse lock
     void	 SetCursorVisibility(bool bVisible);

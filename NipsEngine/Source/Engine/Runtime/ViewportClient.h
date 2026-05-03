@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Core/CoreTypes.h"
 #include "Engine/Runtime/WindowsWindow.h"
 
@@ -17,6 +17,9 @@ class FViewportClient
 {
 public:
     virtual ~FViewportClient() = default;
+    FWindowsWindow* GetWindow() const { return Window; }
+    float GetWindowWidth() const { return WindowWidth; }
+    float GetWindowHeight() const { return WindowHeight; }
 
     /** Called once after construction to bind the OS window. */
     virtual void Initialize(FWindowsWindow* InWindow) { Window = InWindow; }
