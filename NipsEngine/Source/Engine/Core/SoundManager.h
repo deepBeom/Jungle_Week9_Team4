@@ -17,8 +17,8 @@ public:
 	void Update();
 
 	// 파일명만 전달 (예: "menu.wav", "jump.wav")
-	void PlayBGM(const FString& FileName, float Volume = 1.f);
-	void PlaySFX(const FString& FileName, float Volume = 1.f);
+	void PlayBGM(const FString& FileName, float Volume = 0.1f);
+	void PlaySFX(const FString& FileName, float Volume = 0.1f);
 	void StopBGM();
 	void StopAll();
 	void SetBGMVolume(float Volume);
