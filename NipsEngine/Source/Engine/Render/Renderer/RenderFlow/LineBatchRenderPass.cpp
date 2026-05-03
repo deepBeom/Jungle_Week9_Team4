@@ -1,17 +1,17 @@
-#include "EditorRenderPass.h"
+#include "LineBatchRenderPass.h"
 #include "Render/LineBatcher.h"
 
-bool FEditorRenderPass::Initialize()
+bool FLineBatchRenderPass::Initialize()
 {
     return true;
 }
 
-bool FEditorRenderPass::Release()
+bool FLineBatchRenderPass::Release()
 {
     return true;
 }
 
-bool FEditorRenderPass::Begin(const FRenderPassContext* Context)
+bool FLineBatchRenderPass::Begin(const FRenderPassContext* Context)
 {
     ID3D11RenderTargetView* RTVs[3] = {
         PrevPassRTV ? PrevPassRTV : Context->RenderTargets->SceneColorRTV,
@@ -26,18 +26,18 @@ bool FEditorRenderPass::Begin(const FRenderPassContext* Context)
     return true;
 }
 
-bool FEditorRenderPass::DrawCommand(const FRenderPassContext* Context)
+bool FLineBatchRenderPass::DrawCommand(const FRenderPassContext* Context)
 {
-    if (Context->EditorLineBatcher == nullptr)
+    if (Context->DebugLineBatcher == nullptr)
     {
         return true;
     }
 
-    Context->EditorLineBatcher->Flush(Context->DeviceContext, Context->RenderBus);
+    Context->DebugLineBatcher->Flush(Context->DeviceContext, Context->RenderBus);
     return true;
 }
 
-bool FEditorRenderPass::End(const FRenderPassContext* Context)
+bool FLineBatchRenderPass::End(const FRenderPassContext* Context)
 {
     return true;
 }

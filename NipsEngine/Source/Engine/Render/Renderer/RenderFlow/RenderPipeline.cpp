@@ -14,7 +14,7 @@
 #include "TranslucentRenderPass.h"
 #include "SelectionMaskRenderPass.h"
 #include "GridRenderPass.h"
-#include "EditorRenderPass.h"
+#include "LineBatchRenderPass.h"
 #include "DepthLessRenderPass.h"
 #include "DepthPrepassRenderPass.h"
 #include "PostProcessOutlineRenderPass.h"
@@ -112,8 +112,8 @@ bool FRenderPipeline::Initialize()
     GridRenderPass = std::make_shared<FGridRenderPass>();
     GridRenderPass->Initialize();
 
-    EditorRenderPass = std::make_shared<FEditorRenderPass>();
-    EditorRenderPass->Initialize();
+    LineBatchRenderPass = std::make_shared<FLineBatchRenderPass>();
+    LineBatchRenderPass->Initialize();
 
     DepthLessRenderPass = std::make_shared<FDepthLessRenderPass>();
     DepthLessRenderPass->Initialize();
@@ -152,7 +152,7 @@ bool FRenderPipeline::Initialize()
     RenderPasses.push_back(TranslucentRenderPass);
     RenderPasses.push_back(SelectionMaskRenderPass);
     RenderPasses.push_back(GridRenderPass);
-    RenderPasses.push_back(EditorRenderPass);
+    RenderPasses.push_back(LineBatchRenderPass);
     RenderPasses.push_back(DepthLessRenderPass);
     RenderPasses.push_back(PostProcessOutlineRenderPass);
 
@@ -329,10 +329,10 @@ void FRenderPipeline::Release()
         GridRenderPass.reset();
     }
 
-    if (EditorRenderPass)
+    if (LineBatchRenderPass)
     {
-        EditorRenderPass->Release();
-        EditorRenderPass.reset();
+        LineBatchRenderPass->Release();
+        LineBatchRenderPass.reset();
     }
 
     if (DepthLessRenderPass)

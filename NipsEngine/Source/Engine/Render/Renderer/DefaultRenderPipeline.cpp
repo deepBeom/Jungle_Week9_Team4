@@ -2,7 +2,7 @@
 
 #include "Renderer.h"
 #include "Engine/Runtime/Engine.h"
-#include "Editor/Viewport/ViewportCamera.h"
+#include "Engine/Viewport/ViewportCamera.h"
 #include "GameFramework/World.h"
 
 FDefaultRenderPipeline::FDefaultRenderPipeline(UEngine* InEngine, FRenderer& InRenderer)
@@ -35,8 +35,8 @@ void FDefaultRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
         Bus.SetCameraPlane(Camera->GetNearPlane(), Camera->GetFarPlane());
         Bus.SetRenderSettings(ViewMode, ShowFlags);
         Bus.SetFXAAEnabled(true);
-        Renderer.GetEditorLineBatcher().Clear();
-        Collector.SetLineBatcher(&Renderer.GetEditorLineBatcher());
+        Renderer.GetDebugLineBatcher().Clear();
+        Collector.SetLineBatcher(&Renderer.GetDebugLineBatcher());
 
         const FFrustum& ViewFrustum = Camera->GetFrustum();
         Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum);

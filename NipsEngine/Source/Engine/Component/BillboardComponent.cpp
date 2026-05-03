@@ -1,7 +1,7 @@
 ﻿#include "BillboardComponent.h"
 #include <cmath>
 #include "GameFramework/World.h"
-#include "Editor/Viewport/ViewportCamera.h"
+#include "Engine/Viewport/ViewportCamera.h"
 #include "Core/ResourceManager.h"
 
 DEFINE_CLASS(UBillboardComponent, UPrimitiveComponent)

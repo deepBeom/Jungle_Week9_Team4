@@ -2,8 +2,7 @@
 
 #include "Engine/Runtime/ViewportClient.h"
 #include "Game/GameCameraController.h"
-// TODO: 공통로직이므로 Editor에서 Engine으로 옮겨야 함
-#include "Editor/Viewport/ViewportCamera.h"
+#include "Engine/Viewport/ViewportCamera.h"
 
 class UWorld;
 // StandAlone(Shipping) 빌드 전용
@@ -23,12 +22,10 @@ public:
 
     FViewportCamera& GetCamera() { return Camera; }
 
-	// TODO: Input 처리 필요..
 	void TickInput(float DeltaTime);
 
 private:
     UWorld* World = nullptr;
-    // TODO: Camera의 직접 생성 대신 Player/CameraComponent에서 가져오는게 맞을 듯
     FViewportCamera Camera;
     FGameCameraController CameraController;
 

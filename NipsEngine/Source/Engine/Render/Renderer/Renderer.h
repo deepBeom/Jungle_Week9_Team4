@@ -128,7 +128,7 @@ public:
 
     FD3DDevice& GetFD3DDevice() { return Device; }
     FRenderResources& GetResources() { return Resources; }
-    FLineBatcher& GetEditorLineBatcher() { return EditorLineBatcher; }
+    FLineBatcher& GetDebugLineBatcher() { return DebugLineBatcher; }
 
     const ID3D11RenderTargetView*   GetCurrentSceneRTV() const { return SceneFinalRTV.Get(); }
     const ID3D11ShaderResourceView* GetCurrentSceneSRV() const { return SceneFinalSRV.Get(); }
@@ -147,7 +147,7 @@ private:
     FD3DDevice Device;
     FRenderTargetSet* CurrentRenderTargets = nullptr;
     FRenderResources Resources;
-    FLineBatcher   EditorLineBatcher;
+    FLineBatcher   DebugLineBatcher;
     FLineBatcher   GridLineBatcher;
     FFontBatcher   FontBatcher;
     FSubUVBatcher  SubUVBatcher;
