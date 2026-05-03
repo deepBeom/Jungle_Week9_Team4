@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <functional>
 #include "Core/CollisionTypes.h"
@@ -57,6 +57,8 @@ public:
     void SetSelectionManager(FSelectionManager* InSelectionManager);
 
     UGizmoComponent* GetGizmo() { return Gizmo; }
+    FViewportInputRouter& GetInputRouter() { return InputRouter; }
+    const FViewportInputRouter& GetInputRouter() const { return InputRouter; }
 
     void SetViewportSize(float InWidth, float InHeight) override;
 
@@ -96,7 +98,6 @@ public:
     POINT GetPendingActorPlacementPopupPos() const { return PendingActorPlacementPopupPos; }
     void ClearPendingActorPlacement() { bPendingActorPlacement = false; }
 
-    void LockCursorToViewport();
     void SetEndPIECallback(std::function<void()> Callback) { InputRouter.GetPIEController().SetEndPIECallback(std::move(Callback)); }
     void ClearEndPIECallback() { InputRouter.GetPIEController().ClearEndPIECallback(); }
 

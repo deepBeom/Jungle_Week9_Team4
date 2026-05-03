@@ -36,7 +36,6 @@ public:
     void SetZoomSpeed(float InSpeed) { ZoomSpeed = InSpeed; }
 
 private:
-    void TickCursorCapture();
     void TickMouseInput();
     void TickKeyboardInput(float DeltaTime);
     void TickEditorShortcuts();
