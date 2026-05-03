@@ -1,9 +1,10 @@
-﻿#include "Game/GameEngine.h"
+#include "Game/GameEngine.h"
 #include "Game/GameViewportClient.h"
 #include "Game/GameRenderPipeline.h"
 #include "Core/Paths.h"
 #include "Engine/Component/Script/ScriptComponent.h"
 #include "Engine/GameFramework/World.h"
+#include "Engine/Input/InputSystem.h"
 #include "Serialization/SceneSaveManager.h"
 
 #include <filesystem>
@@ -60,8 +61,11 @@ void UGameEngine::CreateLogoHud()
 
 void UGameEngine::Tick(float DeltaTime)
 {
-    ViewportClient.Tick(DeltaTime);
-    UEngine::Tick(DeltaTime);
+	InputSystem::Get().Tick();
+	ViewportClient.Tick(DeltaTime);
+	WorldTick(DeltaTime);
+	++FrameCounter;
+	Render(DeltaTime);
 }
 
 void UGameEngine::OnWindowResized(uint32 Width, uint32 Height)

@@ -2,6 +2,7 @@
 #include "Object/Object.h"
 #include "Object/ObjectFactory.h"
 #include "Component/SceneComponent.h"
+#include "Core/ActorTags.h"
 #include "Engine/GameFramework/WorldContext.h"
 
 #include <type_traits>
@@ -54,6 +55,10 @@ public:
 
     bool IsActive() const { return bIsActive ; }
     void SetActive(bool bEnabled) { bIsActive = bEnabled; }
+
+    const FString& GetTag() const { return ActorTag; }
+    void SetTag(const FString& InTag) { ActorTag = ActorTags::Normalize(InTag); }
+    bool CompareTag(const FString& InTag) const { return ActorTag == InTag; }
 
     bool ShouldTickInEditor() const { return bTickInEditor; }
     void SetTickInEditor(bool bEnabled)  { bTickInEditor = bEnabled; }
@@ -135,6 +140,7 @@ protected:
     bool bVisible = true;
     bool bIsActive = true;
     bool bTickInEditor = false;
+    FString ActorTag = ActorTags::Untagged;
     bool bPendingDestroy = false;
     bool bBeingDestroyed = false;
     bool bHasBegunPlay = false;

@@ -1,10 +1,11 @@
-﻿#include "Editor/EditorEngine.h"
+#include "Editor/EditorEngine.h"
 
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Slate/SlateApplication.h"
 #include "Engine/Input/InputSystem.h"
 #include "GameFramework/World.h"
 #include "Editor/EditorRenderPipeline.h"
+#include "Engine/Core/SoundManager.h"
 #include "Slate/SSplitterV.h"
 #include "Slate/SSplitterH.h"
 #include "Settings/EditorSettings.h"
@@ -72,6 +73,7 @@ void UEditorEngine::OnWindowResized(uint32 Width, uint32 Height)
 void UEditorEngine::Tick(float DeltaTime)
 {
     InputSystem::Get().Tick();
+    FSoundManager::Get().Update();
     ViewportLayout.Tick(DeltaTime);
     MainPanel.Update();
     WorldTick(DeltaTime);
@@ -143,8 +145,6 @@ void UEditorEngine::StartPlaySession()
     FocusedClient->StartPIE(PIEWorld);
     FocusedClient->SetEndPIECallback([this]() { StopPlaySession(); });
 
-    FocusedClient->LockCursorToViewport();
-    InputSystem::Get().SetCursorVisibility(false);
     SelectionManager.ClearSelection();
 
     PIEWorld->SetActiveCamera(FocusedClient->GetCamera());

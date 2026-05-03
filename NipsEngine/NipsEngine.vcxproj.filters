@@ -67,12 +67,6 @@
     <Filter Include="Source\Engine\Input">
       <UniqueIdentifier>{8c6fa399-133c-c7dc-8f7f-aef811a985ad}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Engine\Input\Controller">
-      <UniqueIdentifier>{06afad98-66f8-abab-e678-aa97a77e0066}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Engine\Input\Controller\EditorController">
-      <UniqueIdentifier>{91ce1396-52b5-8f7a-ca50-e7701f87b985}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Engine\Math">
       <UniqueIdentifier>{1f95424e-78f3-3176-c345-9ebb635ae099}</UniqueIdentifier>
     </Filter>
@@ -138,6 +132,12 @@
     </Filter>
     <Filter Include="ThirdParty\Lua">
       <UniqueIdentifier>{64e563cf-7dfc-46c1-9027-1fc9df3ff76a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Editor\Input">
+      <UniqueIdentifier>{284c01f1-4847-4861-a45f-9921cb13ccb5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Viewport">
+      <UniqueIdentifier>{23836df7-9d90-4612-9cb5-db33999b4357}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -297,9 +297,6 @@
       <Filter>Source\Editor\Viewport</Filter>
     </ClCompile>
     <ClCompile Include="Source\Editor\Viewport\FSceneViewport.cpp">
-      <Filter>Source\Editor\Viewport</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Viewport\ViewportCamera.cpp">
       <Filter>Source\Editor\Viewport</Filter>
     </ClCompile>
     <ClCompile Include="Source\Editor\Viewport\ViewportLayout.cpp">
@@ -464,21 +461,6 @@
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp">
       <Filter>Source\Engine\Input</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Input\Controller\ViewportInputController.cpp">
-      <Filter>Source\Engine\Input\Controller</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.cpp">
-      <Filter>Source\Engine\Input\Controller\EditorController</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Input\Controller\EditorController\EditorWorldController.cpp">
-      <Filter>Source\Engine\Input\Controller\EditorController</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Input\Controller\EditorController\PIEController.cpp">
-      <Filter>Source\Engine\Input\Controller\EditorController</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Game\GameCameraController.cpp">
-      <Filter>Source\Game</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Math\Color.cpp">
       <Filter>Source\Engine\Math</Filter>
     </ClCompile>
@@ -558,9 +540,6 @@
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\DepthPrepassRenderPass.cpp">
-      <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\EditorRenderPass.cpp">
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\FXAARenderPass.cpp">
@@ -856,8 +835,25 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\SoundManager.cpp" />
     <ClCompile Include="Source\Engine\Collision\CollisionSystem.cpp" />
-    <ClCompile Include="Source\Engine\Component\ObjectTypeComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
+    <ClCompile Include="Source\Editor\Input\EditorController.cpp">
+      <Filter>Source\Editor\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\Input\PIEController.cpp">
+      <Filter>Source\Editor\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Input\ViewportInputRouter.cpp">
+      <Filter>Source\Engine\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\LineBatchRenderPass.cpp">
+      <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Viewport\ViewportCamera.cpp">
+      <Filter>Source\Engine\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Input\GameInputController.cpp">
+      <Filter>Source\Engine\Input</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\UI\UIManager.cpp" />
     <ClCompile Include="Source\Engine\UI\UIElement.cpp" />
     <ClCompile Include="Source\Engine\Render\UIBatcher.cpp" />
@@ -925,9 +921,6 @@
       <Filter>Source\Editor\Viewport</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Viewport\SEditorViewport.h">
-      <Filter>Source\Editor\Viewport</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Viewport\ViewportCamera.h">
       <Filter>Source\Editor\Viewport</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Viewport\ViewportLayout.h">
@@ -1062,6 +1055,9 @@
     <ClInclude Include="Source\Engine\Core\Debug.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Core\ActorTags.h">
+      <Filter>Source\Engine\Core</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Core\EngineTypes.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
@@ -1166,21 +1162,6 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Input\InputSystem.h">
       <Filter>Source\Engine\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Input\Controller\ViewportInputController.h">
-      <Filter>Source\Engine\Input\Controller</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.h">
-      <Filter>Source\Engine\Input\Controller\EditorController</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Input\Controller\EditorController\EditorWorldController.h">
-      <Filter>Source\Engine\Input\Controller\EditorController</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Input\Controller\EditorController\PIEController.h">
-      <Filter>Source\Engine\Input\Controller\EditorController</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Game\GameCameraController.h">
-      <Filter>Source\Game</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Math\Color.h">
       <Filter>Source\Engine\Math</Filter>
@@ -1291,9 +1272,6 @@
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\DepthPrepassRenderPass.h">
-      <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\EditorRenderPass.h">
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\FXAARenderPass.h">
@@ -1622,9 +1600,26 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\SoundManager.h" />
     <ClInclude Include="Source\Engine\Collision\CollisionSystem.h" />
-    <ClInclude Include="Source\Engine\Component\ObjectTypeComponent.h" />
     <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
     <ClInclude Include="Source\Engine\Core\GameObjectTypes.h" />
+    <ClInclude Include="Source\Editor\Input\EditorController.h">
+      <Filter>Source\Editor\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Input\PIEController.h">
+      <Filter>Source\Editor\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Input\ViewportInputRouter.h">
+      <Filter>Source\Engine\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\LineBatchRenderPass.h">
+      <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Viewport\ViewportCamera.h">
+      <Filter>Source\Engine\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Input\GameInputController.h">
+      <Filter>Source\Engine\Input</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\UI\UIManager.h" />
     <ClInclude Include="Source\Engine\UI\UIElement.h" />
     <ClInclude Include="Source\Engine\Render\UIBatcher.h" />

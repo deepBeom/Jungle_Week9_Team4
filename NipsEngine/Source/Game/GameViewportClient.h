@@ -1,11 +1,11 @@
 #pragma once
 
+#include "Engine/Input/ViewportInputRouter.h"
 #include "Engine/Runtime/ViewportClient.h"
-#include "Game/GameCameraController.h"
 #include "Engine/Viewport/ViewportCamera.h"
 
 class UWorld;
-// StandAlone(Shipping) 빌드 전용
+
 class FGameViewportClient : public FViewportClient
 {
 public:
@@ -17,17 +17,16 @@ public:
     virtual void Tick(float DeltaTime) override;
     virtual void BuildSceneView(FSceneView& OutView) const override;
 
-    void SetWorld(UWorld* InWorld) { World = InWorld; }
+    void SetWorld(UWorld* InWorld);
     UWorld* GetWorld() const { return World; }
 
     FViewportCamera& GetCamera() { return Camera; }
 
-	void TickInput(float DeltaTime);
+private:
+    void TickInput(float DeltaTime);
 
 private:
     UWorld* World = nullptr;
     FViewportCamera Camera;
-    FGameCameraController CameraController;
-
-    // TODO: GameInstance, AudioDivice
+    FViewportInputRouter InputRouter;
 };

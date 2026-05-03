@@ -61,6 +61,7 @@ static USceneComponent* DuplicateSubTree(
 
 void AActor::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
 {
+    OutProps.push_back({ "Tag", EPropertyType::String, &ActorTag });
     OutProps.push_back({ "Visible", EPropertyType::Bool, &bVisible });
     OutProps.push_back({ "Active", EPropertyType::Bool, &bIsActive });
     OutProps.push_back({ "Tick In Editor", EPropertyType::Bool, &bTickInEditor });
@@ -123,8 +124,13 @@ void AActor::Serialize(FArchive& Ar)
 {
     Ar.BeginObject(std::to_string(GetUUID()));
     UObject::Serialize(Ar);
+    Ar << "Tag" << ActorTag;
     Ar << "Visible" << bVisible;
     Ar << "Editor Only" << bTickInEditor;
+    if (Ar.IsLoading())
+    {
+        ActorTag = ActorTags::Normalize(ActorTag);
+    }
     Ar.EndObject();
 
     for (UActorComponent* Comp : OwnedComponents)

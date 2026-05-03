@@ -8,6 +8,7 @@
 #include "Object/ActorIterator.h"
 #include "Component/BillboardComponent.h"
 #include "Component/PrimitiveComponent.h"
+#include "Component/ShapeComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/SubUVComponent.h"
 #include "Component/Light/DirectionalLightComponent.h"
@@ -81,8 +82,15 @@ namespace
     bool UsesCameraDependentRenderBounds(const UPrimitiveComponent* PrimitiveComponent);
     FAABB BuildQuadAABB(const FMatrix& WorldMatrix);
     FAABB BuildRenderAABB(const UPrimitiveComponent* PrimitiveComponent, const FRenderBus& RenderBus);
-    void DrawDebugOverlap(FLineBatcher* LineBatcher, const FCollisionDebugContact& Contact);
+	void DrawDebugOverlap(FLineBatcher* LineBatcher, const FCollisionDebugContact& Contact);
 	void DrawDebugContactPoint(FLineBatcher* LineBatcher, const FVector& Location, float Size);
+    void DrawCollectionDebugCircle(UWorld* World, FLineBatcher* LineBatcher);
+
+    bool IsRuntimeDebugShapeVisible(const UPrimitiveComponent* Primitive)
+    {
+        const UShapeComponent* Shape = Cast<UShapeComponent>(Primitive);
+        return Shape && Shape->GetRuntimeDebugVisible();
+    }
 } // namespace
 
 void FRenderCollector::ResetCullingStats()
@@ -176,16 +184,29 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
         // 이미 처리된 컴포넌트, 중복된 컴포넌트는 제외하고 Frustum Culling 수행
         for (UPrimitiveComponent* Primitive : Actor->GetPrimitiveComponents())
         {
-            if (!Primitive || !Primitive->IsVisible())
+            if (!Primitive)
+            {
+                continue;
+            }
+
+            const bool bRuntimeDebugShapeVisible = IsRuntimeDebugShapeVisible(Primitive);
+            if (!Primitive->IsVisible() && !bRuntimeDebugShapeVisible)
                 continue;
 
             ++LastStats.Culling.TotalVisiblePrimitiveCount;
 
             const bool bIsCameraDependent = UsesCameraDependentRenderBounds(Primitive);
-            if (!bIsCameraDependent && Primitive->IsEnableCull() || !CollectCameraDependentPrimitives.insert(Primitive).second)
+            if (!CollectCameraDependentPrimitives.insert(Primitive).second)
+            {
                 continue;
+            }
 
-            if (bIsCameraDependent && Primitive->IsEnableCull())
+            if (!bRuntimeDebugShapeVisible && !bIsCameraDependent && Primitive->IsEnableCull())
+            {
+                continue;
+            }
+
+            if (!bRuntimeDebugShapeVisible && bIsCameraDependent && Primitive->IsEnableCull())
             {
                 if (ViewFrustum->Intersects(BuildRenderAABB(Primitive, RenderBus)) == FFrustum::EFrustumIntersectResult::Outside)
                     continue;
@@ -195,13 +216,15 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
             CollectFromComponent(Primitive, ShowFlags, ViewMode, RenderBus, World->GetWorldType());
         }
     }
-    if (World->GetWorldType() == EWorldType::Editor && ShowFlags.bCollisionDebug && LineBatcher != nullptr)
+    if (ShowFlags.bCollisionDebug && LineBatcher != nullptr)
 	{
 		for (const FCollisionDebugContact& Contact : World->GetCollisionSystem().GetDebugContacts())
 		{
 			DrawDebugOverlap(LineBatcher, Contact);
 		}
 	}
+
+    DrawCollectionDebugCircle(World, LineBatcher);
 }
 
 // ─────────────────── Sub Collects ────────────────────────────────────────────────────────────
@@ -330,6 +353,27 @@ namespace
 			Location + FVector(0.0f, 0.0f, Size),
 			Color);
 	}
+
+    void DrawCollectionDebugCircle(UWorld* World, FLineBatcher* LineBatcher)
+    {
+        if (!World || !LineBatcher || !World->IsCollectionDebugCircleVisible())
+        {
+            return;
+        }
+
+        const float Radius = World->GetCollectionDebugCircleRadius();
+        if (Radius <= 0.0f)
+        {
+            return;
+        }
+
+        LineBatcher->AddCircle(
+            World->GetCollectionDebugCircleCenter(),
+            FVector::ForwardVector,
+            FVector::RightVector,
+            Radius,
+            World->GetCollectionDebugCircleColor().ToVector4());
+    }
 
     FMatrix MakeViewSubUVSelectionMatrix(const USubUVComponent* SubUVComp, const FRenderBus& RenderBus)
     {

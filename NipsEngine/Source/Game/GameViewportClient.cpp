@@ -1,27 +1,31 @@
-﻿#include "Game/GameViewportClient.h"
+#include "Game/GameViewportClient.h"
+
 #include "Engine/GameFramework/World.h"
 #include "Engine/Runtime/SceneView.h"
-#include "Engine/Input/InputSystem.h"
 
 void FGameViewportClient::Initialize(FWindowsWindow* InWindow)
 {
-	FViewportClient::Initialize(InWindow);
-	Camera = FViewportCamera();
-    CameraController.SetCamera(&Camera);
-    CameraController.SetViewportDim(0.f, 0.f, WindowWidth, WindowHeight);
+    FViewportClient::Initialize(InWindow);
+
+    Camera = FViewportCamera();
     Camera.OnResize(static_cast<uint32>(WindowWidth), static_cast<uint32>(WindowHeight));
+
+    InputRouter.SetMode(EViewportInputMode::Standalone);
+    InputRouter.GetGameInputController().SetWindow(InWindow);
+    InputRouter.GetGameInputController().SetCamera(&Camera);
+    InputRouter.GetGameInputController().SetViewportRect(0.0f, 0.0f, WindowWidth, WindowHeight);
 }
 
 void FGameViewportClient::SetViewportSize(float InWidth, float InHeight)
 {
     FViewportClient::SetViewportSize(InWidth, InHeight);
     Camera.OnResize(static_cast<uint32>(WindowWidth), static_cast<uint32>(WindowHeight));
-    CameraController.SetViewportDim(0.f, 0.f, WindowWidth, WindowHeight);
+    InputRouter.GetGameInputController().SetViewportRect(0.0f, 0.0f, WindowWidth, WindowHeight);
 }
 
 void FGameViewportClient::Tick(float DeltaTime)
 {
-	TickInput(DeltaTime);
+    TickInput(DeltaTime);
 }
 
 void FGameViewportClient::BuildSceneView(FSceneView& OutView) const
@@ -43,31 +47,18 @@ void FGameViewportClient::BuildSceneView(FSceneView& OutView) const
     OutView.ViewMode = EViewMode::Lit;
 }
 
+void FGameViewportClient::SetWorld(UWorld* InWorld)
+{
+    World = InWorld;
+    InputRouter.GetGameInputController().SetWorld(InWorld);
+
+    if (World)
+    {
+        World->SetActiveCamera(&Camera);
+    }
+}
+
 void FGameViewportClient::TickInput(float DeltaTime)
 {
-    InputSystem& IS = InputSystem::Get();
-
-    constexpr int MoveKeys[] = {'W', 'S', 'A', 'D', 'Q', 'E'};
-    for (int VK : MoveKeys)
-    {
-        if (IS.GetKeyDown(VK))
-        {
-            CameraController.OnKeyPressed(VK);
-        }
-        if (IS.GetKey(VK))
-        {
-            CameraController.OnKeyDown(VK);
-        }
-        if (IS.GetKeyUp(VK))
-        {
-            CameraController.OnKeyReleased(VK);
-        }
-    }
-
-    if (IS.MouseMoved())
-    {
-        CameraController.OnMouseMove(static_cast<float>(IS.MouseDeltaX()), static_cast<float>(IS.MouseDeltaY()));
-    }
-
-    CameraController.Tick(DeltaTime);
+    InputRouter.Tick(DeltaTime);
 }

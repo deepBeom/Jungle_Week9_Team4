@@ -2,6 +2,7 @@
 
 #include "Editor/EditorEngine.h"
 #include "ImGui/imgui.h"
+#include "Core/ActorTags.h"
 #include "Core/PropertyTypes.h"
 #include "Math/Color.h"
 #include "Core/ResourceManager.h"
@@ -13,6 +14,7 @@
 
 #include "GameFramework/Actor.h"
 #include "Component/StaticMeshComponent.h"
+#include "Component/ShapeComponent.h"
 #include "Component/GizmoComponent.h"
 #include "Component/Script/ScriptComponent.h"
 #include "Component/Light/LightComponent.h"
@@ -50,6 +52,7 @@ namespace
 
     // ─────────────────── Helper ───────────────────────────
     int32 ExtractActorID(const AActor* Actor);
+    UStaticMeshComponent* FindFirstStaticMeshComponent(AActor* Actor);
 
     TArray<FString> GetStringPropertyOptions(uint32 PropNameId, UEditorEngine* EditorEngine)
     {
@@ -189,7 +192,7 @@ void FEditorPropertyWidget::RenderActorHeaderRegion(AActor* PrimaryActor, const 
     }
     else
     {
-        RenderSingleSelectionHeader(PrimaryActor);
+        RenderSingleSelectionHeader(PrimaryActor, SelectedActors);
     }
 }
 
@@ -214,6 +217,8 @@ void FEditorPropertyWidget::RenderMultiSelectionHeader(AActor* PrimaryActor, con
         SelectedComponent = nullptr;
     }
 
+    RenderActorTagWidget(PrimaryActor, SelectedActors);
+
     ImGui::SameLine();
     char RemoveLabel[64];
     snprintf(RemoveLabel, sizeof(RemoveLabel), "Remove %d Objects", SelectionCount);
@@ -231,7 +236,7 @@ void FEditorPropertyWidget::RenderMultiSelectionHeader(AActor* PrimaryActor, con
 }
 
 // 단일 액터의 이름 표시와 새로운 컴포넌트를 추가할 수 있는 버튼을 렌더링합니다.
-void FEditorPropertyWidget::RenderSingleSelectionHeader(AActor* PrimaryActor)
+void FEditorPropertyWidget::RenderSingleSelectionHeader(AActor* PrimaryActor, const TArray<AActor*>& SelectedActors)
 {
     // SelectedComponent가 아직 설정되지 않은 경우 루트로 초기화
     if (SelectedComponent == nullptr)
@@ -249,6 +254,8 @@ void FEditorPropertyWidget::RenderSingleSelectionHeader(AActor* PrimaryActor)
 	if (bWasActorSelected)
 		ImGui::PopStyleColor();
 
+    RenderActorTagWidget(PrimaryActor, SelectedActors);
+
 	ImGui::Text("Component: %s", SelectedComponent ? SelectedComponent->GetTypeInfo()->name : "None");
 
 	ImGui::SameLine();
@@ -263,6 +270,26 @@ void FEditorPropertyWidget::RenderSingleSelectionHeader(AActor* PrimaryActor)
 
     ImGui::Spacing();
     RenderAddComponentPopup(PrimaryActor);
+}
+
+void FEditorPropertyWidget::RenderActorTagWidget(AActor* PrimaryActor, const TArray<AActor*>& SelectedActors)
+{
+    if (!PrimaryActor)
+    {
+        return;
+    }
+
+    FString CurrentTag = PrimaryActor->GetTag();
+    if (EditorUIUtils::RenderStringComboOrInput("Tag", CurrentTag, ActorTags::GetBuiltinTags()))
+    {
+        for (AActor* Actor : SelectedActors)
+        {
+            if (Actor)
+            {
+                Actor->SetTag(CurrentTag);
+            }
+        }
+    }
 }
 
 // 클릭 시 액터에 추가 가능한 컴포넌트 목록을 팝업 형태로 보여줍니다.
@@ -619,6 +646,29 @@ void FEditorPropertyWidget::RenderComponentProperties()
 		VisualizeShadowMap(LightComp, EditorEngine);
 	}
 
+	if (UShapeComponent* ShapeComp = Cast<UShapeComponent>(SelectedComponent))
+	{
+		UStaticMeshComponent* MeshComp = FindFirstStaticMeshComponent(Owner);
+		SEPARATOR();
+		if (MeshComp == nullptr)
+		{
+			ImGui::BeginDisabled();
+		}
+
+		if (ImGui::Button("Fit To StaticMesh", ImVec2(-1, 0)) && MeshComp)
+		{
+			if (ShapeComp->FitToStaticMesh(MeshComp))
+			{
+				SelectionManager->GetGizmo()->UpdateGizmoTransform();
+			}
+		}
+
+		if (MeshComp == nullptr)
+		{
+			ImGui::EndDisabled();
+		}
+	}
+
 	ImGui::Separator();
 
 	// 변경이 있을 경우에만 월드 행렬 갱신
@@ -837,7 +887,14 @@ void FEditorPropertyWidget::AttachAndSelectNewComponent(AActor* PrimaryActor, UA
 		return;
 
 	USceneComponent* AttachTarget = nullptr;
-	if (SelectedComponent && SelectedComponent->IsA<USceneComponent>())
+	UShapeComponent* ShapeComp = Cast<UShapeComponent>(NewComp);
+	UStaticMeshComponent* MeshComp = ShapeComp ? FindFirstStaticMeshComponent(PrimaryActor) : nullptr;
+
+	if (ShapeComp && MeshComp)
+	{
+		AttachTarget = MeshComp;
+	}
+	else if (SelectedComponent && SelectedComponent->IsA<USceneComponent>())
 	{
 		AttachTarget = static_cast<USceneComponent*>(SelectedComponent);
 	}
@@ -857,6 +914,11 @@ void FEditorPropertyWidget::AttachAndSelectNewComponent(AActor* PrimaryActor, UA
 	{
 		if (AttachTarget)
 			MoveComp->SetUpdatedComponent(AttachTarget);
+	}
+
+	if (ShapeComp && MeshComp)
+	{
+		ShapeComp->FitToStaticMesh(MeshComp);
 	}
 
 	SelectedComponent = NewComp;
@@ -1067,6 +1129,29 @@ namespace
 		}
 
 		return Result;
+	}
+
+	UStaticMeshComponent* FindFirstStaticMeshComponent(AActor* Actor)
+	{
+		if (Actor == nullptr)
+		{
+			return nullptr;
+		}
+
+		if (UStaticMeshComponent* RootMesh = Cast<UStaticMeshComponent>(Actor->GetRootComponent()))
+		{
+			return RootMesh;
+		}
+
+		for (UActorComponent* Comp : Actor->GetComponents())
+		{
+			if (UStaticMeshComponent* MeshComp = Cast<UStaticMeshComponent>(Comp))
+			{
+				return MeshComp;
+			}
+		}
+
+		return nullptr;
 	}
 }
 

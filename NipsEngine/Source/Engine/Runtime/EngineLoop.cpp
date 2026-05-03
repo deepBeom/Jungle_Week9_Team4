@@ -1,6 +1,8 @@
-﻿#include "Engine/Runtime/EngineLoop.h"
+#include "Engine/Runtime/EngineLoop.h"
 
+#if WITH_EDITOR
 #include "Editor/EditorEngine.h"
+#endif
 #include "Game/GameEngine.h"
 
 void FEngineLoop::CreateEngine()

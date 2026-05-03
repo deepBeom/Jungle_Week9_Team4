@@ -13,8 +13,6 @@
 #include "Component/TextRenderComponent.h"
 #include "Engine/Core/SoundManager.h"
 
-#include "Component/ObjectTypeComponent.h"
-
 DEFINE_CLASS(ASceneActor, AActor)
 REGISTER_FACTORY(ASceneActor)
 
@@ -70,8 +68,6 @@ void AStaticMeshActor::InitDefaultComponents()
 {
     auto* StaticMesh = AddComponent<UStaticMeshComponent>();
     SetRootComponent(StaticMesh);
-
-    AddComponent<UObjectTypeComponent>();
 }
 
 void AStaticMeshActor::BeginPlay()
@@ -85,13 +81,12 @@ void AStaticMeshActor::BeginPlay()
 
         ShapeComp->SetGenerateOverlapEvents(true);
 
-        // 외부 싱글턴 호출은 Add
-        ShapeComp->OnHit.Add([](const FCollisionEvent& Event)
+        // 기본 StaticMeshActor 테스트 사운드는 blocking hit가 아니라 overlap 진입 시점에 재생합니다.
+        ShapeComp->OnComponentBeginOverlap.Add([](const FCollisionEvent& Event)
             {
+                (void)Event;
                 FSoundManager::Get().PlaySFX("Click.wav");
             });
-
-
     }
 }
 

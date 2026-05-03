@@ -23,7 +23,7 @@
 #include "Slate/SSplitterH.h"
 #include "Slate/SSplitterCross.h"
 
-#include "Viewport/ViewportLayout.h"
+#include "Editor/Viewport/ViewportLayout.h"
 
 #include "Input/InputSystem.h"
 
