@@ -1,4 +1,4 @@
-﻿#include "Editor/EditorEngine.h"
+#include "Editor/EditorEngine.h"
 
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Slate/SlateApplication.h"
@@ -145,8 +145,6 @@ void UEditorEngine::StartPlaySession()
     FocusedClient->StartPIE(PIEWorld);
     FocusedClient->SetEndPIECallback([this]() { StopPlaySession(); });
 
-    FocusedClient->LockCursorToViewport();
-    InputSystem::Get().SetCursorVisibility(false);
     SelectionManager.ClearSelection();
 
     PIEWorld->SetActiveCamera(FocusedClient->GetCamera());

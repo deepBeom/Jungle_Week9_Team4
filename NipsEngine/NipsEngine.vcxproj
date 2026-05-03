@@ -125,7 +125,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;.;$(IncludePath)</IncludePath>
+    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
@@ -146,7 +146,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Shipping|Win32'">
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
+    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;.;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
@@ -175,7 +175,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Shipping|x64'">
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;$(ProjectDir)ThirdParty\FMOD\inc;Source\Editor;.;$(IncludePath)</IncludePath>
+    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\ImGui;$(ProjectDir)ThirdParty\FMOD\inc;.;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)ThirdParty\FMOD\lib\x64;$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
@@ -518,20 +518,16 @@
     <ClCompile Include="Source\Engine\Geometry\Plane.cpp" />
     <ClCompile Include="Source\Engine\Geometry\Transform.cpp" />
     <ClCompile Include="Source\Engine\Input\InputSystem.cpp" />
-    <ClCompile Include="Source\Engine\Input\Controller\ViewportInputController.cpp" />
-    <ClCompile Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.cpp">
+    <ClCompile Include="Source\Engine\Input\ViewportInputRouter.cpp" />
+    <ClCompile Include="Source\Engine\Input\GameInputController.cpp" />
+    <ClCompile Include="Source\Editor\Input\EditorController.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ShippingDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Shipping|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Input\Controller\EditorController\EditorWorldController.cpp">
+    <ClCompile Include="Source\Editor\Input\PIEController.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ShippingDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Shipping|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Input\Controller\EditorController\PIEController.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ShippingDebug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Shipping|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="Source\Game\GameCameraController.cpp" />
     <ClCompile Include="Source\Engine\Math\Color.cpp" />
     <ClCompile Include="Source\Engine\Math\Matrix.cpp" />
     <ClCompile Include="Source\Engine\Math\Quat.cpp" />
@@ -873,11 +869,10 @@
     <ClInclude Include="Source\Engine\Geometry\Transform.h" />
     <ClInclude Include="Source\Engine\Geometry\Triangle.h" />
     <ClInclude Include="Source\Engine\Input\InputSystem.h" />
-    <ClInclude Include="Source\Engine\Input\Controller\ViewportInputController.h" />
-    <ClInclude Include="Source\Engine\Input\Controller\EditorController\EditorInputRouter.h" />
-    <ClInclude Include="Source\Engine\Input\Controller\EditorController\EditorWorldController.h" />
-    <ClInclude Include="Source\Engine\Input\Controller\EditorController\PIEController.h" />
-    <ClInclude Include="Source\Game\GameCameraController.h" />
+    <ClInclude Include="Source\Engine\Input\ViewportInputRouter.h" />
+    <ClInclude Include="Source\Engine\Input\GameInputController.h" />
+    <ClInclude Include="Source\Editor\Input\EditorController.h" />
+    <ClInclude Include="Source\Editor\Input\PIEController.h" />
     <ClInclude Include="Source\Engine\Math\Color.h" />
     <ClInclude Include="Source\Engine\Math\Edge.h" />
     <ClInclude Include="Source\Engine\Math\Matrix.h" />
