@@ -13,6 +13,7 @@
 #include "Render/Resource/Buffer.h"
 #include "Render/Resource/RenderResources.h"
 #include "Render/LineBatcher.h"
+#include "Render/RingBatcher.h"
 #include "Render/FontBatcher.h"
 #include "Render/SubUVBatcher.h"
 
@@ -129,6 +130,7 @@ public:
     FD3DDevice& GetFD3DDevice() { return Device; }
     FRenderResources& GetResources() { return Resources; }
     FLineBatcher& GetDebugLineBatcher() { return DebugLineBatcher; }
+    FRingBatcher& GetDebugRingBatcher() { return DebugRingBatcher; }
 
     const ID3D11RenderTargetView*   GetCurrentSceneRTV() const { return SceneFinalRTV.Get(); }
     const ID3D11ShaderResourceView* GetCurrentSceneSRV() const { return SceneFinalSRV.Get(); }
@@ -148,6 +150,7 @@ private:
     FRenderTargetSet* CurrentRenderTargets = nullptr;
     FRenderResources Resources;
     FLineBatcher   DebugLineBatcher;
+    FRingBatcher   DebugRingBatcher;
     FLineBatcher   GridLineBatcher;
     FFontBatcher   FontBatcher;
     FSubUVBatcher  SubUVBatcher;
@@ -195,6 +198,14 @@ private:
         { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,       0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0,  8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 16, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    };
+
+    D3D11_INPUT_ELEMENT_DESC RingVertexInputLayout[4] =
+    {
+        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, static_cast<uint32>(offsetof(FRingVertex, Position)),      D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<uint32>(offsetof(FRingVertex, Color)),         D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, static_cast<uint32>(offsetof(FRingVertex, LocalPosition)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT,       0, static_cast<uint32>(offsetof(FRingVertex, Radius)),        D3D11_INPUT_PER_VERTEX_DATA, 0 },
     };
 
     D3D11_INPUT_ELEMENT_DESC DepthPrepassInputLayout[1] =

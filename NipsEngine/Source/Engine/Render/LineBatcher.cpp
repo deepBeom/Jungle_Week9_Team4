@@ -171,7 +171,6 @@ void FLineBatcher::Create(ID3D11Device* InDevice)
 
     MaxIndexedVertexCount = 512;
     MaxIndexCount = 1536;
-
     if (!CreateDynamicBuffer(Device.Get(), sizeof(FLineVertex) * MaxIndexedVertexCount, D3D11_BIND_VERTEX_BUFFER, IndexedVertexBuffer) ||
         !CreateDynamicBuffer(Device.Get(), sizeof(uint32) * MaxIndexCount, D3D11_BIND_INDEX_BUFFER, IndexBuffer))
     {
@@ -418,58 +417,62 @@ void FLineBatcher::Flush(ID3D11DeviceContext* Context, const FRenderBus* RenderB
 
     const uint32 RequiredIndexedVertexCount = static_cast<uint32>(IndexedVertices.size());
     const uint32 RequiredIndexCount = static_cast<uint32>(Indices.size());
-    if (RequiredIndexedVertexCount == 0 || RequiredIndexCount == 0)
+
+    const bool bHasLines = RequiredIndexedVertexCount > 0 && RequiredIndexCount > 0;
+    if (!bHasLines)
     {
         return;
     }
-
-    if (!IndexedVertexBuffer || RequiredIndexedVertexCount > MaxIndexedVertexCount)
-    {
-        MaxIndexedVertexCount = RequiredIndexedVertexCount * 2;
-        if (!CreateDynamicBuffer(Device.Get(), sizeof(FLineVertex) * MaxIndexedVertexCount, D3D11_BIND_VERTEX_BUFFER, IndexedVertexBuffer))
-        {
-            MaxIndexedVertexCount = 0;
-            return;
-        }
-    }
-
-    if (!IndexBuffer || RequiredIndexCount > MaxIndexCount)
-    {
-        MaxIndexCount = RequiredIndexCount * 2;
-        if (!CreateDynamicBuffer(Device.Get(), sizeof(uint32) * MaxIndexCount, D3D11_BIND_INDEX_BUFFER, IndexBuffer))
-        {
-            MaxIndexCount = 0;
-            return;
-        }
-    }
-
-    D3D11_MAPPED_SUBRESOURCE MappedResource = {};
-    if (FAILED(Context->Map(IndexedVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource)))
-    {
-        return;
-    }
-
-    memcpy(MappedResource.pData, IndexedVertices.data(), sizeof(FLineVertex) * RequiredIndexedVertexCount);
-    Context->Unmap(IndexedVertexBuffer.Get(), 0);
-
-    if (FAILED(Context->Map(IndexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource)))
-    {
-        return;
-    }
-
-    memcpy(MappedResource.pData, Indices.data(), sizeof(uint32) * RequiredIndexCount);
-    Context->Unmap(IndexBuffer.Get(), 0);
 
     Material->Bind(Context, RenderBus);
 
     UINT Stride = sizeof(FLineVertex);
     UINT Offset = 0;
-    ID3D11Buffer* VertexBufferPtr = IndexedVertexBuffer.Get();
-    ID3D11Buffer* IndexBufferPtr = IndexBuffer.Get();
-    Context->IASetVertexBuffers(0, 1, &VertexBufferPtr, &Stride, &Offset);
-    Context->IASetIndexBuffer(IndexBufferPtr, DXGI_FORMAT_R32_UINT, 0);
-    Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-    Context->DrawIndexed(RequiredIndexCount, 0, 0);
+    D3D11_MAPPED_SUBRESOURCE MappedResource = {};
+
+    if (bHasLines)
+    {
+        if (!IndexedVertexBuffer || RequiredIndexedVertexCount > MaxIndexedVertexCount)
+        {
+            MaxIndexedVertexCount = RequiredIndexedVertexCount * 2;
+            if (!CreateDynamicBuffer(Device.Get(), sizeof(FLineVertex) * MaxIndexedVertexCount, D3D11_BIND_VERTEX_BUFFER, IndexedVertexBuffer))
+            {
+                MaxIndexedVertexCount = 0;
+                return;
+            }
+        }
+
+        if (!IndexBuffer || RequiredIndexCount > MaxIndexCount)
+        {
+            MaxIndexCount = RequiredIndexCount * 2;
+            if (!CreateDynamicBuffer(Device.Get(), sizeof(uint32) * MaxIndexCount, D3D11_BIND_INDEX_BUFFER, IndexBuffer))
+            {
+                MaxIndexCount = 0;
+                return;
+            }
+        }
+
+        if (FAILED(Context->Map(IndexedVertexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource)))
+        {
+            return;
+        }
+        memcpy(MappedResource.pData, IndexedVertices.data(), sizeof(FLineVertex) * RequiredIndexedVertexCount);
+        Context->Unmap(IndexedVertexBuffer.Get(), 0);
+
+        if (FAILED(Context->Map(IndexBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &MappedResource)))
+        {
+            return;
+        }
+        memcpy(MappedResource.pData, Indices.data(), sizeof(uint32) * RequiredIndexCount);
+        Context->Unmap(IndexBuffer.Get(), 0);
+
+        ID3D11Buffer* VertexBufferPtr = IndexedVertexBuffer.Get();
+        ID3D11Buffer* IndexBufferPtr = IndexBuffer.Get();
+        Context->IASetVertexBuffers(0, 1, &VertexBufferPtr, &Stride, &Offset);
+        Context->IASetIndexBuffer(IndexBufferPtr, DXGI_FORMAT_R32_UINT, 0);
+        Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+        Context->DrawIndexed(RequiredIndexCount, 0, 0);
+    }
 }
 
 uint32 FLineBatcher::GetLineCount() const

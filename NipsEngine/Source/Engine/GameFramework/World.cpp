@@ -82,6 +82,7 @@ void UWorld::Tick(float DeltaTime)
     if (WorldType == EWorldType::PIE || WorldType == EWorldType::Game)
     {
         CollisionSystem.Tick(this, DeltaTime);
+        CollectionSystem.Tick(this, DeltaTime);
     }
     FlushPendingDestroyActors();
     SyncSpatialIndex();

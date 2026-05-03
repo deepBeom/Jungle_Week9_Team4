@@ -1,5 +1,6 @@
 #include "LineBatchRenderPass.h"
 #include "Render/LineBatcher.h"
+#include "Render/RingBatcher.h"
 
 bool FLineBatchRenderPass::Initialize()
 {
@@ -28,12 +29,22 @@ bool FLineBatchRenderPass::Begin(const FRenderPassContext* Context)
 
 bool FLineBatchRenderPass::DrawCommand(const FRenderPassContext* Context)
 {
-    if (Context->DebugLineBatcher == nullptr)
+    // 잠시 Pass 좀 빌리겠습니다~
+    if (Context->DebugLineBatcher == nullptr && Context->DebugRingBatcher == nullptr)
     {
         return true;
     }
 
-    Context->DebugLineBatcher->Flush(Context->DeviceContext, Context->RenderBus);
+    if (Context->DebugLineBatcher != nullptr)
+    {
+        Context->DebugLineBatcher->Flush(Context->DeviceContext, Context->RenderBus);
+    }
+
+    if (Context->DebugRingBatcher != nullptr)
+    {
+        Context->DebugRingBatcher->Flush(Context->DeviceContext, Context->RenderBus);
+    }
+
     return true;
 }
 

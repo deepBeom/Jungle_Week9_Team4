@@ -16,6 +16,7 @@ class AActor;
 class UPrimitiveComponent;
 class UGizmoComponent;
 class FLineBatcher;
+class FRingBatcher;
 struct FFrustum;
 
 class FRenderCollector {
@@ -25,13 +26,16 @@ private:
     FOverlayRenderCollector OverlayRenderCollector;
     FPrimitiveRenderCollector PrimitiveRenderCollector;
     FLineBatcher* LineBatcher = nullptr;
+    FRingBatcher* RingBatcher = nullptr;
 
     // ────── Initialize & Release ─────────────────────────────────────────────
 public:
     void Initialize(ID3D11Device* InDevice);
     void Release();
     void SetLineBatcher(FLineBatcher* InLineBatcher) { LineBatcher = InLineBatcher; }
+    void SetRingBatcher(FRingBatcher* InRingBatcher) { RingBatcher = InRingBatcher; }
     void ClearLineBatcher() { LineBatcher = nullptr; }
+    void ClearRingBatcher() { RingBatcher = nullptr; }
 
     // ────── Main Collects ────────────────────────────────────────────────────
 public:

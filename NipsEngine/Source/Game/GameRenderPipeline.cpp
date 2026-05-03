@@ -44,7 +44,9 @@ void FGameRenderPipeline::RenderViewport(FRenderer& Renderer)
     const FFrustum& ViewFrustum = SceneView.CameraFrustum;
 
     Renderer.GetDebugLineBatcher().Clear();
+    Renderer.GetDebugRingBatcher().Clear();
     Collector.SetLineBatcher(&Renderer.GetDebugLineBatcher());
+    Collector.SetRingBatcher(&Renderer.GetDebugRingBatcher());
     Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum);
 
     Renderer.PrepareBatchers(Bus);

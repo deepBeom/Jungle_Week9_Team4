@@ -54,6 +54,7 @@ void FRenderer::Create(HWND hWindow)
     FResourceManager::Get().LoadShader("Shaders/ShaderUI.hlsl",     "VS", "PS", UIVertexInputLayout,      ARRAYSIZE(UIVertexInputLayout),      nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/PresentPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderLine.hlsl", "mainVS", "mainPS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout), nullptr);
+    FResourceManager::Get().LoadShader("Shaders/ShaderRing.hlsl", "mainVS", "mainPS", RingVertexInputLayout, ARRAYSIZE(RingVertexInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderGrid.hlsl", "GridVS", "GridPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderAxis.hlsl", "VS", "PS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderBillboard.hlsl", "mainVS", "mainPS", TextureVertexInputLayout, ARRAYSIZE(TextureVertexInputLayout), nullptr);
@@ -72,6 +73,7 @@ void FRenderer::CreateResources()
     FMeshManager::Initialize();
 
     DebugLineBatcher.Create(Device.GetDevice());
+    DebugRingBatcher.Create(Device.GetDevice());
     GridLineBatcher.Create(Device.GetDevice());
 
     // 텍스처는 ResourceManager가 소유 — Batcher 는 셰이더/버퍼만 초기화
@@ -108,6 +110,7 @@ void FRenderer::Release()
     FGPUProfiler::Get().Shutdown();
 
     DebugLineBatcher.Release();
+    DebugRingBatcher.Release();
     GridLineBatcher.Release();
     FontBatcher.Release();
     SubUVBatcher.Release();
@@ -334,6 +337,7 @@ void FRenderer::Render(const FRenderBus& InRenderBus)
     RenderPassContext->GridLineBatcher = &GridLineBatcher;
     RenderPassContext->UIManager = &FUIManager::Get();
     RenderPassContext->DebugLineBatcher = &DebugLineBatcher;
+    RenderPassContext->DebugRingBatcher = &DebugRingBatcher;
     UpdateSceneLightBuffer(InRenderBus);
 
     // UI 배처 업데이트 — Element 트리를 순회해 버텍스 누적 (Flush는 UIRenderPass에서)

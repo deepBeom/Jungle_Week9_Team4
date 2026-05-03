@@ -1,8 +1,10 @@
 ﻿#include "RenderCollector.h"
 
 #include "Render/LineBatcher.h"
+#include "Render/RingBatcher.h"
 #include "Collision/CollisionSystem.h"
 #include "Render/Renderer/RenderFlow/ShadowAtlasManager.h"
+#include "DriftSalvage/CollectionSystem.h"
 #include "GameFramework/World.h"
 #include "GameFramework/Actor.h"
 #include "Object/ActorIterator.h"
@@ -84,7 +86,7 @@ namespace
     FAABB BuildRenderAABB(const UPrimitiveComponent* PrimitiveComponent, const FRenderBus& RenderBus);
 	void DrawDebugOverlap(FLineBatcher* LineBatcher, const FCollisionDebugContact& Contact);
 	void DrawDebugContactPoint(FLineBatcher* LineBatcher, const FVector& Location, float Size);
-    void DrawCollectionDebugCircle(UWorld* World, FLineBatcher* LineBatcher);
+    void DrawCollectionRing(UWorld* World, FRingBatcher* RingBatcher);
 
     bool IsRuntimeDebugShapeVisible(const UPrimitiveComponent* Primitive)
     {
@@ -119,6 +121,7 @@ void FRenderCollector::Initialize(ID3D11Device* InDevice)
 void FRenderCollector::Release()
 {
     LineBatcher = nullptr;
+    RingBatcher = nullptr;
     LightRenderCollector.Release();
     OverlayRenderCollector.Release();
     PrimitiveRenderCollector.Release();
@@ -224,7 +227,7 @@ void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, 
 		}
 	}
 
-    DrawCollectionDebugCircle(World, LineBatcher);
+    DrawCollectionRing(World, RingBatcher);
 }
 
 // ─────────────────── Sub Collects ────────────────────────────────────────────────────────────
@@ -354,25 +357,35 @@ namespace
 			Color);
 	}
 
-    void DrawCollectionDebugCircle(UWorld* World, FLineBatcher* LineBatcher)
+    void DrawCollectionRing(UWorld* World, FRingBatcher* RingBatcher)
     {
-        if (!World || !LineBatcher || !World->IsCollectionDebugCircleVisible())
+        if (!World || !RingBatcher)
         {
             return;
         }
 
-        const float Radius = World->GetCollectionDebugCircleRadius();
-        if (Radius <= 0.0f)
+        const FCollectionSystem& Collection = World->GetCollectionSystem();
+        if (!Collection.IsRingVisible())
         {
             return;
         }
 
-        LineBatcher->AddCircle(
-            World->GetCollectionDebugCircleCenter(),
+        const float OuterRadius = Collection.GetRingRadius();
+        if (OuterRadius <= 0.0f)
+        {
+            return;
+        }
+
+        const float Thickness = std::max(0.15f, OuterRadius * 0.06f);
+        const float InnerRadius = std::max(0.0f, OuterRadius - Thickness);
+
+        RingBatcher->AddRing(
+            Collection.GetRingCenter(),
             FVector::ForwardVector,
             FVector::RightVector,
-            Radius,
-            World->GetCollectionDebugCircleColor().ToVector4());
+            InnerRadius,
+            OuterRadius,
+            Collection.GetRingColor().ToVector4());
     }
 
     FMatrix MakeViewSubUVSelectionMatrix(const USubUVComponent* SubUVComp, const FRenderBus& RenderBus)

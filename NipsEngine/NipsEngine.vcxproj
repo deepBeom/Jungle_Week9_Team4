@@ -376,7 +376,9 @@
     </ClCompile>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\Engine\Core\SoundManager.cpp" />
+    <ClCompile Include="Source\Engine\DriftSalvage\CollectionSystem.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.cpp" />
+    <ClCompile Include="Source\Engine\Render\RingBatcher.cpp" />
     <ClCompile Include="Source\Engine\Render\UIBatcher.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaScriptSubsystem.cpp" />
     <ClCompile Include="Source\Engine\Scripting\LuaBinder.cpp" />
@@ -760,7 +762,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Core\SoundManager.h" />
+    <ClInclude Include="Source\Engine\DriftSalvage\CollectionSystem.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.h" />
+    <ClInclude Include="Source\Engine\Render\RingBatcher.h" />
     <ClInclude Include="Source\Engine\Render\UIBatcher.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptSubsystem.h" />
     <ClInclude Include="Source\Engine\Scripting\LuaScriptInstance.h" />

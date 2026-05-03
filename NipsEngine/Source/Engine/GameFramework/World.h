@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Object/Object.h"
 #include "GameFramework/Actor.h"
+#include "DriftSalvage/CollectionSystem.h"
 #include "Level.h"
 #include "Spatial/WorldSpatialIndex.h"
 #include "Collision/CollisionSystem.h"
@@ -102,18 +103,8 @@ public:
     FCollisionSystem& GetCollisionSystem() { return CollisionSystem; }
     const FCollisionSystem& GetCollisionSystem() const { return CollisionSystem; }
 
-    void SetCollectionDebugCircle(bool bVisible, const FVector& Center = FVector::ZeroVector, float Radius = 0.0f, const FColor& Color = FColor(0, 220, 255))
-    {
-        bCollectionDebugCircleVisible = bVisible;
-        CollectionDebugCircleCenter = Center;
-        CollectionDebugCircleRadius = Radius;
-        CollectionDebugCircleColor = Color;
-    }
-
-    bool IsCollectionDebugCircleVisible() const { return bCollectionDebugCircleVisible; }
-    const FVector& GetCollectionDebugCircleCenter() const { return CollectionDebugCircleCenter; }
-    float GetCollectionDebugCircleRadius() const { return CollectionDebugCircleRadius; }
-    const FColor& GetCollectionDebugCircleColor() const { return CollectionDebugCircleColor; }
+    FCollectionSystem& GetCollectionSystem() { return CollectionSystem; }
+    const FCollectionSystem& GetCollectionSystem() const { return CollectionSystem; }
 
 private:
     EWorldType WorldType = EWorldType::Editor;
@@ -126,9 +117,5 @@ private:
     TArray<uint32> FreeLightSlotList;  // 삭제된 Light 의 Index 만 Free 로 등록
     TArray<AActor*> PendingDestroyActors;
     FCollisionSystem CollisionSystem;
-
-    bool bCollectionDebugCircleVisible = false;
-    FVector CollectionDebugCircleCenter = FVector::ZeroVector;
-    float CollectionDebugCircleRadius = 0.0f;
-    FColor CollectionDebugCircleColor = FColor(0, 220, 255);
+    FCollectionSystem CollectionSystem;
 };

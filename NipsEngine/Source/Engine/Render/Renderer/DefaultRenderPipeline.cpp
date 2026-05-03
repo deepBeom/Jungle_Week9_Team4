@@ -36,7 +36,9 @@ void FDefaultRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
         Bus.SetRenderSettings(ViewMode, ShowFlags);
         Bus.SetFXAAEnabled(true);
         Renderer.GetDebugLineBatcher().Clear();
+        Renderer.GetDebugRingBatcher().Clear();
         Collector.SetLineBatcher(&Renderer.GetDebugLineBatcher());
+        Collector.SetRingBatcher(&Renderer.GetDebugRingBatcher());
 
         const FFrustum& ViewFrustum = Camera->GetFrustum();
         Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum);
