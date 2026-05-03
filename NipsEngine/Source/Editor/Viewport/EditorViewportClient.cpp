@@ -46,6 +46,7 @@ void FEditorViewportClient::StartPIE(UWorld* InWorld)
 void FEditorViewportClient::EndPIE(UWorld* InWorld)
 {
     World = InWorld;
+    InputRouter.GetGameInputController().SetWorld(nullptr);
     InputRouter.GetGameInputController().Reset();
     InputRouter.GetEditorController().SetWorld(InWorld);
     InputRouter.GetEditorController().ResetTargetLocation();

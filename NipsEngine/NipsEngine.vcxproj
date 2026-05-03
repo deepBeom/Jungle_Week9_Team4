@@ -512,6 +512,7 @@
     <ClCompile Include="Source\Engine\GameFramework\Actor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\DelegateTestActor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Level.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Pawn.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\PrimitiveActors.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\World.cpp" />
     <ClCompile Include="Source\Engine\Geometry\AABB.cpp" />
@@ -863,6 +864,7 @@
     <ClInclude Include="Source\Engine\GameFramework\Actor.h" />
     <ClInclude Include="Source\Engine\GameFramework\DelegateTestActor.h" />
     <ClInclude Include="Source\Engine\GameFramework\Level.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Pawn.h" />
     <ClInclude Include="Source\Engine\GameFramework\PrimitiveActors.h" />
     <ClInclude Include="Source\Engine\GameFramework\World.h" />
     <ClInclude Include="Source\Engine\GameFramework\WorldContext.h" />

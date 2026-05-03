@@ -23,7 +23,6 @@ namespace SceneKeys
     static constexpr const char* Version            = "Version";
     static constexpr const char* Name               = "Name";
     static constexpr const char* ClassName          = "ClassName";
-    static constexpr const char* WorldType          = "WorldType";
     static constexpr const char* ContextName        = "ContextName";
     static constexpr const char* ContextHandle      = "ContextHandle";
     static constexpr const char* Actors             = "Actors";
@@ -44,26 +43,11 @@ namespace SceneKeys
     static constexpr const char* NearClip           = "NearClip";
     static constexpr const char* FarClip            = "FarClip";
     static constexpr const char* Type               = "Type";
+    static constexpr const char* ActorClass         = "ActorClass";
     static constexpr const char* ActorTag           = "ActorTag";
     static constexpr const char* NextUUID           = "NextUUID";
     static constexpr const char* ParentUUID         = "ParentUUID";
     static constexpr const char* OwnerRootUUID      = "OwnerRootUUID"; // 비씬 컴포넌트가 속한 Actor의 루트 컴포넌트 UUID
-}
-
-static const char* WorldTypeToString(EWorldType Type)
-{
-    switch (Type) {
-    case EWorldType::Game: return "Game";
-    case EWorldType::PIE:  return "PIE";
-    default:               return "Editor";
-    }
-}
-
-static EWorldType StringToWorldType(const FString& Str)
-{
-    if (Str == "Game") return EWorldType::Game;
-    if (Str == "PIE")  return EWorldType::PIE;
-    return EWorldType::Editor;
 }
 
 // ============================================================
@@ -85,7 +69,6 @@ void FSceneSaveManager::SaveSceneAsJSON(const FString& InSceneName, FWorldContex
     Root[SceneKeys::Version] = 4;
     Root[SceneKeys::Name] = FinalName;
     Root[SceneKeys::ClassName] = WorldContext.World->GetTypeInfo()->name;
-    Root[SceneKeys::WorldType] = WorldTypeToString(WorldContext.WorldType);
     Root[SceneKeys::PerspectiveCamera] = SerializeCameraState(CameraState);
     Root[SceneKeys::Primitives] = SerializeWorldToPrimitives(WorldContext.World, WorldContext);
     Root[SceneKeys::NextUUID] = static_cast<int>(EngineStatics::GetNextUUID());
@@ -110,7 +93,7 @@ json::JSON FSceneSaveManager::SerializeWorldToPrimitives(UWorld* World, const FW
             {
                 CollectComponentsFlat(RootComp, 0, Primitives);
                 Primitives[std::to_string(RootComp->GetUUID())][SceneKeys::ActorTag] = Actor->GetTag();
-                //Primitives[std::to_string(RootComp->GetUUID())]["ActorClass"] = Actor->GetTypeInfo()->name;
+                Primitives[std::to_string(RootComp->GetUUID())][SceneKeys::ActorClass] = Actor->GetTypeInfo()->name;
                 CollectNonSceneComponents(Actor, Primitives);
             }
         }
@@ -187,7 +170,6 @@ json::JSON FSceneSaveManager::SerializeWorld(UWorld* World, const FWorldContext&
     using namespace json;
     JSON w = json::Object();
     w[SceneKeys::ClassName] = World->GetTypeInfo()->name;
-    w[SceneKeys::WorldType] = WorldTypeToString(Ctx.WorldType);
     w[SceneKeys::ContextName] = Ctx.ContextName;
     w[SceneKeys::ContextHandle] = Ctx.ContextHandle.ToString();
 
@@ -363,8 +345,6 @@ void FSceneSaveManager::LoadSceneFromJSON(const FString& filepath, FWorldContext
     if (!WorldObj || !WorldObj->IsA<UWorld>()) return;
 
     UWorld* World = static_cast<UWorld*>(WorldObj);
-    EWorldType WorldType = root.hasKey(SceneKeys::WorldType) ? StringToWorldType(root[SceneKeys::WorldType].ToString()) : EWorldType::Editor;
-
     DeserializeCameraState(root, OutCameraState);
 
     // Primitives 파싱 (평탄화 포맷)
@@ -375,7 +355,7 @@ void FSceneSaveManager::LoadSceneFromJSON(const FString& filepath, FWorldContext
     if (root.hasKey(SceneKeys::NextUUID))
         EngineStatics::ResetUUIDGeneration(root[SceneKeys::NextUUID].ToInt());
 
-    OutWorldContext.WorldType = WorldType;
+    OutWorldContext.WorldType = EWorldType::Editor;
     OutWorldContext.World = World;
 }
 
@@ -394,7 +374,6 @@ void FSceneSaveManager::Save(const FString& FilePath, FWorldContext& WorldContex
 
     Writer << SceneKeys::ClassName << WorldContext.World->GetTypeInfo()->name;
     Writer << SceneKeys::Name << FinalName;
-    Writer << SceneKeys::WorldType << WorldTypeToString(WorldContext.WorldType);
     Writer << SceneKeys::Version << Version;
     Writer << SceneKeys::NextUUID << NextUUID;
 
@@ -428,6 +407,7 @@ void FSceneSaveManager::Save(const FString& FilePath, FWorldContext& WorldContex
             {
                 FString ActorTag = Actor->GetTag();
                 Writer << SceneKeys::ActorTag << ActorTag;
+                Writer << SceneKeys::ActorClass << Actor->GetTypeInfo()->name;
             }
             if (!Comp->IsA<USceneComponent>())
             {
@@ -465,8 +445,6 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
     if (!WorldObj || !WorldObj->IsA<UWorld>()) return;
 
     UWorld* World = static_cast<UWorld*>(WorldObj);
-    EWorldType WorldType = Root.hasKey(SceneKeys::WorldType) ? StringToWorldType(Root[SceneKeys::WorldType].ToString()) : EWorldType::Editor;
-
     // UUID 카운터 복원
     if (Root.hasKey(SceneKeys::NextUUID))
         EngineStatics::ResetUUIDGeneration(Root[SceneKeys::NextUUID].ToInt());
@@ -581,8 +559,11 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
     {
         json::JSON& RootNode = PrimitivesNode[std::to_string(RootUUID)];
         FString CompType = RootNode[SceneKeys::Type].ToString();
-        
-        AActor* NewActor = Cast<AActor>(FObjectFactory::Get().Create(InferActorClass(CompType)));
+
+        const FString ActorClass = RootNode.hasKey(SceneKeys::ActorClass)
+            ? RootNode[SceneKeys::ActorClass].ToString()
+            : InferActorClass(CompType);
+        AActor* NewActor = Cast<AActor>(FObjectFactory::Get().Create(ActorClass));
         if (NewActor)
         {
             if (RootNode.hasKey(SceneKeys::ActorTag))
@@ -695,7 +676,7 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
     if (World)
         World->SyncSpatialIndex();
 
-    OutWorldContext.WorldType = WorldType;
+    OutWorldContext.WorldType = EWorldType::Editor;
     OutWorldContext.World = World;
 }
 
@@ -769,12 +750,10 @@ void FSceneSaveManager::DeserializePrimitivesToWorld(json::JSON& PrimitivesNode,
         if (!ParentComp)
         {
             // 루트 컴포넌트: 대응하는 Actor 생성
-            // ActorClass가 저장되어 있으면 그대로, 없으면 컴포넌트 타입으로 추론 (하위 호환)
-            //string ActorClass = PrimJSON.hasKey("ActorClass")
-            //    ? PrimJSON["ActorClass"].ToString()
-            //    : InferActorClass(CompType);
-            //UObject* Obj = FObjectFactory::Get().Create(ActorClass);
-            UObject* Obj = FObjectFactory::Get().Create(InferActorClass(CompType));
+            const FString ActorClass = PrimJSON.hasKey(SceneKeys::ActorClass)
+                ? PrimJSON[SceneKeys::ActorClass].ToString()
+                : InferActorClass(CompType);
+            UObject* Obj = FObjectFactory::Get().Create(ActorClass);
             AActor* NewActor = Cast<AActor>(Obj);
             if (!NewActor) return;
 

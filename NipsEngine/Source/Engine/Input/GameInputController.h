@@ -2,8 +2,11 @@
 
 #include <sol/sol.hpp>
 #include "Core/Containers/String.h"
+#include "Core/Logging/Log.h"
 
 class UWorld;
+class APawn;
+class UCameraComponent;
 class FViewportCamera;
 class FWindowsWindow;
 class InputSystem;
@@ -13,7 +16,12 @@ class FGameInputController
 public:
     void SetWindow(FWindowsWindow* InWindow) { Window = InWindow; }
     void SetCamera(FViewportCamera* InCamera);
-    void SetWorld(UWorld* InWorld) { World = InWorld; }
+    void SetWorld(UWorld* InWorld)
+    {
+        World = InWorld;
+        ControlledPawn = nullptr;
+        ControlledCameraComponent = nullptr;
+    }
     void SetViewportRect(float InX, float InY, float InWidth, float InHeight);
     void SetScriptPath(const FString& InScriptPath);
 
@@ -31,17 +39,20 @@ public:
     bool IsMouseLocked() const { return bMouseLocked; }
 
 private:
+    // 프로젝트의 전역 sol에 통합되어야 함..
     template <typename... Args>
     bool CallLuaFunction(const char* FunctionName, Args&&... ArgsToForward)
     {
         if (!bScriptLoaded)
         {
+            UE_LOG("[Lua] Script not loaded");
             return false;
         }
 
         sol::object FunctionObject = ScriptEnvironment[FunctionName];
         if (!FunctionObject.valid() || FunctionObject.get_type() != sol::type::function)
         {
+            UE_LOG("[Lua] Function '%s' not found in script '%s'", FunctionName, LoadedScriptPath.c_str());
             return false;
         }
 
@@ -50,7 +61,7 @@ private:
         if (!Result.valid())
         {
             sol::error Error = Result;
-            printf("[Lua Input Error] %s (%s): %s\n", FunctionName, LoadedScriptPath.c_str(), Error.what());
+            UE_LOG("[Lua] Runtime Error in function '%s': %s", FunctionName, Error.what());
             return false;
         }
 
@@ -61,6 +72,8 @@ private:
     bool LoadScript();
     void InstallBindings();
     FString ResolveScriptPath() const;
+    void RefreshControlledPawn();
+    void SyncViewportCameraFromPawn();
     void TickLuaInput(InputSystem& Input);
     void TickFallbackInput(InputSystem& Input);
     void ApplyCursorVisibilityState();
@@ -87,6 +100,8 @@ private:
     float ViewportHeight = 0.0f;
     float CachedLocalMouseX = 0.0f;
     float CachedLocalMouseY = 0.0f;
+    APawn* ControlledPawn = nullptr;
+    UCameraComponent* ControlledCameraComponent = nullptr;
 
     float MoveSpeed = 15.0f;
     float LookSensitivity = 0.15f;

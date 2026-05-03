@@ -6,6 +6,7 @@
 #include "ImGui/imgui.h"
 #include "Component/GizmoComponent.h"
 
+#include "GameFramework/Pawn.h"
 #include "GameFramework/PrimitiveActors.h"
 
 #define SEPARATOR()     \
@@ -35,6 +36,7 @@ namespace
 
     static const FSpawnEntry PrimitiveTypes[] = {
         { "Scene", SpawnActor<ASceneActor> },
+        { "Pawn", SpawnActor<APawn> },
         { "StaticMesh", SpawnActor<AStaticMeshActor> },
         { "TextRender", SpawnActor<ATextRenderActor> },
         { "SubUV", SpawnActor<ASubUVActor> },
