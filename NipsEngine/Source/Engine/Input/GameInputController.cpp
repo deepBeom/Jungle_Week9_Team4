@@ -152,18 +152,55 @@ void FGameInputController::Reset()
     PendingUp = 0.0f;
     PendingYaw = 0.0f;
     PendingPitch = 0.0f;
-    SetMouseCaptured(true);
+    bRequestsCursorHidden = false;
+    bRequestsMouseLock = false;
+    bAllowsCursorHidden = true;
+    bAllowsMouseLock = true;
+    ApplyCursorVisibilityState();
+    ApplyMouseLockState();
     SyncAnglesFromCamera();
 }
 
-void FGameInputController::SetMouseCaptured(bool bCaptured)
+void FGameInputController::SetCursorHidden(bool bHidden)
 {
-    bMouseCaptured = bCaptured;
+    bRequestsCursorHidden = bHidden;
+    ApplyCursorVisibilityState();
+}
+
+void FGameInputController::SetMouseLocked(bool bLocked)
+{
+    bRequestsMouseLock = bLocked;
+    ApplyMouseLockState();
+}
+
+void FGameInputController::SetCursorHiddenAllowed(bool bAllowed)
+{
+    bAllowsCursorHidden = bAllowed;
+    ApplyCursorVisibilityState();
+}
+
+void FGameInputController::SetMouseLockAllowed(bool bAllowed)
+{
+    bAllowsMouseLock = bAllowed;
+    ApplyMouseLockState();
+}
+
+void FGameInputController::ApplyCursorVisibilityState()
+{
+    const bool bShouldHideCursor = bRequestsCursorHidden && bAllowsCursorHidden;
+    bCursorHidden = bShouldHideCursor;
 
     InputSystem& Input = InputSystem::Get();
-    Input.SetCursorVisibility(!bCaptured);
+    Input.SetCursorVisibility(!bShouldHideCursor);
+}
 
-    if (!bCaptured)
+void FGameInputController::ApplyMouseLockState()
+{
+    const bool bShouldLockMouse = bRequestsMouseLock && bAllowsMouseLock;
+    bMouseLocked = bShouldLockMouse;
+
+    InputSystem& Input = InputSystem::Get();
+    if (!bShouldLockMouse)
     {
         Input.LockMouse(false);
         return;
@@ -255,14 +292,24 @@ void FGameInputController::InstallBindings()
         PendingPitch += Value;
     };
 
-    ScriptEnvironment["SetMouseCaptured"] = [this](bool bCaptured)
+    ScriptEnvironment["SetCursorHidden"] = [this](bool bHidden)
     {
-        SetMouseCaptured(bCaptured);
+        SetCursorHidden(bHidden);
     };
 
-    ScriptEnvironment["IsMouseCaptured"] = [this]()
+    ScriptEnvironment["IsCursorHidden"] = [this]()
     {
-        return bMouseCaptured;
+        return bCursorHidden;
+    };
+
+    ScriptEnvironment["SetMouseLocked"] = [this](bool bLocked)
+    {
+        SetMouseLocked(bLocked);
+    };
+
+    ScriptEnvironment["IsMouseLocked"] = [this]()
+    {
+        return bMouseLocked;
     };
 
     ScriptEnvironment["SetMoveSpeed"] = [this](float Value)
@@ -315,7 +362,7 @@ void FGameInputController::ApplyFallbackKeyDown(int32 KeyCode)
 
 void FGameInputController::ApplyFallbackMouseMove(float DeltaX, float DeltaY)
 {
-    if (!bMouseCaptured)
+    if (!bMouseLocked)
     {
         return;
     }
@@ -328,7 +375,8 @@ void FGameInputController::ApplyFallbackMouseClick(const char* ButtonName, bool 
 {
     if (std::string_view(ButtonName) == "RightMouseButton")
     {
-        SetMouseCaptured(bPressed);
+        SetCursorHidden(bPressed);
+        SetMouseLocked(bPressed);
     }
 }
 

@@ -1,6 +1,9 @@
 local move_speed = 1.0
 local look_speed = 1.0
 
+SetCursorHidden(true)
+SetMouseLocked(true)
+
 function OnKeyDown(key)
     if key == "W" then MoveForward(move_speed) end
     if key == "S" then MoveForward(-move_speed) end
@@ -11,14 +14,8 @@ function OnKeyDown(key)
 end
 
 function OnMouseMove(delta_x, delta_y)
-    if IsMouseCaptured() then
+    if IsMouseLocked() then
         AddYaw(delta_x * look_speed)
         AddPitch(-delta_y * look_speed)
-    end
-end
-
-function OnMouseClick(button, pressed, local_x, local_y)
-    if button == "RightMouseButton" then
-        SetMouseCaptured(pressed)
     end
 end
