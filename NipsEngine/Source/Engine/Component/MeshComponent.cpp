@@ -4,6 +4,8 @@
 
 DEFINE_CLASS(UMeshComponent, UPrimitiveComponent)
 
+UMaterialInterface* UMeshComponent::GHighlightMaterial = nullptr;
+
 UMeshComponent::~UMeshComponent()
 {
     ReleaseOwnedMaterialInstances();
@@ -154,5 +156,42 @@ void UMeshComponent::TickComponent(float DeltaTime)
     //ScrollUV.second += DeltaTime;
 
     //if (ScrollUV.first >= 1.f) ScrollUV.first = 0.f;
+}
+
+void UMeshComponent::SetHighlight(bool bOn)
+{
+    // 같은 상태로 재호출되면 즉시 리턴 — 매 프레임 호출 안전성 보장.
+    if (bOn == bHighlighted)
+    {
+        return;
+    }
+
+    if (bOn)
+    {
+        // 전역 강조 머티리얼이 세팅되지 않았으면 강조 불가 (no-op).
+        if (!GHighlightMaterial)
+        {
+            return;
+        }
+
+        // 원본 슬롯들을 캐시에 보관한다.
+        // 주의: 여기서 SetMaterial로 교체하면 ReleaseOwnedMaterialSlot이
+        // 원본 transient instance를 파괴할 수 있다. 따라서 일반 Materials 배열에
+        // 직접 GHighlightMaterial을 덮어쓰고, 기존 원본은 캐시 배열로 "이동"한다.
+        OriginalMaterialsCache = Materials;
+        for (int32 i = 0; i < static_cast<int32>(Materials.size()); ++i)
+        {
+            Materials[i] = GHighlightMaterial;
+        }
+        bHighlighted = true;
+    }
+    else
+    {
+        // 원본 머티리얼 복원.
+        // GHighlightMaterial은 캐시되지 않은 외부 자원이므로 따로 해제 필요 없음.
+        Materials = OriginalMaterialsCache;
+        OriginalMaterialsCache.clear();
+        bHighlighted = false;
+    }
 }
 

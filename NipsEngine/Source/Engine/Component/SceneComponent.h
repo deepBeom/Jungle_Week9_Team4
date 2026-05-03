@@ -46,6 +46,7 @@ public:
     void SetWorldLocation(FVector NewWorldLocation);
     FVector GetWorldLocation() const;
     FVector GetWorldScale() const;
+    FVector GetWorldAxisScale() const;
 
     FVector GetRelativeLocation() const { return RelativeLocation; }
     FVector GetRelativeRotation() const { return RelativeRotation; }

@@ -59,6 +59,7 @@ void UEngine::BeginPlay()
 void UEngine::Tick(float DeltaTime)
 {
     InputSystem::Get().Tick();
+    FSoundManager::Get().Update();
     WorldTick(DeltaTime);
     ++FrameCounter;
     Render(DeltaTime);

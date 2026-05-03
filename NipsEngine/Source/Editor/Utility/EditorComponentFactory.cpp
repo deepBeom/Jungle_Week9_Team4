@@ -10,7 +10,6 @@
 #include "Component/Movement/ProjectileMovementComponent.h"
 #include "Component/Movement/PursuitMovementComponent.h"
 #include "Component/Movement/RotatingMovementComponent.h"
-#include "Component/ObjectTypeComponent.h"
 #include "Component/SceneComponent.h"
 #include "Component/Script/ScriptComponent.h"
 #include "Component/ShapeComponent.h"
@@ -171,8 +170,6 @@ namespace
         { "DirectionalLight Component", "Light", &RegisterLightWithBillboard<UDirectionalLightComponent> },
         { "PointLight Component", "Light", &RegisterLightWithBillboard<UPointLightComponent> },
         { "SpotLight Component", "Light", &RegisterLightWithBillboard<USpotLightComponent> },
-
-        { "ObjectType Component", "Gameplay", &RegisterSimple<UObjectTypeComponent> },
 
         { "Box Component", "Collision", &RegisterSimple<UBoxComponent> },
         { "Sphere Component", "Collision", &RegisterSimple<USphereComponent> },

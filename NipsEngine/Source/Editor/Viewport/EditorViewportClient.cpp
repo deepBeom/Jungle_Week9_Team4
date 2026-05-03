@@ -32,6 +32,7 @@ void FEditorViewportClient::SetWorld(UWorld* InWorld)
 void FEditorViewportClient::StartPIE(UWorld* InWorld)
 {
     World = InWorld;
+    InputRouter.GetPIEController().SetWorld(InWorld);
     InputRouter.GetPIEController().SetCamera(&Camera); // re-sync Yaw/Pitch
     InputRouter.GetPIEController().SetTargetLocation(InputRouter.GetEditorWorldController().GetTargetLocation());
     InputRouter.SetActiveController(EActiveEditorController::PIEController);
@@ -42,6 +43,7 @@ void FEditorViewportClient::EndPIE(UWorld* InWorld)
     World = InWorld;
     InputRouter.GetEditorWorldController().SetTargetLocation(InputRouter.GetPIEController().GetTargetLocation());
     InputRouter.GetEditorWorldController().SetWorld(InWorld);
+    InputRouter.GetPIEController().NullifyWorld();
     InputRouter.SetActiveController(EActiveEditorController::EditorWorldController);
     InputRouter.GetEditorWorldController().ResetTargetLocation();
     ClearEndPIECallback();
@@ -270,10 +272,15 @@ void FEditorViewportClient::TickKeyboardInput()
         VK_SPACE, VK_ESCAPE,
     };
 
-    if (bControlLocked) return;
     const InputSystem& IS = InputSystem::Get();
+    const bool bPIEController = InputRouter.GetActiveController() == EActiveEditorController::PIEController;
+    if (bControlLocked && !bPIEController) return;
     for (int VK : WatchKeys)
     {
+        if (bControlLocked && bPIEController && VK != VK_SPACE && VK != VK_ESCAPE)
+        {
+            continue;
+        }
         if (IS.GetKeyDown(VK)) InputRouter.RouteKeyboardInput(EKeyInputType::KeyPressed,  VK);
         if (IS.GetKey(VK))     InputRouter.RouteKeyboardInput(EKeyInputType::KeyDown,     VK);
         if (IS.GetKeyUp(VK))   InputRouter.RouteKeyboardInput(EKeyInputType::KeyReleased, VK);
@@ -354,8 +361,9 @@ void FEditorViewportClient::TickPIEShortCuts()
 
 void FEditorViewportClient::TickMouseInput(float VX, float VY)
 {
-    if (bControlLocked) return;
     const InputSystem& IS = InputSystem::Get();
+    const bool bPIEController = InputRouter.GetActiveController() == EActiveEditorController::PIEController;
+    if (bControlLocked && !bPIEController) return;
 
     POINT MP = IS.GetMousePos();
     if (Window) MP = Window->ScreenToClientPoint(MP);
@@ -364,34 +372,34 @@ void FEditorViewportClient::TickMouseInput(float VX, float VY)
     const float DX     = static_cast<float>(IS.MouseDeltaX());
     const float DY     = static_cast<float>(IS.MouseDeltaY());
 
-    if (IS.MouseMoved())
+    if (!bControlLocked && IS.MouseMoved())
     {
         InputRouter.RouteMouseInput(EMouseInputType::E_MouseMoved, DX, DY);
         InputRouter.RouteMouseInput(EMouseInputType::E_MouseMovedAbsolute, LocalX, LocalY);
     }
 
-    if (IS.GetKeyDown(VK_RBUTTON) && InputRouter.GetActiveController() == EActiveEditorController::EditorWorldController && IS.GetKey(VK_CONTROL))
+    if (!bControlLocked && IS.GetKeyDown(VK_RBUTTON) && InputRouter.GetActiveController() == EActiveEditorController::EditorWorldController && IS.GetKey(VK_CONTROL))
     {
         if (RequestActorPlacement(LocalX, LocalY, VX + LocalX, VY + LocalY))
             return;
     }
 
-    if (IS.GetKeyDown(VK_RBUTTON))
+    if (!bControlLocked && IS.GetKeyDown(VK_RBUTTON))
         InputRouter.RouteMouseInput(EMouseInputType::E_RightMouseClicked, LocalX, LocalY);
-    if (IS.GetRightDragging())
+    if (!bControlLocked && IS.GetRightDragging())
         InputRouter.RouteMouseInput(EMouseInputType::E_RightMouseDragged, DX, DY);
-    if (IS.GetMiddleDragging())
+    if (!bControlLocked && IS.GetMiddleDragging())
         InputRouter.RouteMouseInput(EMouseInputType::E_MiddleMouseDragged, DX, DY);
-    if (!MathUtil::IsNearlyZero(IS.GetScrollNotches()))
+    if (!bControlLocked && !MathUtil::IsNearlyZero(IS.GetScrollNotches()))
         InputRouter.RouteMouseInput(EMouseInputType::E_MouseWheelScrolled, IS.GetScrollNotches(), 0.f);
 
     if (IS.GetKeyDown(VK_LBUTTON))
         InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseClicked, LocalX, LocalY);
-    if (IS.GetLeftDragging())
+    if (!bControlLocked && IS.GetLeftDragging())
         InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseDragged, LocalX, LocalY);
-    if (IS.GetLeftDragEnd())
+    if (!bControlLocked && IS.GetLeftDragEnd())
         InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseDragEnded, LocalX, LocalY);
-    if (IS.GetKeyUp(VK_LBUTTON) && !IS.GetLeftDragEnd())
+    if (!bControlLocked && IS.GetKeyUp(VK_LBUTTON) && !IS.GetLeftDragEnd())
         InputRouter.RouteMouseInput(EMouseInputType::E_LeftMouseButtonUp, LocalX, LocalY);
 }
 

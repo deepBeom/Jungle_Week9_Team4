@@ -135,57 +135,6 @@ namespace
 		}
 	}
 
-	void AddDetailedCapsule(
-		FLineBatcher* LineBatcher,
-		const FVector& Center,
-		const FVector& Up,
-		const FVector& Right,
-		const FVector& Forward,
-		float Radius,
-		float CylinderHalfHeight,
-		const FVector4& Color)
-	{
-		if (!LineBatcher)
-		{
-			return;
-		}
-
-		constexpr float Pi = 3.1415926535f;
-		constexpr int32 MeridianCount = 8;
-		constexpr int32 CylinderRingCount = 3;
-		constexpr int32 HemisphereRingCount = 3;
-
-		const FVector TopCenter = Center + Up * CylinderHalfHeight;
-		const FVector BottomCenter = Center - Up * CylinderHalfHeight;
-
-		LineBatcher->AddCircle(TopCenter, Right, Forward, Radius, Color);
-		LineBatcher->AddCircle(BottomCenter, Right, Forward, Radius, Color);
-
-		for (int32 i = 1; i <= CylinderRingCount; ++i)
-		{
-			const float T = static_cast<float>(i) / static_cast<float>(CylinderRingCount + 1);
-			const float Offset = -CylinderHalfHeight + (CylinderHalfHeight * 2.0f * T);
-			LineBatcher->AddCircle(Center + Up * Offset, Right, Forward, Radius, Color);
-		}
-
-		for (int32 i = 0; i < MeridianCount; ++i)
-		{
-			const float Angle = (static_cast<float>(i) / static_cast<float>(MeridianCount)) * Pi;
-			const FVector Radial = Right * std::cos(Angle) + Forward * std::sin(Angle);
-			AddCapsuleProfile(LineBatcher, Center, Up, Radial, Radius, CylinderHalfHeight, Color);
-		}
-
-		for (int32 i = 1; i <= HemisphereRingCount; ++i)
-		{
-			const float Angle = (static_cast<float>(i) / static_cast<float>(HemisphereRingCount + 1)) * (Pi * 0.5f);
-			const float RingOffset = std::sin(Angle) * Radius;
-			const float RingRadius = std::cos(Angle) * Radius;
-
-			LineBatcher->AddCircle(TopCenter + Up * RingOffset, Right, Forward, RingRadius, Color);
-			LineBatcher->AddCircle(BottomCenter - Up * RingOffset, Right, Forward, RingRadius, Color);
-		}
-	}
-
 	void DrawCollisionShapeDebug(UShapeComponent* Shape, FLineBatcher* LineBatcher)
 	{
 		if (!Shape || !LineBatcher)
@@ -193,12 +142,14 @@ namespace
 			return;
 		}
 
-		const FColor Color = Shape->GetBlockComponent() ? FColor::Red() : FColor::Cyan();
+		const FColor Color = Shape->GetRuntimeDebugVisible()
+			? Shape->GetRuntimeDebugColor()
+			: Shape->GetShapeColor();
 
 		if (USphereComponent* Sphere = Cast<USphereComponent>(Shape))
 		{
 			const FVector Center = Sphere->GetWorldLocation();
-			const float Radius = Sphere->GetSphereRadius() * DebugMaxAbs3(Sphere->GetWorldScale());
+			const float Radius = Sphere->GetSphereRadius() * DebugMaxAbs3(Sphere->GetWorldAxisScale());
 			const FVector Right = Sphere->GetRightVector();
 			const FVector Up = Sphere->GetUpVector();
 			const FVector Forward = Sphere->GetForwardVector();
@@ -225,7 +176,7 @@ namespace
 		if (UBoxComponent* Box = Cast<UBoxComponent>(Shape))
 		{
 			const FVector LocalExtent = Box->GetBoxExtent();
-			const FVector WorldScale = Box->GetWorldScale();
+			const FVector WorldScale = Box->GetWorldAxisScale();
 			const FVector WorldExtent(
 				std::fabs(LocalExtent.X * WorldScale.X),
 				std::fabs(LocalExtent.Y * WorldScale.Y),
@@ -248,12 +199,33 @@ namespace
 			const FVector Up = Capsule->GetUpVector();
 			const FVector Right = Capsule->GetRightVector();
 			const FVector Forward = Capsule->GetForwardVector();
-			const FVector WorldScale = Capsule->GetWorldScale();
+			const FVector WorldScale = Capsule->GetWorldAxisScale();
 			const float Radius = Capsule->GetCapsuleRadius() * DebugCapsuleRadiusScale(WorldScale);
 			const float HalfHeight = std::max(Capsule->GetCapsuleHalfHeight() * DebugCapsuleHeightScale(WorldScale), Radius);
 			const float CylinderHalfHeight = std::max(0.0f, HalfHeight - Radius);
+			const FVector TopCenter = Center + Up * CylinderHalfHeight;
+			const FVector BottomCenter = Center - Up * CylinderHalfHeight;
 
-			AddDetailedCapsule(LineBatcher, Center, Up, Right, Forward, Radius, CylinderHalfHeight, Color.ToVector4());
+			LineBatcher->AddCircle(TopCenter, Right, Forward, Radius, Color.ToVector4());
+			LineBatcher->AddCircle(BottomCenter, Right, Forward, Radius, Color.ToVector4());
+
+			constexpr int32 CylinderRingCount = 3;
+			for (int32 i = 1; i <= CylinderRingCount; ++i)
+			{
+				const float T = static_cast<float>(i) / static_cast<float>(CylinderRingCount + 1);
+				const float Offset = -CylinderHalfHeight + (CylinderHalfHeight * 2.0f * T);
+				LineBatcher->AddCircle(Center + Up * Offset, Right, Forward, Radius, Color.ToVector4());
+			}
+
+			constexpr int32 MeridianCount = 8;
+			constexpr float Pi = 3.1415926535f;
+			for (int32 i = 0; i < MeridianCount; ++i)
+			{
+				const float Angle = (static_cast<float>(i) / static_cast<float>(MeridianCount)) * Pi;
+				const FVector Radial = Right * std::cos(Angle) + Forward * std::sin(Angle);
+				AddCapsuleProfile(LineBatcher, Center, Up, Radial, Radius, CylinderHalfHeight, Color.ToVector4());
+			}
+
 			return;
 		}
 
@@ -319,10 +291,21 @@ void FPrimitiveRenderCollector::CollectFromComponent(
     FLineBatcher* LineBatcher)
 {
     if (Primitive == nullptr || MeshBufferManager == nullptr) return;
-    if (!Primitive->IsVisible()) return;
+    UShapeComponent* RuntimeDebugShape = Cast<UShapeComponent>(Primitive);
+    if (!Primitive->IsVisible() && !(RuntimeDebugShape && RuntimeDebugShape->GetRuntimeDebugVisible())) return;
     if (Primitive->IsEditorOnly() && WorldType != EWorldType::Editor) return;
 
     EPrimitiveType PrimType = Primitive->GetPrimitiveType();
+
+    if (PrimType == EPrimitiveType::EPT_CollisionShape)
+    {
+        UShapeComponent* Shape = RuntimeDebugShape;
+        if (ShowFlags.bCollisionDebug || (Shape && Shape->GetRuntimeDebugVisible()))
+        {
+            DrawCollisionShapeDebug(Shape, LineBatcher);
+        }
+        return;
+    }
 
     static const FMaterial EngineDefaultMaterial{};
 

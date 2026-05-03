@@ -25,7 +25,8 @@ private:
     // 헤더 영역
     void RenderActorHeaderRegion(AActor* PrimaryActor, const TArray<AActor*>& SelectedActors);
     void RenderMultiSelectionHeader(AActor* PrimaryActor, const TArray<AActor*>& SelectedActors, int32 SelectionCount);
-    void RenderSingleSelectionHeader(AActor* PrimaryActor);
+    void RenderSingleSelectionHeader(AActor* PrimaryActor, const TArray<AActor*>& SelectedActors);
+    void RenderActorTagWidget(AActor* PrimaryActor, const TArray<AActor*>& SelectedActors);
     void RenderAddComponentPopup(AActor* PrimaryActor);
 
     // 컴포넌트 트리

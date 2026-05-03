@@ -203,18 +203,18 @@ void USceneComponent::UpdateWorldMatrix() const
         return;
     }
 
-    const FTransform RelativeTransform = GetRelativeTransform();
+    const FMatrix RelativeMatrix = GetRelativeMatrix();
 
     if (ParentComponent != nullptr)
     {
-        CachedWorldTransform = RelativeTransform * ParentComponent->GetWorldTransform();
+        CachedWorldMatrix = RelativeMatrix * ParentComponent->GetWorldMatrix();
     }
     else
     {
-        CachedWorldTransform = RelativeTransform;
+        CachedWorldMatrix = RelativeMatrix;
     }
 
-    CachedWorldMatrix = CachedWorldTransform.ToMatrixWithScale();
+    CachedWorldTransform = FTransform(CachedWorldMatrix);
     bTransformDirty = false;
 }
 
@@ -242,7 +242,7 @@ void USceneComponent::SetWorldLocation(FVector NewWorldLocation)
 {
     if (ParentComponent != nullptr)
     {
-        const FTransform ParentWorldInverse = ParentComponent->GetWorldTransform().Inverse();
+        const FMatrix ParentWorldInverse = ParentComponent->GetWorldMatrix().GetInverse();
         const FVector NewRelativeLocation = ParentWorldInverse.TransformPosition(NewWorldLocation);
         SetRelativeLocation(NewRelativeLocation);
         return;
@@ -253,27 +253,32 @@ void USceneComponent::SetWorldLocation(FVector NewWorldLocation)
 
 FVector USceneComponent::GetWorldLocation() const
 {
-    return GetWorldTransform().GetTranslation();
+    return GetWorldMatrix().GetOrigin();
 }
 
 FVector USceneComponent::GetWorldScale() const
 {
-    return GetWorldTransform().GetScale3D();
+    return GetWorldAxisScale();
+}
+
+FVector USceneComponent::GetWorldAxisScale() const
+{
+    return GetWorldMatrix().GetScaleVector();
 }
 
 FVector USceneComponent::GetForwardVector() const
 {
-    return GetWorldTransform().GetUnitAxis(EAxis::X);
+    return GetWorldMatrix().GetUnitAxis(EAxis::X);
 }
 
 FVector USceneComponent::GetRightVector() const
 {
-    return GetWorldTransform().GetUnitAxis(EAxis::Y);
+    return GetWorldMatrix().GetUnitAxis(EAxis::Y);
 }
 
 FVector USceneComponent::GetUpVector() const
 {
-    return GetWorldTransform().GetUnitAxis(EAxis::Z);
+    return GetWorldMatrix().GetUnitAxis(EAxis::Z);
 }
 
 void USceneComponent::Move(const FVector& Delta)
@@ -301,7 +306,7 @@ void USceneComponent::AddWorldOffset(const FVector& WorldDelta)
         return;
     }
 
-    const FTransform ParentWorldInverse = ParentComponent->GetWorldTransform().Inverse();
+    const FMatrix ParentWorldInverse = ParentComponent->GetWorldMatrix().GetInverse();
     const FVector LocalDelta = ParentWorldInverse.TransformVector(WorldDelta);
     SetRelativeLocation(RelativeLocation + LocalDelta);
 }

@@ -856,7 +856,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\SoundManager.cpp" />
     <ClCompile Include="Source\Engine\Collision\CollisionSystem.cpp" />
-    <ClCompile Include="Source\Engine\Component\ObjectTypeComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -1056,6 +1055,9 @@
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\Debug.h">
+      <Filter>Source\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Core\ActorTags.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\EngineTypes.h">
@@ -1618,8 +1620,6 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\SoundManager.h" />
     <ClInclude Include="Source\Engine\Collision\CollisionSystem.h" />
-    <ClInclude Include="Source\Engine\Component\ObjectTypeComponent.h" />
     <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
-    <ClInclude Include="Source\Engine\Core\GameObjectTypes.h" />
   </ItemGroup>
 </Project>

@@ -201,6 +201,8 @@ void InputSystem::LockMouse(bool bLock, float x, float y, float w, float h)
 
 void InputSystem::SetCursorVisibility(bool bVisible)
 {
+    bIsCursorVisible = bVisible;
+
     if (bVisible)
     {
         while (ShowCursor(true) < 0)
