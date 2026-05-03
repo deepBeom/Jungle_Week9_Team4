@@ -171,6 +171,14 @@ namespace
             {
                 if (E) E->Size = FVector2(W, H);
             },
+            "GetRotation",     [](FUIElement* E) -> float
+            {
+                return E ? E->RotationDegrees : 0.f;
+            },
+            "SetRotation",     [](FUIElement* E, float Degrees)
+            {
+                if (E) E->RotationDegrees = Degrees;
+            },
             "SetInteractable", [](FUIElement* E, bool bEnabled)
             {
                 if (E) E->bInteractable = bEnabled;
@@ -442,6 +450,16 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         if (Key.empty())
         {
             return 0;
+        }
+
+        if (Key == "Left" || Key == "ArrowLeft")
+        {
+            return VK_LEFT;
+        }
+
+        if (Key == "Right" || Key == "ArrowRight")
+        {
+            return VK_RIGHT;
         }
 
         unsigned char Ch = static_cast<unsigned char>(Key[0]);

@@ -168,7 +168,7 @@ void FUIManager::RenderRecursive(FUIElement* Element, float ViewportW, float Vie
     {
         auto* Img = static_cast<FUIImage*>(Element);
         UIBatcher->AddQuad(WorldPos, Size, { ViewportW, ViewportH },
-            Img->Texture, Img->TintColor, Img->UVMin, Img->UVMax);
+            Img->Texture, Img->TintColor, Img->UVMin, Img->UVMax, Img->RotationDegrees);
         break;
     }
     case EUIElementType::ProgressBar:
@@ -279,7 +279,7 @@ void FUIManager::DestroyRecursive(FUIElement* Element)
 
 void FUIManager::TickHoverEvents()
 {
-    const POINT MousePos = InputSystem::Get().GetMousePos();
+    const POINT MousePos = InputSystem::Get().GetClientMousePos();
     const float MouseX   = static_cast<float>(MousePos.x);
     const float MouseY   = static_cast<float>(MousePos.y);
     const bool  bClicked = InputSystem::Get().GetKeyDown(VK_LBUTTON);

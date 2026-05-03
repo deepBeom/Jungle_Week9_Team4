@@ -40,7 +40,8 @@ public:
         UTexture* Texture,
         FVector4 Color,
         FVector2 UVMin = { 0.f, 0.f },
-        FVector2 UVMax = { 1.f, 1.f });
+        FVector2 UVMax = { 1.f, 1.f },
+        float RotationDegrees = 0.f);
 
     void Clear();
     void Flush(ID3D11DeviceContext* Context, const FRenderBus* RenderBus);
