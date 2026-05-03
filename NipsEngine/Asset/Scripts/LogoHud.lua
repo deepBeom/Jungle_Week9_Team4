@@ -46,6 +46,16 @@ local PROGRESS_GAP_TOP = 10
 local PROGRESS_GAP_BOTTOM = 8
 local PROGRESS_ANIM_DURATION = 0.35
 local DEFAULT_WEIGHT_CAPACITY = 30.0
+local INTRO_DURATION = 3.0
+local INTRO_START_OFFSET_X = -45.0
+local INTRO_START_OFFSET_Y = 0.0
+local INTRO_START_OFFSET_Z = -8.0
+local MENU_CAMERA_X = -55.763822
+local MENU_CAMERA_Y = 0.0
+local MENU_CAMERA_Z = 20.132818
+local MENU_CAMERA_ROT_X = 0.0
+local MENU_CAMERA_ROT_Y = 33.690063
+local MENU_CAMERA_ROT_Z = 0.0
 local MONEY_Y = HEART_DRAW_H + PROGRESS_GAP_TOP
 local PROGRESS_Y = MONEY_Y + MONEY_ICON_SIZE + PROGRESS_GAP_BOTTOM
 local INGAME_HUD_W = math.max(HEART_ROW_W, PROGRESS_W, MONEY_ROW_W)
@@ -76,6 +86,11 @@ local HeartAnimIndex = 0
 local HeartAnimTime = 0.0
 local HeartAnimFrame = 0
 local HeartHealth = HEART_COUNT
+local BoatActor = nil
+local BoatHomePosition = nil
+local BoatHomeRotation = nil
+local bIntroPlaying = false
+local IntroTime = 0.0
 
 local function DigitUV(d)
     local digit = math.max(0, math.min(9, math.floor(d)))
@@ -130,6 +145,88 @@ end
 local function EaseSmoothStep(t)
     t = Clamp01(t)
     return t * t * (3.0 - 2.0 * t)
+end
+
+local function Lerp(a, b, t)
+    return a + (b - a) * t
+end
+
+local function ResolveBoatActor()
+    if BoatActor and BoatActor:IsValid() then
+        return BoatActor
+    end
+
+    if FindActorByTag then
+        BoatActor = FindActorByTag("Boat")
+    end
+
+    if BoatActor and BoatActor:IsValid() and not BoatHomePosition then
+        BoatHomePosition = BoatActor:GetPosition()
+        BoatHomeRotation = BoatActor:GetRotation()
+    end
+
+    return BoatActor
+end
+
+local function SetMenuCamera()
+    if SetGameplayCameraFollowEnabled then
+        SetGameplayCameraFollowEnabled(false)
+    end
+
+    if SetGameplayCameraTransformValues then
+        SetGameplayCameraTransformValues(
+            MENU_CAMERA_X,
+            MENU_CAMERA_Y,
+            MENU_CAMERA_Z,
+            MENU_CAMERA_ROT_X,
+            MENU_CAMERA_ROT_Y,
+            MENU_CAMERA_ROT_Z)
+    end
+end
+
+local function SetBoatAtHome()
+    local boat = ResolveBoatActor()
+    if not boat then return end
+
+    if BoatHomePosition then
+        boat:SetPosition(BoatHomePosition.X, BoatHomePosition.Y, BoatHomePosition.Z)
+    end
+
+    if BoatHomeRotation then
+        boat:SetRotation(BoatHomeRotation.X, BoatHomeRotation.Y, BoatHomeRotation.Z)
+    end
+end
+
+local function GetBoatIntroStartPosition()
+    if not BoatHomePosition then
+        return nil, nil, nil
+    end
+
+    return
+        BoatHomePosition.X + INTRO_START_OFFSET_X,
+        BoatHomePosition.Y + INTRO_START_OFFSET_Y,
+        BoatHomePosition.Z + INTRO_START_OFFSET_Z
+end
+
+local function SetBoatAtIntroStart()
+    local boat = ResolveBoatActor()
+    local startX, startY, startZ = GetBoatIntroStartPosition()
+    if not boat or not startX then return end
+
+    boat:SetPosition(startX, startY, startZ)
+
+    if BoatHomeRotation then
+        boat:SetRotation(BoatHomeRotation.X, BoatHomeRotation.Y, BoatHomeRotation.Z)
+    end
+end
+
+local function PrepareMenuPresentation()
+    SetGameplayInputEnabled(false)
+    SetMenuCamera()
+    bIntroPlaying = false
+    IntroTime = 0.0
+    SetBoatAtHome()
+    SetBoatAtIntroStart()
 end
 
 local function GetHeartAnimFrame(time, direction)
@@ -208,6 +305,7 @@ end
 
 local function UpdateShipWheel(deltaTime)
     if not ShipWheel or not Input then return end
+    if IsGameplayInputEnabled and not IsGameplayInputEnabled() then return end
 
     local dt = deltaTime or 0.0
     local dir = 0
@@ -268,13 +366,69 @@ local function HideInGameHud()
     end
 end
 
-local function ShowInGameHud()
-    if InGamePanel then return end
+local function BeginBoatIntro()
+    SetGameplayInputEnabled(false)
+    SetMenuCamera()
 
-    SetGameplayInputEnabled(true)
     if ResetDriftSalvageStats then
         ResetDriftSalvageStats()
     end
+
+    local boat = ResolveBoatActor()
+    if boat and BoatHomePosition then
+        local startX, startY, startZ = GetBoatIntroStartPosition()
+        if startX then
+            boat:SetPosition(startX, startY, startZ)
+        end
+
+        if BoatHomeRotation then
+            boat:SetRotation(BoatHomeRotation.X, BoatHomeRotation.Y, BoatHomeRotation.Z)
+        end
+    end
+
+    bIntroPlaying = true
+    IntroTime = 0.0
+end
+
+local function UpdateBoatIntro(deltaTime)
+    if not bIntroPlaying then return end
+
+    local boat = ResolveBoatActor()
+    if not boat or not BoatHomePosition then
+        bIntroPlaying = false
+        if SetGameplayCameraFollowEnabled then
+            SetGameplayCameraFollowEnabled(true)
+        end
+        SetGameplayInputEnabled(true)
+        return
+    end
+
+    IntroTime = math.min(INTRO_DURATION, IntroTime + (deltaTime or 0.0))
+    local ratio = EaseSmoothStep(IntroTime / INTRO_DURATION)
+    local startX, startY, startZ = GetBoatIntroStartPosition()
+    if not startX then
+        bIntroPlaying = false
+        return
+    end
+
+    boat:SetPosition(
+        Lerp(startX, BoatHomePosition.X, ratio),
+        Lerp(startY, BoatHomePosition.Y, ratio),
+        Lerp(startZ, BoatHomePosition.Z, ratio))
+    SetMenuCamera()
+
+    if IntroTime >= INTRO_DURATION then
+        bIntroPlaying = false
+        SetBoatAtHome()
+        if SetGameplayCameraFollowEnabled then
+            SetGameplayCameraFollowEnabled(true)
+        end
+        SetGameplayInputEnabled(true)
+    end
+end
+
+local function ShowInGameHud()
+    if InGamePanel then return end
 
     ProgressValue = Clamp01(GetHudWeight() / GetHudWeightCapacity())
     ProgressStartValue = ProgressValue
@@ -409,8 +563,7 @@ local function ShowGameOver()
     restartLabel:OnHoverEnter(function() restartLabel:SetColor(1.0, 1.0, 0.0, 1.0) end)
     restartLabel:OnHoverExit(function() restartLabel:SetColor(0.0, 0.0, 0.0, 1.0) end)
     restartLabel:OnClick(function()
-        HideGameOver()
-        ShowInGameHud()
+        RequestGameRestart()
     end)
 
     local titleLabel = UIManager.CreateText(GameOverPanel, 0.01, 0.27, 280, 48, "TITLE", 48.0, "RelativePos")
@@ -419,8 +572,7 @@ local function ShowGameOver()
     titleLabel:OnHoverEnter(function() titleLabel:SetColor(1.0, 1.0, 0.0, 1.0) end)
     titleLabel:OnHoverExit(function() titleLabel:SetColor(0.0, 0.0, 0.0, 1.0) end)
     titleLabel:OnClick(function()
-        HideGameOver()
-        ShowHud()
+        RequestGameRestart()
     end)
 end
 
@@ -442,7 +594,6 @@ end
 ShowHud = function()
     if MenuPanel then return end
 
-    SetGameplayInputEnabled(false)
     HideInGameHud()
     HideGameOver()
 
@@ -459,6 +610,13 @@ ShowHud = function()
     StartLabel:OnClick(function()
         HideHud()
         ShowInGameHud()
+        local ok, err = pcall(BeginBoatIntro)
+        if not ok then
+            if Log then
+                Log("BeginBoatIntro failed: " .. tostring(err))
+            end
+            SetGameplayInputEnabled(true)
+        end
     end)
 
     UIManager.CreateImage(MenuPanel, -0.25, 0.4, 0.15, 0.25, "Asset/Texture/UI/Icon_book.png", "ParentRelative")
@@ -468,6 +626,11 @@ ShowHud = function()
         HideHud()
         ShowScoreboard(1557)
     end)
+
+    local ok, err = pcall(PrepareMenuPresentation)
+    if not ok and Log then
+        Log("PrepareMenuPresentation failed: " .. tostring(err))
+    end
 end
 
 function OnStart(self)
@@ -480,6 +643,7 @@ function OnUpdate(self, deltaTime)
         return
     end
 
+    UpdateBoatIntro(deltaTime)
     SyncGameplayHud()
     UpdateProgressBar(deltaTime)
     UpdateShipWheel(deltaTime)
@@ -508,13 +672,14 @@ function OnUpdate(self, deltaTime)
         end
     end
 
-    if InGamePanel and GetHudHealth() <= 0 then
+    if InGamePanel and not bIntroPlaying and GetHudHealth() <= 0 then
         ShowGameOver()
     end
 end
 
 function OnDestroy(self)
     SetGameplayInputEnabled(false)
+    SetGameplayCameraFollowEnabled(false)
     HideHud()
     HideScoreboard()
     HideGameOver()

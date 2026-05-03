@@ -7,6 +7,7 @@
 #include "Engine/GameFramework/Pawn.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/Input/InputSystem.h"
+#include "Engine/Math/Quat.h"
 #include "Engine/Math/Utils.h"
 #include "Engine/Runtime/Engine.h"
 #include "Engine/Runtime/WindowsWindow.h"
@@ -17,6 +18,7 @@ namespace
 {
     constexpr int32 WatchedKeys[] = { 'W', 'A', 'S', 'D', 'Q', 'E' };
     constexpr int32 WatchedMouseButtons[] = { VK_LBUTTON, VK_RBUTTON, VK_MBUTTON };
+    constexpr int32 GameplayMouseInputWarmupFrameCount = 5;
 }
 
 void FGameInputController::SetCamera(FViewportCamera* InCamera)
@@ -56,15 +58,42 @@ void FGameInputController::Tick(float DeltaTime)
         return;
     }
 
-    RefreshControlledPawn();
-    SyncViewportCameraFromPawn();
-
     EnsureScriptLoaded();
 
     InputSystem& Input = InputSystem::Get();
 
-    if (!LuaBinder::IsGameplayInputEnabled())
+    if (LuaBinder::IsGameplayCameraFollowEnabled())
     {
+        RefreshControlledPawn();
+        SyncViewportCameraFromPawn();
+    }
+    else
+    {
+        FVector CameraLocation;
+        FVector CameraRotationEuler;
+        if (LuaBinder::GetGameplayCameraTransform(CameraLocation, CameraRotationEuler))
+        {
+            Camera->SetLocation(CameraLocation);
+            Camera->SetRotation(FQuat::MakeFromEuler(CameraRotationEuler));
+        }
+        else
+        {
+            FVector CameraTarget;
+            if (LuaBinder::GetGameplayCameraLookAt(CameraLocation, CameraTarget))
+            {
+                Camera->SetLocation(CameraLocation);
+                Camera->SetLookAt(CameraTarget);
+            }
+        }
+    }
+
+    const bool bGameplayInputEnabled = LuaBinder::IsGameplayInputEnabled();
+    const bool bGameplayInputJustEnabled = bGameplayInputEnabled && !bWasGameplayInputEnabled;
+
+    if (!bGameplayInputEnabled)
+    {
+        bWasGameplayInputEnabled = false;
+        MouseInputWarmupFrames = 0;
         SetCursorHidden(false);
         SetMouseLocked(false);
         return;
@@ -72,6 +101,25 @@ void FGameInputController::Tick(float DeltaTime)
 
     SetCursorHidden(true);
     SetMouseLocked(true);
+
+    if (bGameplayInputJustEnabled)
+    {
+        ResetControlledPawnViewToStartup();
+        SyncViewportCameraFromPawn();
+        MouseInputWarmupFrames = GameplayMouseInputWarmupFrameCount;
+        Input.CenterMouseInLockedRegion();
+        bWasGameplayInputEnabled = true;
+        return;
+    }
+
+    bWasGameplayInputEnabled = true;
+
+    if (MouseInputWarmupFrames > 0)
+    {
+        --MouseInputWarmupFrames;
+        Input.CenterMouseInLockedRegion();
+        return;
+    }
 
     POINT MousePoint = Input.GetMousePos();
     if (Window)
@@ -92,7 +140,10 @@ void FGameInputController::Tick(float DeltaTime)
     }
 
     ApplyPendingMovement(DeltaTime);
-    SyncViewportCameraFromPawn();
+    if (LuaBinder::IsGameplayCameraFollowEnabled())
+    {
+        SyncViewportCameraFromPawn();
+    }
 }
 
 void FGameInputController::TickLuaInput(InputSystem& Input)
@@ -176,11 +227,26 @@ void FGameInputController::Reset()
     bRequestsMouseLock = false;
     bAllowsCursorHidden = true;
     bAllowsMouseLock = true;
+    bWasGameplayInputEnabled = false;
+    MouseInputWarmupFrames = 0;
     ApplyCursorVisibilityState();
     ApplyMouseLockState();
     ControlledPawn = nullptr;
     ControlledCameraComponent = nullptr;
+    StartupViewPawn = nullptr;
+    bHasStartupViewRotation = false;
     SyncAnglesFromCamera();
+}
+
+void FGameInputController::SyncFollowCameraIfEnabled()
+{
+    if (!Camera || !LuaBinder::IsGameplayCameraFollowEnabled())
+    {
+        return;
+    }
+
+    RefreshControlledPawn();
+    SyncViewportCameraFromPawn();
 }
 
 void FGameInputController::SetCursorHidden(bool bHidden)
@@ -241,6 +307,7 @@ void FGameInputController::RefreshControlledPawn()
     }
 
     ControlledCameraComponent = ControlledPawn ? ControlledPawn->GetCameraComponent() : nullptr;
+    CaptureStartupViewIfNeeded(bCurrentPawnInvalid);
 
     if (ControlledCameraComponent)
     {
@@ -252,6 +319,38 @@ void FGameInputController::RefreshControlledPawn()
     }
 
     SyncAnglesFromCamera();
+}
+
+void FGameInputController::CaptureStartupViewIfNeeded(bool bForceCapture)
+{
+    if (!ControlledPawn || !ControlledCameraComponent)
+    {
+        return;
+    }
+
+    if (!bForceCapture && bHasStartupViewRotation && StartupViewPawn == ControlledPawn)
+    {
+        return;
+    }
+
+    StartupViewPawn = ControlledPawn;
+    bHasStartupViewRotation = true;
+    StartupPawnRotation = ControlledPawn->GetActorRotation();
+    StartupCameraRelativeRotation = ControlledCameraComponent->GetRelativeRotation();
+}
+
+void FGameInputController::ResetControlledPawnViewToStartup()
+{
+    RefreshControlledPawn();
+
+    if (!ControlledPawn || !ControlledCameraComponent || !bHasStartupViewRotation)
+    {
+        return;
+    }
+
+    ControlledPawn->SetActorRotation(StartupPawnRotation);
+    ControlledCameraComponent->SetRelativeRotation(StartupCameraRelativeRotation);
+    RefreshControlledPawn();
 }
 
 void FGameInputController::SyncViewportCameraFromPawn()

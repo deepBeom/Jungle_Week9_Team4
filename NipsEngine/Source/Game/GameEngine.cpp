@@ -5,6 +5,7 @@
 #include "Engine/Component/Script/ScriptComponent.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/Input/InputSystem.h"
+#include "Engine/Scripting/LuaBinder.h"
 #include "Serialization/SceneSaveManager.h"
 
 #include <filesystem>
@@ -20,17 +21,10 @@ void UGameEngine::Init(FWindowsWindow* InWindow)
         return;
     }
 
-    SetActiveWorld(WorldList[0].ContextHandle);
-    WorldList[0].World->SetWorldType(EWorldType::Game);
-    ApplySpatialIndexMaintenanceSettings(WorldList[0].World);
-
     ViewportClient.Initialize(InWindow);
-    ViewportClient.SetWorld(WorldList[0].World);
-
     SetRenderPipeline(std::make_unique<FGameRenderPipeline>(this, Renderer));
 
-
-    CreateLogoHud();
+    ActivateLoadedStartLevel(false);
 }
 
 bool UGameEngine::LoadStartLevel()
@@ -52,6 +46,51 @@ bool UGameEngine::LoadStartLevel()
     return true;
 }
 
+void UGameEngine::BeginPlay()
+{
+    UWorld* World = GetWorld();
+    if (World && !World->HasBegunPlay())
+    {
+        World->BeginPlay();
+    }
+}
+
+void UGameEngine::ResetStartLevelRuntimeState()
+{
+    LuaBinder::SetGameplayInputEnabled(false);
+    LuaBinder::SetGameplayCameraFollowEnabled(false);
+    LuaBinder::ResetDriftSalvageStats();
+}
+
+bool UGameEngine::ActivateLoadedStartLevel(bool bBeginPlayNow)
+{
+    if (WorldList.empty() || !WorldList.back().World)
+    {
+        return false;
+    }
+
+    FWorldContext& Context = WorldList.back();
+    Context.WorldType = EWorldType::Game;
+    Context.ContextHandle = FName("Game");
+    Context.ContextName = "Game";
+
+    SetActiveWorld(Context.ContextHandle);
+    Context.World->SetWorldType(EWorldType::Game);
+    ApplySpatialIndexMaintenanceSettings(Context.World);
+
+    ResetStartLevelRuntimeState();
+    ViewportClient.SetWorld(Context.World);
+    ViewportClient.ResetInputState();
+    CreateLogoHud();
+
+    if (bBeginPlayNow && !Context.World->HasBegunPlay())
+    {
+        Context.World->BeginPlay();
+    }
+
+    return true;
+}
+
 void UGameEngine::CreateLogoHud()
 {
     UWorld* World = GetWorld();
@@ -62,11 +101,36 @@ void UGameEngine::CreateLogoHud()
     Script->SetScriptPath("Asset/Scripts/LogoHud.lua");
 }
 
+void UGameEngine::RequestGameRestart()
+{
+    bRestartRequested = true;
+}
+
+bool UGameEngine::RestartStartLevel()
+{
+    bRestartRequested = false;
+
+    DestroyWorldContext(FName("Game"));
+
+    if (!LoadStartLevel())
+    {
+        return false;
+    }
+
+    return ActivateLoadedStartLevel(true);
+}
+
 void UGameEngine::Tick(float DeltaTime)
 {
+    if (bRestartRequested)
+    {
+        RestartStartLevel();
+    }
+
 	InputSystem::Get().Tick();
 	ViewportClient.Tick(DeltaTime);
 	WorldTick(DeltaTime);
+    ViewportClient.SyncFollowCameraIfEnabled();
 	++FrameCounter;
 	Render(DeltaTime);
 }

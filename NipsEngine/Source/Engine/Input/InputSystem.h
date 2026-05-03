@@ -29,6 +29,7 @@ class InputSystem : public TSingleton<InputSystem>
     // Mouse lock
     void SetCursorVisibility(bool bVisible);
     void LockMouse(bool bLock, float x = 0, float y = 0, float w = 0, float h = 0);
+    void CenterMouseInLockedRegion();
     bool IsMouseLocked() const { return bIsMouseLocked; }
     bool IsCursorVisible() const { return bIsCursorVisible; }
 

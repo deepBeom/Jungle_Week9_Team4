@@ -3,6 +3,7 @@
 #include <sol/sol.hpp>
 #include "Core/Containers/String.h"
 #include "Core/Logging/Log.h"
+#include "Math/Vector.h"
 
 class UWorld;
 class APawn;
@@ -21,6 +22,8 @@ public:
         World = InWorld;
         ControlledPawn = nullptr;
         ControlledCameraComponent = nullptr;
+        StartupViewPawn = nullptr;
+        bHasStartupViewRotation = false;
     }
     void SetViewportRect(float InX, float InY, float InWidth, float InHeight);
     void SetScriptPath(const FString& InScriptPath);
@@ -29,6 +32,7 @@ public:
 
     void Tick(float DeltaTime);
     void Reset();
+    void SyncFollowCameraIfEnabled();
 
     void SetCursorHidden(bool bHidden);
     void SetMouseLocked(bool bLocked);
@@ -74,6 +78,8 @@ private:
     FString ResolveScriptPath() const;
     void RefreshControlledPawn();
     void SyncViewportCameraFromPawn();
+    void CaptureStartupViewIfNeeded(bool bForceCapture);
+    void ResetControlledPawnViewToStartup();
     void TickLuaInput(InputSystem& Input);
     void TickFallbackInput(InputSystem& Input);
     void ApplyCursorVisibilityState();
@@ -102,6 +108,10 @@ private:
     float CachedLocalMouseY = 0.0f;
     APawn* ControlledPawn = nullptr;
     UCameraComponent* ControlledCameraComponent = nullptr;
+    APawn* StartupViewPawn = nullptr;
+    bool bHasStartupViewRotation = false;
+    FVector StartupPawnRotation = FVector::ZeroVector;
+    FVector StartupCameraRelativeRotation = FVector::ZeroVector;
 
     float MoveSpeed = 15.0f;
     float LookSensitivity = 0.15f;
@@ -121,6 +131,8 @@ private:
     bool bRequestsMouseLock = false;          // Lua/게임플레이가 마우스 고정을 원하는 상태입니다.
     bool bAllowsCursorHidden = true;          // PIE/에디터 상태에서 커서 숨김을 적용할 수 있는지 나타냅니다.
     bool bAllowsMouseLock = true;             // PIE/에디터 상태에서 마우스 고정을 적용할 수 있는지 나타냅니다.
+    bool bWasGameplayInputEnabled = false;    // 입력이 막 켜진 프레임의 마우스 워프 델타를 버리기 위한 상태입니다.
+    int32 MouseInputWarmupFrames = 0;          // 마우스 락 전환 직후 OS 커서 워프가 안정될 때까지 mouse look을 무시합니다.
     bool bScriptLoadAttempted = false;
     bool bScriptLoaded = false;
 
