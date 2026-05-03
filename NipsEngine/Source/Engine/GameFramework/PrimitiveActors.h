@@ -2,6 +2,7 @@
 
 #include "Actor.h"
 #include "Engine/Core/SoundManager.h"
+#include "GameFramework/OceanSystem.h"
 
 class UTextRenderComponent;
 class UDecalComponent;
@@ -33,6 +34,46 @@ public:
     AWaterActor() = default;
 
     void InitDefaultComponents();
+};
+
+class AGlobalOceanActor : public AActor
+{
+public:
+    DECLARE_CLASS(AGlobalOceanActor, AActor)
+    AGlobalOceanActor() = default;
+    ~AGlobalOceanActor() override;
+
+    void InitDefaultComponents();
+    void BeginPlay() override;
+    void Tick(float DeltaTime) override;
+    void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
+    void PostEditProperty(const char* PropertyName) override;
+
+private:
+    void ClampSettings();
+    void RebuildRings();
+    void ApplyGlobalProfileToWaterComponent();
+    void UpdateOceanFollowTransform();
+    void RegisterToOceanSystemIfNeeded();
+    void UnregisterFromOceanSystemIfNeeded();
+
+private:
+    class USceneComponent* OceanRoot = nullptr;
+    class UWaterComponent* WaterComponent = nullptr;
+    TArray<class UStaticMeshComponent*> RingTiles;
+
+    int32 RingCount = 4;
+    float BaseTileSize = 128.0f;
+    float RingScaleMultiplier = 2.0f;
+    bool bFollowCamera = true;
+    bool bSnapToGrid = true;
+    float SnapGridSize = 128.0f;
+    float OceanHeight = 0.0f;
+
+    struct FOceanWaterProfile GlobalWaterProfile = {};
+    uint64 LastAppliedProfileRevision = 0;
+    bool bOceanSystemRegistered = false;
 };
 
 class ASubUVActor : public AActor

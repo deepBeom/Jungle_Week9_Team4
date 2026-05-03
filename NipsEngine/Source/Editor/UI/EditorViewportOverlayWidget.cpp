@@ -203,6 +203,7 @@ namespace
         { "Scene", SpawnActorAt<ASceneActor> },
         { "StaticMesh", SpawnActorAt<AStaticMeshActor> },
         { "Water", SpawnActorAt<AWaterActor> },
+        { "Global Ocean", SpawnActorAt<AGlobalOceanActor> },
         { "TextRender", SpawnActorAt<ATextRenderActor> },
         { "SubUV", SpawnActorAt<ASubUVActor> },
         { "Billboard", SpawnActorAt<ABillboardActor> },

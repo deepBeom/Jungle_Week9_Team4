@@ -455,6 +455,9 @@
     <ClCompile Include="Source\Engine\GameFramework\Level.cpp">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\GameFramework\OceanSystem.cpp">
+      <Filter>Source\Engine\GameFramework</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\PrimitiveActors.cpp">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClCompile>
@@ -1167,6 +1170,9 @@
       <Filter>Source\Engine\GameFramework</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\Level.h">
+      <Filter>Source\Engine\GameFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\GameFramework\OceanSystem.h">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\PrimitiveActors.h">

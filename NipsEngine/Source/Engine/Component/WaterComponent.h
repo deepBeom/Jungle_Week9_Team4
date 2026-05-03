@@ -3,6 +3,7 @@
 #include "Component/ActorComponent.h"
 
 struct FWaterUniformData;
+struct FOceanWaterProfile;
 
 class UWaterComponent : public UActorComponent
 {
@@ -17,6 +18,7 @@ public:
     void PostEditProperty(const char* PropertyName) override;
 
     void FillWaterUniformData(FWaterUniformData& OutData, float TimeSeconds, uint32 LocalLightCount) const;
+    void ApplyOceanWaterProfile(const FOceanWaterProfile& InProfile);
 
 private:
     // Stage 1 animated surface parameters.

@@ -38,6 +38,7 @@ namespace WaterDefaultAssets
     // Default editor spawn asset only. Runtime water logic must not assume a
     // specific mesh beyond "reasonable flat water surface".
     constexpr const char* MeshPath = "Asset/Mesh/Water/Wave.obj";
+    constexpr const char* FlatTileMeshPath = "Asset/Mesh/Water/FlatTile.obj";
     constexpr const char* MeshDirectoryA = "Asset/Mesh/Water/";
     constexpr const char* MeshDirectoryB = "Asset\\Mesh\\Water\\";
 }

@@ -1,5 +1,6 @@
 #include "WaterComponent.h"
 
+#include "GameFramework/OceanSystem.h"
 #include "Object/ObjectFactory.h"
 #include "Render/Scene/RenderCommand.h"
 
@@ -95,4 +96,33 @@ void UWaterComponent::FillWaterUniformData(FWaterUniformData& OutData, float Tim
     OutData.WaterLightContributionScale = WaterLightContributionScale;
     OutData.bEnableWaterSpecular = bEnableWaterSpecular ? 1u : 0u;
     OutData.WaterLocalLightCount = LocalLightCount;
+}
+
+void UWaterComponent::ApplyOceanWaterProfile(const FOceanWaterProfile& InProfile)
+{
+    NormalStrength = InProfile.NormalStrength;
+    Alpha = InProfile.Alpha;
+    ColorVariationStrength = InProfile.ColorVariationStrength;
+
+    NormalTilingAX = InProfile.NormalTilingAX;
+    NormalTilingAY = InProfile.NormalTilingAY;
+    NormalScrollSpeedAX = InProfile.NormalScrollSpeedAX;
+    NormalScrollSpeedAY = InProfile.NormalScrollSpeedAY;
+
+    NormalTilingBX = InProfile.NormalTilingBX;
+    NormalTilingBY = InProfile.NormalTilingBY;
+    NormalScrollSpeedBX = InProfile.NormalScrollSpeedBX;
+    NormalScrollSpeedBY = InProfile.NormalScrollSpeedBY;
+
+    WorldUVScaleX = InProfile.WorldUVScaleX;
+    WorldUVScaleY = InProfile.WorldUVScaleY;
+    WorldUVBlendFactor = InProfile.WorldUVBlendFactor;
+
+    BaseColor = InProfile.BaseColor;
+    WaterSpecularPower = InProfile.WaterSpecularPower;
+    WaterSpecularIntensity = InProfile.WaterSpecularIntensity;
+    WaterFresnelPower = InProfile.WaterFresnelPower;
+    WaterFresnelIntensity = InProfile.WaterFresnelIntensity;
+    WaterLightContributionScale = InProfile.WaterLightContributionScale;
+    bEnableWaterSpecular = InProfile.bEnableWaterSpecular;
 }
