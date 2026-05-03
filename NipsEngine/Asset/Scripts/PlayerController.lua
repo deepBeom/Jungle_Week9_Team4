@@ -1,10 +1,9 @@
 local move_speed = 1.0
 local look_speed = 1.0
 
-SetCursorHidden(true)
-SetMouseLocked(true)
-
 function OnKeyDown(key)
+    if not IsGameplayInputEnabled() then return end
+
     if key == "W" then MoveForward(move_speed) end
     if key == "S" then MoveForward(-move_speed) end
     if key == "D" then MoveRight(move_speed) end
@@ -14,7 +13,7 @@ function OnKeyDown(key)
 end
 
 function OnMouseMove(delta_x, delta_y)
-    if IsMouseLocked() then
+    if IsGameplayInputEnabled() and IsMouseLocked() then
         AddYaw(delta_x * look_speed)
         AddPitch(-delta_y * look_speed)
     end

@@ -10,6 +10,7 @@
 #include "Core/Logging/Log.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Math/Utils.h"
+#include "Engine/Scripting/LuaBinder.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 
@@ -180,6 +181,7 @@ void FCollectionSystem::TickFlights(float DeltaTime)
         if (t >= 1.0f)
         {
             UE_LOG("[CollectBySpace] name=%s tag=%s", *Actor->GetName(), Actor->GetTag().c_str());
+            LuaBinder::ApplyDriftSalvagePickup(Actor->GetTag());
             Actor->Destroy();
             Flights.erase(Flights.begin() + i);
             continue;
@@ -229,7 +231,8 @@ bool FCollectionSystem::IsCollectibleActor(const AActor* Actor) const
     return Actor->CompareTag(ActorTags::Trash) ||
            Actor->CompareTag(ActorTags::Resource) ||
            Actor->CompareTag(ActorTags::Recyclable) ||
-           Actor->CompareTag(ActorTags::Premium);
+           Actor->CompareTag(ActorTags::Premium) ||
+           Actor->CompareTag(ActorTags::Hazard);
 }
 
 bool FCollectionSystem::IsActorInsideRadius(const AActor* Actor, const FVector& Center, float Radius) const

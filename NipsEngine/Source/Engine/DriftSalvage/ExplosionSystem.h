@@ -82,7 +82,7 @@ private:
     TArray<FDebugRing> DebugRings;
 
     // 폭발 파라미터
-    float Radius              = 5.0f;
+    float Radius              = 100.0f;
     float InitialSpeed        = 2.0f;
     float Damping             = 2.0f;   // exponential decay rate /s
     float MinSpeed            = 0.05f;

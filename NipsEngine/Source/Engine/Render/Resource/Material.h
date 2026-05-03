@@ -94,6 +94,8 @@ const char* ToMaterialDomainString(EMaterialDomain MaterialDomain);
 bool TryParseMaterialDomain(const FString& Value, EMaterialDomain& OutMaterialDomain);
 const char* ToLightingModelString(ELightingModel LightingModel);
 bool TryParseLightingModel(const FString& Value, ELightingModel& OutLightingModel);
+const char* ToRasterizerTypeString(ERasterizerType RasterizerType);
+bool TryParseRasterizerType(const FString& Value, ERasterizerType& OutRasterizerType);
 FShaderCompileKey MakeUberLitShaderCompileKey(EMaterialDomain MaterialDomain, ELightingModel LightingModel = ELightingModel::Phong);
 inline FShaderCompileKey MakeUberLitShaderCompileKey(ELightingModel LightingModel)
 {
@@ -270,6 +272,8 @@ public:
     bool IsComponentTransient() const { return Ownership == EMaterialInstanceOwnership::ComponentTransient; }
     bool HasLightingModelOverride() const { return bOverrideLightingModel; }
     ELightingModel GetLightingModelOverride() const { return LightingModelOverride; }
+    bool HasRasterizerTypeOverride() const { return bOverrideRasterizerType; }
+    ERasterizerType GetRasterizerTypeOverride() const { return RasterizerTypeOverride; }
     void SetLightingModelOverride(ELightingModel InLightingModel)
     {
         bOverrideLightingModel = true;
@@ -278,6 +282,15 @@ public:
     void ClearLightingModelOverride()
     {
         bOverrideLightingModel = false;
+    }
+    void SetRasterizerTypeOverride(ERasterizerType InRasterizerType)
+    {
+        bOverrideRasterizerType = true;
+        RasterizerTypeOverride = InRasterizerType;
+    }
+    void ClearRasterizerTypeOverride()
+    {
+        bOverrideRasterizerType = false;
     }
 
     void SetParam(const FString& Name, const FMaterialParamValue& Value)
@@ -315,6 +328,8 @@ private:
     EMaterialInstanceOwnership Ownership = EMaterialInstanceOwnership::ResourceManaged;
     bool bOverrideLightingModel = false;
     ELightingModel LightingModelOverride = ELightingModel::Phong;
+    bool bOverrideRasterizerType = false;
+    ERasterizerType RasterizerTypeOverride = ERasterizerType::SolidBackCull;
 
     friend class FResourceManager;
 };

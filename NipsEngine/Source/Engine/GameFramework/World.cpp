@@ -60,6 +60,9 @@ void UWorld::PostDuplicate(UObject* Original)
 void UWorld::BeginPlay()
 {
     bHasBegunPlay = true;
+    CollisionSystem.Reset();
+    CollectionSystem.Reset();
+    ExplosionSystem.Reset();
     PersistentLevel->BeginPlay();
     RebuildSpatialIndex();
 
@@ -81,7 +84,9 @@ void UWorld::Tick(float DeltaTime)
 
     if (WorldType == EWorldType::PIE || WorldType == EWorldType::Game)
     {
+        BoatInputSystem.Tick(this, DeltaTime);
         CollisionSystem.Tick(this, DeltaTime);
+        ExplosionSystem.Tick(this, DeltaTime);
         CollectionSystem.Tick(this, DeltaTime);
     }
     FlushPendingDestroyActors();
@@ -98,6 +103,9 @@ void UWorld::EndPlay(EEndPlayReason::Type EndPlayReason)
 	///* test
 	FSoundManager::Get().StopBGM();
 	//*/
+    CollisionSystem.Reset();
+    CollectionSystem.Reset();
+    ExplosionSystem.Reset();
 }
 
 void UWorld::RebuildSpatialIndex()

@@ -10,6 +10,7 @@
 #include "Engine/Math/Utils.h"
 #include "Engine/Runtime/Engine.h"
 #include "Engine/Runtime/WindowsWindow.h"
+#include "Engine/Scripting/LuaBinder.h"
 #include "Engine/Viewport/ViewportCamera.h"
 
 namespace
@@ -61,6 +62,17 @@ void FGameInputController::Tick(float DeltaTime)
     EnsureScriptLoaded();
 
     InputSystem& Input = InputSystem::Get();
+
+    if (!LuaBinder::IsGameplayInputEnabled())
+    {
+        SetCursorHidden(false);
+        SetMouseLocked(false);
+        return;
+    }
+
+    SetCursorHidden(true);
+    SetMouseLocked(true);
+
     POINT MousePoint = Input.GetMousePos();
     if (Window)
     {

@@ -9,6 +9,7 @@
 #include "Core/ActorTags.h"
 #include "Core/Logging/Log.h"
 #include "DriftSalvage/ExplosionSystem.h"
+#include "Engine/Scripting/LuaBinder.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 
@@ -159,6 +160,8 @@ namespace
             return;
         }
 
+        LuaBinder::ApplyDriftSalvageDamage(1);
+
         FVector PushForA = ComputeAABBDepenetration(A->GetWorldAABB(), B->GetWorldAABB());
         FVector Knockback = (BoatShape == A) ? PushForA : (PushForA * -1.0f);
         Knockback = Knockback.GetSafeNormal2D();
@@ -179,6 +182,7 @@ namespace
         {
             World->GetExplosionSystem().ApplyKnockback(BoatActor, Knockback * BoatRockKnockbackSpeed);
         }
+
     }
 
     void ApplyBoatHazardExplosion(UShapeComponent* A, UShapeComponent* B)
@@ -226,6 +230,7 @@ namespace
         // 2) Hazard 자체는 사라짐. (Trigger보다 먼저 Destroy해서 자기 자신이 연쇄 큐에 다시 들어가지 않게.)
         const FVector ExplosionCenter = HazardActor->GetActorLocation();
         UWorld* World = HazardActor->GetFocusedWorld();
+        LuaBinder::ApplyDriftSalvageDamage(2);
         HazardActor->Destroy();
 
         if (World)
@@ -268,6 +273,7 @@ namespace
         UE_LOG("[CollectByBoatOverlap] name=%s tag=%s",
                *Collectible->GetName(),
                Collectible->GetTag().c_str());
+        LuaBinder::ApplyDriftSalvagePickup(Collectible->GetTag());
         Collectible->Destroy();
     }
 
@@ -828,6 +834,13 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
             PreviousOverlaps.insert(Pair);
         }
     }
+}
+
+void FCollisionSystem::Reset()
+{
+    PreviousOverlaps.clear();
+    DebugContacts.clear();
+    DebugLines.clear();
 }
 
 void FCollisionSystem::CollectShapeComponents(UWorld* World, TArray<UShapeComponent*>& OutShapes)

@@ -2075,6 +2075,10 @@ bool FResourceManager::SerializeMaterialInstance(const FString& MatInstFilePath,
     {
         Root["LightingModel"] = ToLightingModelString(MaterialInstance->GetLightingModelOverride());
     }
+    if (MaterialInstance->HasRasterizerTypeOverride())
+    {
+        Root["RasterizerType"] = ToRasterizerTypeString(MaterialInstance->GetRasterizerTypeOverride());
+    }
     JSON Params = JSON::Make(JSON::Class::Array);
     for (const auto& [ParamName, ParamValue] : MaterialInstance->OverridedParams)
     {
@@ -2207,6 +2211,19 @@ bool FResourceManager::DeserializeMaterial(const FString& MatFilePath)
             MatInstance->ClearLightingModelOverride();
         }
 
+        if (Root.hasKey("RasterizerType"))
+        {
+            ERasterizerType RasterizerType = ERasterizerType::SolidBackCull;
+            if (TryParseRasterizerType(Root["RasterizerType"].ToString(), RasterizerType))
+            {
+                MatInstance->SetRasterizerTypeOverride(RasterizerType);
+            }
+        }
+        else
+        {
+            MatInstance->ClearRasterizerTypeOverride();
+        }
+
         for (auto& Param : Root["OverridedParams"].ArrayRange())
         {
             FString ParamName = NormalizeLegacyMaterialParamName(Param["Name"].ToString());
@@ -2306,6 +2323,15 @@ bool FResourceManager::DeserializeMaterial(const FString& MatFilePath)
         TryParseLightingModel(Root["LightingModel"].ToString(), LightingModel);
     }
     Material->SetLightingModel(LightingModel);
+
+    if (Root.hasKey("RasterizerType"))
+    {
+        ERasterizerType RasterizerType = ERasterizerType::SolidBackCull;
+        if (TryParseRasterizerType(Root["RasterizerType"].ToString(), RasterizerType))
+        {
+            Material->RasterizerType = RasterizerType;
+        }
+    }
 
     for (auto& Param : Root["Params"].ArrayRange())
     {

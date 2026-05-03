@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "Core/Containers/String.h"
+
 #include <sol/sol.hpp>
 
 /**
@@ -11,6 +13,16 @@
  */
 namespace LuaBinder
 {
+    void SetGameplayInputEnabled(bool bEnabled);
+    bool IsGameplayInputEnabled();
+    void ResetDriftSalvageStats();
+    void ApplyDriftSalvageDamage(int32 Damage);
+    void ApplyDriftSalvagePickup(const FString& ActorTag);
+    int32 GetDriftSalvageHealth();
+    int32 GetDriftSalvageMoney();
+    float GetDriftSalvageWeight();
+    float GetDriftSalvageWeightCapacity();
+
     /**
      * @brief Registers engine-facing userdata/types (Vec3, HitInfo, Component, Actor).
      * @param Lua Shared Lua state used by the scripting subsystem.

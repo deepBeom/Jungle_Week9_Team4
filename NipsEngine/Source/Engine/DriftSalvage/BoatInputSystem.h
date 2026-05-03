@@ -2,9 +2,9 @@
 
 class UWorld;
 
-// 임시 테스트용: 화살표 키로 Boat actor를 월드 XY 평면에서 이동시킨다.
-//   ↑ : +X / ↓ : -X / → : +Y / ← : -Y
-// 회전은 없고, 단순 평면 이동.
+// Drift Salvage Boat actor movement.
+// Uses the same gameplay movement keys handled by FGameInputController:
+//   W/S: +X/-X, D/A: +Y/-Y
 class FBoatInputSystem
 {
 public:

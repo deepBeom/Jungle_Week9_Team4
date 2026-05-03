@@ -149,6 +149,51 @@ bool TryParseLightingModel(const FString& Value, ELightingModel& OutLightingMode
     return false;
 }
 
+const char* ToRasterizerTypeString(ERasterizerType RasterizerType)
+{
+    switch (RasterizerType)
+    {
+    case ERasterizerType::SolidFrontCull:
+        return "SolidFrontCull";
+    case ERasterizerType::SolidNoCull:
+        return "SolidNoCull";
+    case ERasterizerType::WireFrame:
+        return "WireFrame";
+    case ERasterizerType::SolidBackCull:
+    default:
+        return "SolidBackCull";
+    }
+}
+
+bool TryParseRasterizerType(const FString& Value, ERasterizerType& OutRasterizerType)
+{
+    if (Value == "SolidBackCull")
+    {
+        OutRasterizerType = ERasterizerType::SolidBackCull;
+        return true;
+    }
+
+    if (Value == "SolidFrontCull")
+    {
+        OutRasterizerType = ERasterizerType::SolidFrontCull;
+        return true;
+    }
+
+    if (Value == "SolidNoCull")
+    {
+        OutRasterizerType = ERasterizerType::SolidNoCull;
+        return true;
+    }
+
+    if (Value == "WireFrame")
+    {
+        OutRasterizerType = ERasterizerType::WireFrame;
+        return true;
+    }
+
+    return false;
+}
+
 FShaderCompileKey MakeUberLitShaderCompileKey(EMaterialDomain MaterialDomain, ELightingModel LightingModel)
 {
     FShaderCompileKey Key;
@@ -321,6 +366,12 @@ void UMaterialInstance::Bind(ID3D11DeviceContext* Context, const FRenderBus* Ren
     }
 
     ID3D11SamplerState* Sampler = Parent->ApplyRenderStates(Context);
+    if (bOverrideRasterizerType)
+    {
+        ID3D11RasterizerState* RasterizerState =
+            FResourceManager::Get().GetOrCreateRasterizerState(RasterizerTypeOverride);
+        Context->RSSetState(RasterizerState);
+    }
     ShaderBinding->SetAllSamplers(Sampler);
 
     if (RenderBus)

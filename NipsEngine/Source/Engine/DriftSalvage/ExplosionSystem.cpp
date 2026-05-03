@@ -110,6 +110,17 @@ namespace
 
         return Actor ? FVector::Distance(Actor->GetActorLocation(), Point) : 0.0f;
     }
+
+    FVector GetActorPushOrigin(const AActor* Actor)
+    {
+        const FAABB Bounds = GetActorCollisionAABB(Actor);
+        if (Bounds.IsValid())
+        {
+            return Bounds.GetCenter();
+        }
+
+        return Actor ? Actor->GetActorLocation() : FVector::ZeroVector;
+    }
 }
 
 void FExplosionSystem::Reset()
@@ -298,8 +309,8 @@ void FExplosionSystem::EnqueuePushToCollectibles(UWorld* World, const FVector& C
             continue;
         }
 
-        const FVector ActorPos = Actor->GetActorLocation();
-        FVector Dir = (ActorPos - Center).GetSafeNormal2D();
+        const FVector PushOrigin = GetActorPushOrigin(Actor);
+        FVector Dir = (PushOrigin - Center).GetSafeNormal2D();
         if (Dir.IsNearlyZero())
         {
             Dir = FVector(1.0f, 0.0f, 0.0f);
@@ -480,7 +491,7 @@ void FExplosionSystem::HandleCollectibleCollision(AActor* Actor, FVector& Veloci
         if (Into < 0.0f)
         {
             constexpr float Transfer = 0.6f;
-            const FVector TransferredV = Normal * (-Into) * Transfer;
+            const FVector TransferredV = Normal * Into * Transfer;
             ApplyKnockback(Other, TransferredV);
 
             // 자기 속도는 normal 성분 일부 잃음.
