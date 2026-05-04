@@ -1,4 +1,4 @@
-﻿#include "Game/GameEngine.h"
+#include "Game/GameEngine.h"
 #include "Game/GameViewportClient.h"
 #include "Game/GameRenderPipeline.h"
 #include "Core/Paths.h"
@@ -57,8 +57,7 @@ void UGameEngine::BeginPlay()
 
 void UGameEngine::ResetStartLevelRuntimeState()
 {
-    LuaBinder::SetGameplayInputEnabled(false);
-    LuaBinder::SetGameplayCameraFollowEnabled(false);
+    LuaBinder::SetUIMode(false);
     LuaBinder::ResetDriftSalvageStats();
 }
 
@@ -130,7 +129,6 @@ void UGameEngine::Tick(float DeltaTime)
 	InputSystem::Get().Tick();
 	ViewportClient.Tick(DeltaTime);
 	WorldTick(DeltaTime);
-    ViewportClient.SyncFollowCameraIfEnabled();
 	++FrameCounter;
 	Render(DeltaTime);
 }

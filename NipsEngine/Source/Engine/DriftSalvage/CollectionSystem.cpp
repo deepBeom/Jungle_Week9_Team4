@@ -42,7 +42,7 @@ void FCollectionSystem::Tick(UWorld* World, float DeltaTime)
         return;
     }
 
-    if (!LuaBinder::IsGameplayInputEnabled())
+    if (LuaBinder::IsUIMode())
     {
         bSpaceHeld = false;
         bPrevSpace = false;

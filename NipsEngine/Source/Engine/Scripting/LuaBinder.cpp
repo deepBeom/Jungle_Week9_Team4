@@ -1,7 +1,10 @@
-﻿#include "Core/EnginePCH.h"
+#include "Core/EnginePCH.h"
 #include "Engine/Scripting/LuaBinder.h"
 
 #include "Engine/Component/ActorComponent.h"
+#include "Engine/Component/CameraComponent.h"
+#include "Engine/Component/SceneComponent.h"
+#include "Engine/Component/StaticMeshComponent.h"
 #include "Engine/Core/ActorTags.h"
 #include "Engine/Core/CollisionTypes.h"
 #include "Engine/Core/Logging/Timer.h"
@@ -17,13 +20,7 @@
 
 namespace
 {
-    bool bGameplayInputEnabled = false;
-    bool bGameplayCameraFollowEnabled = false;
-    bool bHasGameplayCameraLookAt = false;
-    bool bHasGameplayCameraTransform = false;
-    FVector GameplayCameraLocation = FVector(-52.0f, 0.0f, 24.0f);
-    FVector GameplayCameraTarget = FVector(-8.0f, 0.0f, -1.0f);
-    FVector GameplayCameraRotationEuler = FVector::ZeroVector;
+    bool bUIMode = false;
 
     struct FDriftSalvageStats
     {
@@ -180,6 +177,129 @@ namespace
             "IsActive", [](UActorComponent* Component)
             {
                 return IsUsableComponent(Component) && Component->IsActive();
+            });
+    }
+
+    void BindSceneComponentType(sol::state& Lua)
+    {
+        Lua.new_usertype<USceneComponent>(
+            "SceneComponent",
+            sol::base_classes, sol::bases<UActorComponent>(),
+            "GetParent", [](USceneComponent* Component) -> USceneComponent*
+            {
+                return Component ? Component->GetParent() : nullptr;
+            },
+            "GetWorldLocation", [](USceneComponent* Component)
+            {
+                return Component ? Component->GetWorldLocation() : FVector::ZeroVector;
+            },
+            "SetWorldLocation", [](USceneComponent* Component, float X, float Y, float Z)
+            {
+                if (Component)
+                {
+                    Component->SetWorldLocation(FVector(X, Y, Z));
+                }
+            },
+            "AddWorldOffset", [](USceneComponent* Component, float X, float Y, float Z)
+            {
+                if (Component)
+                {
+                    Component->AddWorldOffset(FVector(X, Y, Z));
+                }
+            },
+            "GetRelativeLocation", [](USceneComponent* Component)
+            {
+                return Component ? Component->GetRelativeLocation() : FVector::ZeroVector;
+            },
+            "SetRelativeLocation", [](USceneComponent* Component, float X, float Y, float Z)
+            {
+                if (Component)
+                {
+                    Component->SetRelativeLocation(FVector(X, Y, Z));
+                }
+            },
+            "GetWorldRotation", [](USceneComponent* Component)
+            {
+                return Component ? Component->GetWorldTransform().GetRotation().Euler() : FVector::ZeroVector;
+            },
+            "GetRelativeRotation", [](USceneComponent* Component)
+            {
+                return Component ? Component->GetRelativeRotation() : FVector::ZeroVector;
+            },
+            "SetRelativeRotation", [](USceneComponent* Component, float X, float Y, float Z)
+            {
+                if (Component)
+                {
+                    Component->SetRelativeRotation(FVector(X, Y, Z));
+                }
+            },
+            "GetForwardVector", [](USceneComponent* Component)
+            {
+                return Component ? Component->GetForwardVector() : FVector(1.0f, 0.0f, 0.0f);
+            },
+            "GetRightVector", [](USceneComponent* Component)
+            {
+                return Component ? Component->GetRightVector() : FVector(0.0f, 1.0f, 0.0f);
+            },
+            "GetUpVector", [](USceneComponent* Component)
+            {
+                return Component ? Component->GetUpVector() : FVector(0.0f, 0.0f, 1.0f);
+            },
+            "Move", [](USceneComponent* Component, float X, float Y, float Z)
+            {
+                if (Component)
+                {
+                    Component->Move(FVector(X, Y, Z));
+                }
+            },
+            "MoveLocal", [](USceneComponent* Component, float X, float Y, float Z)
+            {
+                if (Component)
+                {
+                    Component->MoveLocal(FVector(X, Y, Z));
+                }
+            },
+            "Rotate", [](USceneComponent* Component, float DeltaYaw, float DeltaPitch)
+            {
+                if (Component)
+                {
+                    Component->Rotate(DeltaYaw, DeltaPitch);
+                }
+            });
+    }
+
+    void BindStaticMeshComponentType(sol::state& Lua)
+    {
+        Lua.new_usertype<UStaticMeshComponent>(
+            "StaticMeshComponent",
+            sol::base_classes, sol::bases<USceneComponent, UActorComponent>());
+    }
+
+    void BindCameraComponentType(sol::state& Lua)
+    {
+        Lua.new_usertype<UCameraComponent>(
+            "CameraComponent",
+            sol::base_classes, sol::bases<USceneComponent, UActorComponent>(),
+            "LookAt", [](UCameraComponent* Component, float X, float Y, float Z)
+            {
+                if (Component)
+                {
+                    Component->LookAt(FVector(X, Y, Z));
+                }
+            },
+            "AddYawInput", [](UCameraComponent* Component, float DeltaYaw)
+            {
+                if (Component)
+                {
+                    Component->AddYawInput(DeltaYaw);
+                }
+            },
+            "AddPitchInput", [](UCameraComponent* Component, float DeltaPitch)
+            {
+                if (Component)
+                {
+                    Component->AddPitchInput(DeltaPitch);
+                }
             });
     }
 
@@ -500,6 +620,15 @@ namespace
             {
                 return FindActorComponentByType(Actor, TypeName);
             },
+            "GetRootComponent", [](AActor* Actor) -> USceneComponent*
+            {
+                if (!IsUsableActor(Actor))
+                {
+                    return nullptr;
+                }
+
+                return Actor->GetRootComponent();
+            },
             "IsPendingDestroy", [](AActor* Actor)
             {
                 return IsValidActorObject(Actor) && Actor->IsPendingDestroy();
@@ -509,92 +638,43 @@ namespace
                 return IsUsableActor(Actor);
             });
     }
-}
 
-void LuaBinder::SetGameplayInputEnabled(bool bEnabled)
-{
-    bGameplayInputEnabled = bEnabled;
-}
-
-bool LuaBinder::IsGameplayInputEnabled()
-{
-    return bGameplayInputEnabled;
-}
-
-void LuaBinder::SetGameplayCameraFollowEnabled(bool bEnabled)
-{
-    bGameplayCameraFollowEnabled = bEnabled;
-}
-
-bool LuaBinder::IsGameplayCameraFollowEnabled()
-{
-    return bGameplayCameraFollowEnabled;
-}
-
-void LuaBinder::SetGameplayCameraLookAt(const FVector& Location, const FVector& Target)
-{
-    GameplayCameraLocation = Location;
-    GameplayCameraTarget = Target;
-    bHasGameplayCameraLookAt = true;
-    bHasGameplayCameraTransform = false;
-}
-
-void LuaBinder::SetGameplayCameraLookAt(
-    float LocationX,
-    float LocationY,
-    float LocationZ,
-    float TargetX,
-    float TargetY,
-    float TargetZ)
-{
-    SetGameplayCameraLookAt(
-        FVector(LocationX, LocationY, LocationZ),
-        FVector(TargetX, TargetY, TargetZ));
-}
-
-bool LuaBinder::GetGameplayCameraLookAt(FVector& OutLocation, FVector& OutTarget)
-{
-    if (!bHasGameplayCameraLookAt)
+    void BindPawnType(sol::state& Lua)
     {
-        return false;
+        Lua.new_usertype<APawn>(
+            "Pawn",
+            sol::base_classes, sol::bases<AActor>(),
+            "GetCharacterComponent", [](APawn* Pawn) -> UStaticMeshComponent*
+            {
+                return Pawn ? Pawn->GetCharacterComponent() : nullptr;
+            },
+            "GetCameraComponent", [](APawn* Pawn) -> UCameraComponent*
+            {
+                return Pawn ? Pawn->GetCameraComponent() : nullptr;
+            },
+            "GetForwardVector", [](APawn* Pawn)
+            {
+                return Pawn ? Pawn->GetForwardVector() : FVector(1.0f, 0.0f, 0.0f);
+            },
+            "GetRightVector", [](APawn* Pawn)
+            {
+                return Pawn ? Pawn->GetRightVector() : FVector(0.0f, 1.0f, 0.0f);
+            },
+            "GetUpVector", [](APawn* Pawn)
+            {
+                return Pawn ? Pawn->GetUpVector() : FVector(0.0f, 0.0f, 1.0f);
+            });
     }
-
-    OutLocation = GameplayCameraLocation;
-    OutTarget = GameplayCameraTarget;
-    return true;
 }
 
-void LuaBinder::SetGameplayCameraTransform(const FVector& Location, const FVector& RotationEuler)
+void LuaBinder::SetUIMode(bool bEnabled)
 {
-    GameplayCameraLocation = Location;
-    GameplayCameraRotationEuler = RotationEuler;
-    bHasGameplayCameraTransform = true;
-    bHasGameplayCameraLookAt = false;
+    bUIMode = bEnabled;
 }
 
-void LuaBinder::SetGameplayCameraTransform(
-    float LocationX,
-    float LocationY,
-    float LocationZ,
-    float RotationX,
-    float RotationY,
-    float RotationZ)
+bool LuaBinder::IsUIMode()
 {
-    SetGameplayCameraTransform(
-        FVector(LocationX, LocationY, LocationZ),
-        FVector(RotationX, RotationY, RotationZ));
-}
-
-bool LuaBinder::GetGameplayCameraTransform(FVector& OutLocation, FVector& OutRotationEuler)
-{
-    if (!bHasGameplayCameraTransform)
-    {
-        return false;
-    }
-
-    OutLocation = GameplayCameraLocation;
-    OutRotationEuler = GameplayCameraRotationEuler;
-    return true;
+    return bUIMode;
 }
 
 void LuaBinder::ResetDriftSalvageStats()
@@ -657,7 +737,11 @@ void LuaBinder::BindEngineTypes(sol::state& Lua)
     // Keep registration split by domain so additions stay localized.
     BindMathTypes(Lua);
     BindComponentType(Lua);
+    BindSceneComponentType(Lua);
+    BindStaticMeshComponentType(Lua);
+    BindCameraComponentType(Lua);
     BindActorType(Lua);
+    BindPawnType(Lua);
     BindUITypes(Lua);
 }
 
@@ -710,36 +794,14 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 
     Lua["Input"] = InputTable;
 
-    Lua.set_function("SetGameplayInputEnabled", [](bool bEnabled)
+    Lua.set_function("SetUIMode", [](bool bEnabled)
     {
-        LuaBinder::SetGameplayInputEnabled(bEnabled);
+        LuaBinder::SetUIMode(bEnabled);
     });
 
-    Lua.set_function("IsGameplayInputEnabled", []()
+    Lua.set_function("IsUIMode", []()
     {
-        return LuaBinder::IsGameplayInputEnabled();
-    });
-
-    Lua.set_function("SetGameplayCameraFollowEnabled", [](bool bEnabled)
-    {
-        LuaBinder::SetGameplayCameraFollowEnabled(bEnabled);
-    });
-
-    Lua.set_function("SetGameplayCameraLookAt", [](const FVector& Location, const FVector& Target)
-    {
-        LuaBinder::SetGameplayCameraLookAt(Location, Target);
-    });
-
-    Lua.set_function("SetGameplayCameraLookAtValues",
-        [](float LocationX, float LocationY, float LocationZ, float TargetX, float TargetY, float TargetZ)
-    {
-        LuaBinder::SetGameplayCameraLookAt(LocationX, LocationY, LocationZ, TargetX, TargetY, TargetZ);
-    });
-
-    Lua.set_function("SetGameplayCameraTransformValues",
-        [](float LocationX, float LocationY, float LocationZ, float RotationX, float RotationY, float RotationZ)
-    {
-        LuaBinder::SetGameplayCameraTransform(LocationX, LocationY, LocationZ, RotationX, RotationY, RotationZ);
+        return LuaBinder::IsUIMode();
     });
 
     Lua.set_function("FindActorByTag", [](const FString& Tag) -> AActor*
