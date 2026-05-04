@@ -221,6 +221,13 @@ local function GetActorYawDegrees(actor)
         return 0.0
     end
 
+    if actor.GetForwardVector then
+        local forward = actor:GetForwardVector()
+        if forward and (math.abs(forward.X or 0.0) > 0.0001 or math.abs(forward.Y or 0.0) > 0.0001) then
+            return math.deg(math.atan(forward.Y or 0.0, forward.X or 1.0))
+        end
+    end
+
     local rot = actor:GetRotation()
     if not rot then
         return 0.0
@@ -440,12 +447,13 @@ local function ProjectToMinimap(boatPos, targetPos, boatYawDegrees)
 end
 
 -- 사거리 밖이면 panel 가장자리로 clamp (off-range direction indicator 용)
-local function ProjectToMinimapClamped(boatPos, targetPos, boatYawDegrees)
+local function ProjectToMinimapClamped(boatPos, targetPos, boatYawDegrees, iconSize)
     local localForward, localRight = WorldDeltaToBoatLocal(boatPos, targetPos, boatYawDegrees)
     local half = MINIMAP_SIZE * 0.5
     local px = (localRight / MINIMAP_RANGE_HALF) * half
     local py = -(localForward / MINIMAP_RANGE_HALF) * half
-    local limit = half - MINIMAP_EDGE_PADDING
+    local iconHalf = (iconSize or 0) * 0.5
+    local limit = half - MINIMAP_EDGE_PADDING - iconHalf
     local maxAxis = math.max(math.abs(px), math.abs(py))
     local outOfRange = false
     if maxAxis > limit then
@@ -483,7 +491,7 @@ local function UpdateMinimap()
     local lighthouse = FindFirstActorByTags(MINIMAP_LIGHTHOUSE_TAGS)
     if lighthouse then
         local lpos = lighthouse:GetPosition()
-        local px, py, outOfRange = ProjectToMinimapClamped(boatPos, lpos, boatYaw)
+        local px, py, outOfRange = ProjectToMinimapClamped(boatPos, lpos, boatYaw, MINIMAP_LIGHTHOUSE_ICON_SIZE)
         if MinimapLighthouseIcon then
             MinimapLighthouseIcon:SetVisible(true)
             MinimapLighthouseIcon:SetPosition(px, py)
