@@ -545,6 +545,47 @@ void FEditorViewportClient::DeleteSelectedActors()
     Editor->GetMainPanel().GetPropertyWidget().ResetSelection();
 }
 
+void FEditorViewportClient::DuplicateSelectedActors()
+{
+    if (!SelectionManager || !World)
+    {
+        return;
+    }
+
+    const TArray<AActor*> SelectedActors = SelectionManager->GetSelectedActors();
+    if (SelectedActors.empty())
+    {
+        return;
+    }
+
+    SelectionManager->ClearSelection();
+
+    for (AActor* Actor : SelectedActors)
+    {
+        if (!Actor)
+        {
+            continue;
+        }
+
+        AActor* DuplicatedActor = Cast<AActor>(Actor->Duplicate());
+        if (!DuplicatedActor)
+        {
+            continue;
+        }
+
+        DuplicatedActor->SetWorld(World);
+        if (World->HasBegunPlay())
+        {
+            DuplicatedActor->BeginPlay();
+        }
+        World->GetPersistentLevel()->AddActor(DuplicatedActor);
+        DuplicatedActor->SetActorLocation(Actor->GetActorLocation());
+        SelectionManager->AddSelect(DuplicatedActor);
+    }
+
+    Editor->GetMainPanel().GetPropertyWidget().ResetSelection();
+}
+
 void FEditorViewportClient::SelectAllActors()
 {
     if (!SelectionManager || !World)

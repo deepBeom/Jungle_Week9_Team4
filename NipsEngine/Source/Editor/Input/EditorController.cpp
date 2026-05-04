@@ -188,6 +188,11 @@ void FEditorController::TickEditorShortcuts()
         ViewportClient->DeleteSelectedActors();
     }
 
+    if (Input.GetKeyDown('D') && bCtrlDown && !bAltDown)
+    {
+        ViewportClient->DuplicateSelectedActors();
+    }
+
     if (Input.GetKeyDown('A') && bCtrlDown && !bAltDown)
     {
         ViewportClient->SelectAllActors();

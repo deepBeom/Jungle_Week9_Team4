@@ -103,6 +103,7 @@ public:
 
     bool RequestActorPlacement(float X, float Y, float PopupX, float PopupY);
     void DeleteSelectedActors();
+    void DuplicateSelectedActors();
     void SelectAllActors();
 
 private:
