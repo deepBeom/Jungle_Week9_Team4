@@ -200,6 +200,13 @@ void InputSystem::LockMouse(bool bLock, float x, float y, float w, float h)
         return;
     }
 
+    if (OwnerHWnd && GetForegroundWindow() != OwnerHWnd)
+    {
+        bIsMouseLocked = false;
+        bIsCursorVisible = true;
+        return;
+    }
+
     const auto WarpX = x + w * 0.5f;
     const auto WarpY = y + h * 0.5f;
     const POINT NewLockedCenterScreen = {static_cast<LONG>(WarpX), static_cast<LONG>(WarpY)};
