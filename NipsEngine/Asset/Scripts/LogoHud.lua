@@ -38,6 +38,38 @@ local MONEY_ROW_W = MONEY_ICON_SIZE + MONEY_GAP + MONEY_TEXT_W
 local PROGRESS_BG_SHEET = "Asset/Texture/UI/WeightPBBG.png"
 local PROGRESS_FILL_SHEET = "Asset/Texture/UI/WeightPB.png"
 local PROGRESS_ANCHOR_SHEET = "Asset/Texture/UI/Anchor.png"
+
+-- Minimap (boat 중심 우상단)
+local MINIMAP_SIZE = 260
+local MINIMAP_RELATIVE_X = 0.86   -- 화면 중앙 기준 가로 비율 (panel 중심)
+local MINIMAP_RELATIVE_Y = 0.20   -- 화면 중앙 기준 세로 비율 (panel 중심)
+local MINIMAP_RANGE_HALF = 50.0   -- boat 중심에서 보여줄 world 반경 (XZ)
+local MINIMAP_EDGE_PADDING = 8    -- 사거리 밖 아이콘을 패널 가장자리로부터 안쪽 여백
+local MINIMAP_DOT_SIZE = 8
+local MINIMAP_ICON_SIZE = 24
+local MINIMAP_BG_PNG = "Asset/Mesh/MiniMap.png"
+local MINIMAP_BOAT_PNG = "Asset/Texture/UI/Icon_boat.png"          -- placeholder
+local MINIMAP_LIGHTHOUSE_PNG = "Asset/Texture/UI/Icon_lighthouse.png"       -- placeholder (Anchor 모양)
+local MINIMAP_LIGHTHOUSE_ICON_SIZE = 30                            -- 등대는 살짝 크게
+local MINIMAP_LIGHTHOUSE_TAGS = { "Lighthouse", "LightHouse" }
+-- 태그별 색상 (R, G, B)
+local MINIMAP_TAG_COLORS = {
+    Trash      = { 0.7, 0.7, 0.7 },
+    Resource   = { 0.3, 0.8, 1.0 },
+    Recyclable = { 0.3, 0.9, 0.3 },
+    Premium    = { 1.0, 0.85, 0.2 },
+    Hazard     = { 1.0, 0.25, 0.25 },
+    Rock       = { 0.55, 0.4, 0.25 },
+}
+-- minimap 에 점으로 표시할 태그 목록 (순서 = z-order)
+local MINIMAP_DOT_TAGS = { "Rock", "Trash", "Resource", "Recyclable", "Premium", "Hazard" }
+
+local MinimapPanel = nil
+local MinimapBoatIcon = nil
+local MinimapLighthouseIcon = nil
+local MinimapDotPool = {}     -- 재사용 풀 (flat array)
+local MinimapDotCount = 0     -- 이번 프레임에 사용 중인 dot 개수
+
 local PROGRESS_W = MONEY_ROW_W * 2
 local PROGRESS_H = 96
 local PROGRESS_ANCHOR_SIZE = 84
@@ -167,6 +199,34 @@ local function ResolveBoatActor()
     end
 
     return BoatActor
+end
+
+local function FindFirstActorByTags(tags)
+    if not FindActorByTag then
+        return nil
+    end
+
+    for _, tag in ipairs(tags) do
+        local actor = FindActorByTag(tag)
+        if actor and actor:IsValid() then
+            return actor
+        end
+    end
+
+    return nil
+end
+
+local function GetActorYawDegrees(actor)
+    if not actor then
+        return 0.0
+    end
+
+    local rot = actor:GetRotation()
+    if not rot then
+        return 0.0
+    end
+
+    return rot.Z or rot.Y or 0.0
 end
 
 local function SetMenuCamera()
@@ -335,6 +395,168 @@ local function UpdateShipWheel(deltaTime)
     ShipWheel:SetRotation(ShipWheelAngle)
 end
 
+local function AcquireMinimapDot(r, g, b)
+    MinimapDotCount = MinimapDotCount + 1
+    local dot = MinimapDotPool[MinimapDotCount]
+    if not dot then
+        dot = UIManager.CreateImage(MinimapPanel, 0, 0, MINIMAP_DOT_SIZE, MINIMAP_DOT_SIZE, nil, "Centered")
+        MinimapDotPool[MinimapDotCount] = dot
+    end
+    dot:SetVisible(true)
+    dot:SetColor(r, g, b, 1.0)
+    return dot
+end
+
+local function HideUnusedMinimapDots()
+    for i = MinimapDotCount + 1, #MinimapDotPool do
+        local dot = MinimapDotPool[i]
+        if dot then dot:SetVisible(false) end
+    end
+end
+
+local function WorldDeltaToBoatLocal(boatPos, targetPos, boatYawDegrees)
+    local dx = targetPos.X - boatPos.X
+    local dy = targetPos.Y - boatPos.Y
+    local yaw = math.rad(boatYawDegrees or 0.0)
+    local cosYaw = math.cos(yaw)
+    local sinYaw = math.sin(yaw)
+
+    local localForward = dx * cosYaw + dy * sinYaw
+    local localRight = -dx * sinYaw + dy * cosYaw
+    return localForward, localRight
+end
+
+local function ProjectToMinimap(boatPos, targetPos, boatYawDegrees)
+    -- world XY 차이를 boat 기준 앞/오른쪽 좌표로 바꾼 뒤 minimap pixel 로 변환
+    local localForward, localRight = WorldDeltaToBoatLocal(boatPos, targetPos, boatYawDegrees)
+    local half = MINIMAP_SIZE * 0.5
+    local px = (localRight / MINIMAP_RANGE_HALF) * half
+    local py = -(localForward / MINIMAP_RANGE_HALF) * half
+    -- 사거리 밖이면 nil 리턴 (dot/icon hide)
+    if math.abs(px) > half or math.abs(py) > half then
+        return nil, nil
+    end
+    return px, py
+end
+
+-- 사거리 밖이면 panel 가장자리로 clamp (off-range direction indicator 용)
+local function ProjectToMinimapClamped(boatPos, targetPos, boatYawDegrees)
+    local localForward, localRight = WorldDeltaToBoatLocal(boatPos, targetPos, boatYawDegrees)
+    local half = MINIMAP_SIZE * 0.5
+    local px = (localRight / MINIMAP_RANGE_HALF) * half
+    local py = -(localForward / MINIMAP_RANGE_HALF) * half
+    local limit = half - MINIMAP_EDGE_PADDING
+    local maxAxis = math.max(math.abs(px), math.abs(py))
+    local outOfRange = false
+    if maxAxis > limit then
+        local scale = limit / maxAxis
+        px = px * scale
+        py = py * scale
+        outOfRange = true
+    end
+    return px, py, outOfRange
+end
+
+local function UpdateMinimap()
+    if not MinimapPanel then return end
+
+    local boat = ResolveBoatActor()
+    if not boat then
+        MinimapDotCount = 0
+        HideUnusedMinimapDots()
+        if MinimapBoatIcon then MinimapBoatIcon:SetVisible(false) end
+        if MinimapLighthouseIcon then MinimapLighthouseIcon:SetVisible(false) end
+        return
+    end
+
+    local boatPos = boat:GetPosition()
+    local boatYaw = GetActorYawDegrees(boat)
+
+    -- Boat 아이콘: 중심 고정. 주변 대상 좌표가 boat 기준으로 회전되므로 아이콘 자체는 기준점 역할만 한다.
+    if MinimapBoatIcon then
+        MinimapBoatIcon:SetVisible(true)
+        MinimapBoatIcon:SetPosition(0, 0)
+        MinimapBoatIcon:SetRotation(0.0)
+    end
+
+    -- Lighthouse 아이콘: 사거리 밖이면 panel 가장자리에 clamp 해 방향 표시
+    local lighthouse = FindFirstActorByTags(MINIMAP_LIGHTHOUSE_TAGS)
+    if lighthouse then
+        local lpos = lighthouse:GetPosition()
+        local px, py, outOfRange = ProjectToMinimapClamped(boatPos, lpos, boatYaw)
+        if MinimapLighthouseIcon then
+            MinimapLighthouseIcon:SetVisible(true)
+            MinimapLighthouseIcon:SetPosition(px, py)
+            -- 사거리 밖일 때는 alpha 낮춰 "방향만" 임을 시각적으로 구분
+            if outOfRange then
+                MinimapLighthouseIcon:SetColor(1.0, 0.9, 0.2, 0.7)
+            else
+                MinimapLighthouseIcon:SetColor(1.0, 0.9, 0.2, 1.0)
+            end
+        end
+    elseif MinimapLighthouseIcon then
+        MinimapLighthouseIcon:SetVisible(false)
+    end
+
+    -- 일반 dot (태그별)
+    MinimapDotCount = 0
+    if FindActorsByTag then
+        for _, tag in ipairs(MINIMAP_DOT_TAGS) do
+            local color = MINIMAP_TAG_COLORS[tag]
+            if color then
+                local actors = FindActorsByTag(tag)
+                if actors then
+                    for _, actor in ipairs(actors) do
+                        if actor and actor:IsValid() then
+                            local pos = actor:GetPosition()
+                            local px, py = ProjectToMinimap(boatPos, pos, boatYaw)
+                            if px then
+                                local dot = AcquireMinimapDot(color[1], color[2], color[3])
+                                dot:SetPosition(px, py)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    HideUnusedMinimapDots()
+end
+
+local function HideMinimap()
+    -- panel 을 destroy 하면 자식(dot/icon)도 함께 정리됨
+    if MinimapPanel then
+        UIManager.DestroyElement(MinimapPanel)
+    end
+    MinimapPanel = nil
+    MinimapBoatIcon = nil
+    MinimapLighthouseIcon = nil
+    MinimapDotPool = {}
+    MinimapDotCount = 0
+end
+
+local function ShowMinimap()
+    if MinimapPanel then return end
+
+    MinimapPanel = UIManager.CreateImage(nil,
+        MINIMAP_RELATIVE_X, MINIMAP_RELATIVE_Y,
+        MINIMAP_SIZE, MINIMAP_SIZE,
+        MINIMAP_BG_PNG, "RelativePos")
+    MinimapPanel:SetColor(1.0, 1.0, 1.0, 1.0)
+
+    MinimapLighthouseIcon = UIManager.CreateImage(MinimapPanel,
+        0, 0, MINIMAP_LIGHTHOUSE_ICON_SIZE, MINIMAP_LIGHTHOUSE_ICON_SIZE,
+        MINIMAP_LIGHTHOUSE_PNG, "Centered")
+    MinimapLighthouseIcon:SetColor(1.0, 0.9, 0.2, 1.0)   -- 노란빛 tint 로 식별력
+    MinimapLighthouseIcon:SetVisible(false)
+
+    -- Boat 는 항상 중심에 그려지므로 마지막에 추가 (위에 그려짐)
+    MinimapBoatIcon = UIManager.CreateImage(MinimapPanel,
+        0, 0, MINIMAP_ICON_SIZE, MINIMAP_ICON_SIZE,
+        MINIMAP_BOAT_PNG, "Centered")
+    MinimapBoatIcon:SetColor(1.0, 1.0, 1.0, 1.0)
+end
+
 local function HideInGameHud()
     SetGameplayInputEnabled(false)
 
@@ -365,6 +587,8 @@ local function HideInGameHud()
         ShipWheelLastDir = 0
         ShipWheelKickTime = SHIP_WHEEL_RELEASE_DURATION
     end
+
+    HideMinimap()
 end
 
 local function BeginBoatIntro()
@@ -481,6 +705,9 @@ local function ShowInGameHud()
     HeartAnimFrame = 0
     ApplyHeartHealth(GetHudHealth())
     SyncGameplayHud()
+    
+    ShowMinimap()
+    UpdateMinimap()
 end
 
 local function HideScoreboard()
@@ -648,6 +875,7 @@ function OnUpdate(self, deltaTime)
     SyncGameplayHud()
     UpdateProgressBar(deltaTime)
     UpdateShipWheel(deltaTime)
+    UpdateMinimap()
 
     if bHeartAnimPlaying then
         HeartAnimTime = HeartAnimTime + (deltaTime or 0.0)
