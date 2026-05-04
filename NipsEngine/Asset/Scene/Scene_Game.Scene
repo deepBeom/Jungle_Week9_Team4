@@ -1,13 +1,13 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 1309,
+  "NextUUID" : 1394,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
-    "Location" : [904.282104, 169.530304, 157.830414],
+    "Location" : [354.463715, 164.631409, 123.439201],
     "NearClip" : 0.100000,
-    "Rotation" : [37.050640, -4.771179, -96.287292]
+    "Rotation" : [-5.829742, 0.821662, -97.994965]
   },
   "Primitives" : {
     "1062" : {
@@ -514,6 +514,26 @@
       "Visible" : true,
       "bShadowTexelSnapped" : true
     },
+    "1390" : {
+      "BlockComponent" : true,
+      "EditorOnly" : false,
+      "Enable Cull" : true,
+      "EnableTick" : true,
+      "GenerateOverlapEvents" : true,
+      "GrowthRate" : 4.000000,
+      "HiddenInEditor" : false,
+      "Location" : [0.000000, -0.501000, 0.000000],
+      "MaxRadius" : 10.000000,
+      "MinRadius" : 1.000000,
+      "Movable" : false,
+      "ParentUUID" : 975,
+      "Rotation" : [-0.000000, 0.000000, -0.000000],
+      "Scale" : [0.200000, 0.200000, 0.200000],
+      "ShapeColor" : [0.000000, 1.000000, 0.000000, 1.000000],
+      "SphereRadius" : 4.400000,
+      "Type" : "USphereComponent",
+      "Visible" : true
+    },
     "140" : {
       "EditorOnly" : true,
       "Enable Cull" : true,
@@ -985,12 +1005,12 @@
     },
     "975" : {
       "ActorClass" : "AStaticMeshActor",
-      "ActorTag" : "Untagged",
+      "ActorTag" : "LightHouse",
       "EditorOnly" : false,
       "Enable Cull" : true,
       "EnableTick" : true,
       "HiddenInEditor" : false,
-      "Location" : [1000.000000, 0.000000, 46.457211],
+      "Location" : [1000.000000, 0.000000, 44.510098],
       "Materials" : ["Material.004"],
       "NormalizeOnImport" : false,
       "ObjStaticMeshAsset" : "Asset/Mesh/LightHouse/Meshy_AI_Highly_detailed_reali_0504004639_texture.obj",
