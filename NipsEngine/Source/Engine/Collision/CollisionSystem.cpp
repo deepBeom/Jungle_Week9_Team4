@@ -304,11 +304,13 @@ namespace
             }
         }
 
-        UE_LOG("[CollectByBoatOverlap] name=%s tag=%s",
-               *Collectible->GetName(),
-               Collectible->GetTag().c_str());
-        LuaBinder::ApplyDriftSalvagePickup(Collectible->GetTag());
-        Collectible->Destroy();
+        if (LuaBinder::TryApplyDriftSalvagePickup(Collectible->GetTag()))
+        {
+            UE_LOG("[CollectByBoatOverlap] name=%s tag=%s",
+                   *Collectible->GetName(),
+                   Collectible->GetTag().c_str());
+            Collectible->Destroy();
+        }
     }
 
     void DispatchScriptOverlapBegin(const FCollisionEvent& Event)

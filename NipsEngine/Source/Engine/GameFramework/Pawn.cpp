@@ -12,12 +12,12 @@ namespace
     constexpr float BoatForwardAccel = 120.0f;
     constexpr float BoatReverseAccel = 70.0f;
     constexpr float BoatBrakeAccel = 150.0f;
-    constexpr float BoatLinearDrag = 45.0f;
+    constexpr float BoatLinearDrag = 45.0f; 
     constexpr float BoatTurnAccel = 220.0f;
     constexpr float BoatTurnDrag = 260.0f;
     constexpr float BoatMaxForwardSpeed = 120.0f;
     constexpr float BoatMaxReverseSpeed = 45.0f;
-    constexpr float BoatMaxYawSpeed = 110.0f;
+    constexpr float BoatMaxYawSpeed = 800.0f;
     constexpr float BoatMinSteerAuthority = 0.30f;
     constexpr float BoatSpeedEpsilon = 0.001f;
 

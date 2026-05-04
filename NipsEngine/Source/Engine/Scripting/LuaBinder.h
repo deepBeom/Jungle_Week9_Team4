@@ -21,6 +21,9 @@ namespace LuaBinder
     bool ConsumeDriftSalvageGameOverRequest();
     void ApplyDriftSalvageDamage(int32 Damage);
     void ApplyDriftSalvagePickup(const FString& ActorTag);
+    bool TryApplyDriftSalvagePickup(const FString& ActorTag);
+    float GetDriftSalvagePickupWeight(const FString& ActorTag);
+    bool CanApplyDriftSalvagePickup(const FString& ActorTag, float ReservedWeight = 0.0f);
     int32 GetDriftSalvageHealth();
     int32 GetDriftSalvageMoney();
     float GetDriftSalvageWeight();

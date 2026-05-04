@@ -142,7 +142,19 @@ void FCollectionSystem::Release(UWorld* World)
     const FVector CollectionCenter = Boat->GetActorLocation();
     const float CollectionRadius = CurrentRadius > 0.0f ? CurrentRadius : MinRadius;
 
-    TArray<AActor*> ActorsToCollect;
+    struct FCollectionCandidate
+    {
+        AActor* Actor = nullptr;
+        float CargoWeight = 0.0f;
+    };
+
+    float ReservedWeight = 0.0f;
+    for (const FFlight& Flight : Flights)
+    {
+        ReservedWeight += Flight.CargoWeight;
+    }
+
+    TArray<FCollectionCandidate> ActorsToCollect;
     for (AActor* Actor : World->GetActors())
     {
         if (!Actor || Actor == Boat || Actor->IsPendingDestroy() || !IsCollectibleActor(Actor))
@@ -157,12 +169,20 @@ void FCollectionSystem::Release(UWorld* World)
 
         if (IsActorInsideRadius(Actor, CollectionCenter, CollectionRadius))
         {
-            ActorsToCollect.push_back(Actor);
+            if (!LuaBinder::CanApplyDriftSalvagePickup(Actor->GetTag(), ReservedWeight))
+            {
+                continue;
+            }
+
+            const float CargoWeight = LuaBinder::GetDriftSalvagePickupWeight(Actor->GetTag());
+            ActorsToCollect.push_back({ Actor, CargoWeight });
+            ReservedWeight += CargoWeight;
         }
     }
 
-    for (AActor* Actor : ActorsToCollect)
+    for (const FCollectionCandidate& Candidate : ActorsToCollect)
     {
+        AActor* Actor = Candidate.Actor;
         if (!Actor || Actor->IsPendingDestroy())
         {
             continue;
@@ -181,6 +201,7 @@ void FCollectionSystem::Release(UWorld* World)
         Flight.Duration = std::max(FlightMinDuration,
                                    Distance / std::max(FlightSpeed, 0.0001f));
         Flight.Elapsed = 0.0f;
+        Flight.CargoWeight = Candidate.CargoWeight;
 
         PrepareHazardForCollection(World, Actor);
         Flights.push_back(Flight);
@@ -215,9 +236,15 @@ void FCollectionSystem::TickFlights(float DeltaTime)
 
         if (t >= 1.0f)
         {
-            UE_LOG("[CollectBySpace] name=%s tag=%s", *Actor->GetName(), Actor->GetTag().c_str());
-            LuaBinder::ApplyDriftSalvagePickup(Actor->GetTag());
-            Actor->Destroy();
+            if (LuaBinder::TryApplyDriftSalvagePickup(Actor->GetTag()))
+            {
+                UE_LOG("[CollectBySpace] name=%s tag=%s", *Actor->GetName(), Actor->GetTag().c_str());
+                Actor->Destroy();
+            }
+            else
+            {
+                Actor->SetActorLocation(Flight.Start);
+            }
             Flights.erase(Flights.begin() + i);
             continue;
         }
