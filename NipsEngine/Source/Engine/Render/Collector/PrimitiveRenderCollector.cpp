@@ -99,16 +99,21 @@ namespace
 
         const FLightCullingOutputs& LightOutputs = FLightCullingPass::GetOutputs();
         const uint32 RawPointLightCount = LightOutputs.PointLightCount;
-        const uint32 ClampedPointLightCount = std::min(RawPointLightCount, WaterRenderingLimits::MaxLocalLights);
-        if (RawPointLightCount > WaterRenderingLimits::MaxLocalLights && !bWaterLocalLightClampWarned)
+        const uint32 RawSpotLightCount = LightOutputs.SpotLightCount;
+        const uint32 RawMaxLocalLightCount = std::max(RawPointLightCount, RawSpotLightCount);
+        const uint32 ClampedLocalLightCount = std::min(RawMaxLocalLightCount, WaterRenderingLimits::MaxLocalLights);
+        if ((RawPointLightCount > WaterRenderingLimits::MaxLocalLights ||
+                RawSpotLightCount > WaterRenderingLimits::MaxLocalLights) &&
+            !bWaterLocalLightClampWarned)
         {
-            UE_LOG("[Water] Local light count (%u) exceeds water shader limit (%u). Clamping for stable Stage 2 specular.",
+            UE_LOG("[Water] Local point/spot light count (%u/%u) exceeds water shader limit (%u). Clamping for stable Stage 2 specular.",
                 RawPointLightCount,
+                RawSpotLightCount,
                 WaterRenderingLimits::MaxLocalLights);
             bWaterLocalLightClampWarned = true;
         }
 
-        return ClampedPointLightCount;
+        return ClampedLocalLightCount;
     }
 
     void BuildWaterUniformData(const UWaterComponent* WaterComponent, uint32 LocalLightCount, FWaterRenderData& OutWater)

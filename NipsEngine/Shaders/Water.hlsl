@@ -135,6 +135,7 @@ struct FVisibleLightData
 };
 
 StructuredBuffer<FVisibleLightData> PointLights : register(t8);
+StructuredBuffer<FVisibleLightData> SpotLights : register(t9);
 
 static const uint LIGHT_TYPE_DIRECTIONAL = 0u;
 static const uint MAX_WATER_LOCAL_LIGHTS = 8u;
@@ -223,6 +224,12 @@ float ComputeWaterSpecular(float3 NormalWS, float3 ViewDirWS, float3 LightDirWS,
     return pow(NdotH, max(SpecularPower, 1.0f));
 }
 
+float ComputeWaterDistanceAttenuation(float Distance, float Radius)
+{
+    float Attenuation = saturate(1.0f - (Distance / max(Radius, 1.0e-4f)));
+    return Attenuation * Attenuation;
+}
+
 float3 ComputeDirectionalWaterSpecular(float3 NormalWS, float3 ViewDirWS)
 {
     float3 SpecularAccum = 0.0f.xxx;
@@ -259,12 +266,53 @@ float3 ComputePointWaterSpecular(float3 WorldPos, float3 NormalWS, float3 ViewDi
         }
 
         const float3 LightDirWS = ToLight / Distance;
-        float Attenuation = saturate(1.0f - (Distance / max(Light.Radius, 1.0e-4f)));
-        Attenuation *= Attenuation;
+        const float Attenuation = ComputeWaterDistanceAttenuation(Distance, Light.Radius);
 
         const float Spec = ComputeWaterSpecular(NormalWS, ViewDirWS, LightDirWS, WaterSpecularPower);
         SpecularAccum += Light.Color * (Light.Intensity * Spec * Attenuation);
     }
+    return SpecularAccum;
+}
+
+float3 ComputeSpotWaterSpecular(float3 WorldPos, float3 NormalWS, float3 ViewDirWS)
+{
+    float3 SpecularAccum = 0.0f.xxx;
+    const uint LocalLightLimit = min(min(SpotLightCount, WaterLocalLightCount), MAX_WATER_LOCAL_LIGHTS);
+
+    [loop]
+    for (uint LightIndex = 0u; LightIndex < LocalLightLimit; ++LightIndex)
+    {
+        const FVisibleLightData Light = SpotLights[LightIndex];
+        const float3 ToLight = Light.WorldPos - WorldPos;
+        const float Distance = length(ToLight);
+        if (Distance <= 1.0e-4f || Distance >= Light.Radius)
+        {
+            continue;
+        }
+
+        const float3 LightDirWS = ToLight / Distance;
+        float Attenuation = ComputeWaterDistanceAttenuation(Distance, Light.Radius);
+        if (Attenuation <= 0.0f)
+        {
+            continue;
+        }
+
+        // Match the existing forward spot-light convention:
+        // Light.Direction points outward from the spot source, so the receiver
+        // test uses dot(SpotDir, -L) where L is surface -> light.
+        const float3 SpotDir = normalize(Light.Direction);
+        const float CosAngle = dot(SpotDir, -LightDirWS);
+        const float ConeRange = max(Light.SpotInnerCos - Light.SpotOuterCos, 1.0e-4f);
+        Attenuation *= saturate((CosAngle - Light.SpotOuterCos) / ConeRange);
+        if (Attenuation <= 0.0f)
+        {
+            continue;
+        }
+
+        const float Spec = ComputeWaterSpecular(NormalWS, ViewDirWS, LightDirWS, WaterSpecularPower);
+        SpecularAccum += Light.Color * (Light.Intensity * Spec * Attenuation);
+    }
+
     return SpecularAccum;
 }
 
@@ -305,6 +353,7 @@ FWaterPSOutput mainPS(FWaterPSInput Input)
     {
         float3 SpecularColor = ComputeDirectionalWaterSpecular(WaterWorldNormal, ViewDir);
         SpecularColor += ComputePointWaterSpecular(Input.WorldPos, WaterWorldNormal, ViewDir);
+        SpecularColor += ComputeSpotWaterSpecular(Input.WorldPos, WaterWorldNormal, ViewDir);
 
         const float FresnelBoost = 1.0f + pow(1.0f - saturate(dot(WaterWorldNormal, ViewDir)), max(WaterFresnelPower, 1.0f))
             * WaterFresnelIntensity;
