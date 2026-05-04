@@ -9,6 +9,7 @@ local NUMBER_SHEET = "Asset/Texture/UI/Number.png"
 local HUD_BG_SHEET = "Asset/Texture/UI/BG.png"
 local SCORE_BG_PATH = "Asset/Texture/UI/ScoreBoardBG.png"
 local ENDING_SHEET = "Asset/Texture/UI/Ending.png"
+local SCORE_MANAGER_PATH = "Asset/Scripts/ScoreManager.lua"
 
 local MONEY_SHEET = "Asset/Texture/UI/Money.png"
 local MONEY_ICON_SIZE = 96
@@ -124,6 +125,44 @@ local BoatHomePosition = nil
 local BoatHomeRotation = nil
 local bIntroPlaying = false
 local IntroTime = 0.0
+local ScoreManager = nil
+
+local function LoadScoreManager()
+    if ScoreManager then
+        return ScoreManager
+    end
+
+    local paths = {
+        SCORE_MANAGER_PATH,
+        "NipsEngine/" .. SCORE_MANAGER_PATH,
+    }
+
+    local lastError = nil
+    for _, path in ipairs(paths) do
+        local ok, managerOrError = pcall(dofile, path)
+        if ok and managerOrError then
+            ScoreManager = managerOrError
+            return ScoreManager
+        end
+        lastError = managerOrError
+    end
+
+    if Log then
+        Log("ScoreManager load failed: " .. tostring(lastError))
+    end
+
+    ScoreManager = {
+        GetRecords = function()
+            return { 0, 0, 0 }
+        end,
+        RecordScore = function(score)
+            local records = { 0, math.max(0, math.floor(score or 0)), 0 }
+            table.sort(records, function(a, b) return a > b end)
+            return records
+        end,
+    }
+    return ScoreManager
+end
 
 local function DigitUV(d)
     local digit = math.max(0, math.min(9, math.floor(d)))
@@ -724,17 +763,9 @@ local function HideGameOver()
     end
 end
 
-local function ShowScoreboard(bestScore)
-    if ScorePanel then return end
-
-    ScorePanel = UIManager.CreateImage(nil, 0.5, 0.5, 0.6, 0.5, SCORE_BG_PATH, "FullRelative")
-    ScorePanel:SetColor(1.0, 1.0, 1.0, 1.0)
-
-    local title = UIManager.CreateText(ScorePanel, -0.005, -0.195, 300, 50, "BEST SCORE", 32.0, "RelativePos")
-    title:SetColor(0.0, 0.0, 0.0, 1.0)
-
+local function DrawScoreDigits(parent, score, centerX, centerY, digitW, digitH, spacing)
     local digitList = {}
-    local n = math.max(0, math.floor(bestScore or 0))
+    local n = math.max(0, math.floor(score or 0))
     if n == 0 then
         digitList = { 0 }
     else
@@ -744,18 +775,36 @@ local function ShowScoreboard(bestScore)
         end
     end
 
-    local digitW = 0.08
-    local digitH = 0.25
-    local spacing = 0.085
-    local startX = -((#digitList - 1) * spacing) * 0.5
+    local startX = centerX - ((#digitList - 1) * spacing) * 0.5
 
     for i, digit in ipairs(digitList) do
         local x = startX + (i - 1) * spacing
-        local img = UIManager.CreateImage(ScorePanel, x, 0.0, digitW, digitH, NUMBER_SHEET, "ParentRelative")
+        local img = UIManager.CreateImage(parent, x, centerY, digitW, digitH, NUMBER_SHEET, "ParentRelative")
         img:SetUV(DigitUV(digit))
     end
+end
 
-    local closeBtn = UIManager.CreateText(ScorePanel, 0.0, 0.17, 120, 28, "CLOSE", 28.0, "RelativePos")
+local function ShowScoreboard(records)
+    if ScorePanel then return end
+
+    ScorePanel = UIManager.CreateImage(nil, 0.5, 0.5, 0.6, 0.5, SCORE_BG_PATH, "FullRelative")
+    ScorePanel:SetColor(1.0, 1.0, 1.0, 1.0)
+
+    local title = UIManager.CreateText(ScorePanel, -0.005, -0.195, 200, 50, "RECORD", 32.0, "RelativePos")
+    title:SetColor(0.0, 0.0, 0.0, 1.0)
+
+    if type(records) ~= "table" then
+        records = LoadScoreManager().GetRecords()
+    end
+
+    local rowY = { -0.085, 0.025, 0.135 }
+    for rank = 1, 3 do
+        local rankLabel = UIManager.CreateText(ScorePanel, -0.215, rowY[rank], 64, 36, tostring(rank), 32.0, "RelativePos")
+        rankLabel:SetColor(0.0, 0.0, 0.0, 1.0)
+        DrawScoreDigits(ScorePanel, records[rank] or 0, 0.045, rowY[rank], 0.052, 0.15, 0.055)
+    end
+
+    local closeBtn = UIManager.CreateText(ScorePanel, 0.0, 0.215, 120, 28, "CLOSE", 28.0, "RelativePos")
     closeBtn:SetColor(0, 0, 0, 1.0)
     closeBtn:SetInteractable(true)
     closeBtn:OnHoverEnter(function() closeBtn:SetColor(1.0, 1.0, 0.0, 1.0) end)
@@ -771,6 +820,7 @@ local function ShowGameOver()
 
     SetGameplayInputEnabled(false)
     local finalScore = GetHudMoney()
+    LoadScoreManager().RecordScore(finalScore)
     HideInGameHud()
 
     GameOverPanel = UIManager.CreateImage(nil, 0.5, 0.5, 0.55, 0.55, nil, "FullRelative")
@@ -852,7 +902,7 @@ ShowHud = function()
     local RecordLabel = MakeHoverLabel(MenuPanel, 0.025, 0.18, 256, 28, "RECORD", 48.0, "RelativePos")
     RecordLabel:OnClick(function()
         HideHud()
-        ShowScoreboard(1557)
+        ShowScoreboard(LoadScoreManager().GetRecords())
     end)
 
     local ok, err = pcall(PrepareMenuPresentation)

@@ -1,7 +1,7 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 1969,
+  "NextUUID" : 1971,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
@@ -10,6 +10,26 @@
     "Rotation" : [52.357555, -24.906647, -107.994812]
   },
   "Primitives" : {
+    "1969" : {
+      "ActorClass" : "ASceneActor",
+      "ActorTag" : "ScoreManager",
+      "EditorOnly" : false,
+      "EnableTick" : true,
+      "HiddenInEditor" : true,
+      "Location" : [0.000000, 0.000000, 0.000000],
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "USceneComponent"
+    },
+    "1970" : {
+      "EditorOnly" : false,
+      "EnableTick" : false,
+      "HiddenInEditor" : true,
+      "OwnerRootUUID" : 1969,
+      "Script Enabled" : true,
+      "Script Path" : "Asset/Scripts/ScoreManager.lua",
+      "Type" : "UScriptComponent"
+    },
     "1052" : {
       "BobAmplitude" : 0.240000,
       "BobFrequency" : 0.550000,
