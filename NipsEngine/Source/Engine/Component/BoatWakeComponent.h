@@ -1,0 +1,77 @@
+#pragma once
+
+#include "Component/ActorComponent.h"
+
+class UMaterialInterface;
+
+class UBoatWakeComponent : public UActorComponent
+{
+public:
+    DECLARE_CLASS(UBoatWakeComponent, UActorComponent)
+
+    UBoatWakeComponent() = default;
+    ~UBoatWakeComponent() override = default;
+
+    void Serialize(FArchive& Ar) override;
+    void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
+    void PostEditProperty(const char* PropertyName) override;
+    void BeginPlay() override;
+
+protected:
+    void TickComponent(float DeltaTime) override;
+
+private:
+    void RefreshMaterialRefs();
+    bool ResolveBoatAxes(FVector& OutForward, FVector& OutRight) const;
+    void SpawnWakeSet(
+        const FVector& BoatLocation,
+        const FVector& BoatForward,
+        const FVector& BoatRight,
+        const FVector& MoveDir,
+        float SpeedAlpha,
+        float TurnAlpha,
+        float SignedTurn);
+    void SpawnWakeDecal(
+        const FVector& WorldLocation,
+        const FVector& PlaneForward,
+        const FVector& PlaneRight,
+        const FVector& DecalSize,
+        UMaterialInterface* Material,
+        float FadeStartDelay,
+        float FadeDuration) const;
+
+private:
+    FString MainDecalMaterial = "BoatWakeDecalMain";
+    FString VariantDecalMaterial = "BoatWakeDecalVariant";
+
+    float MinSpawnSpeed = 1.5f;
+    float MaxWakeSpeed = 15.0f;
+    float SpawnSpacing = 2.25f;
+
+    float MainWidth = 8.0f;
+    float MainLength = 13.0f;
+    float MainDepth = 1.0f;
+    float MainBackwardOffset = 4.0f;
+    float MainFadeStartDelay = 0.05f;
+    float MainFadeDuration = 1.8f;
+
+    float VariantWidth = 5.0f;
+    float VariantLength = 8.5f;
+    float VariantDepth = 0.8f;
+    float VariantSideOffset = 3.0f;
+    float VariantBackwardOffset = 4.75f;
+    float VariantTurnAngleDegrees = 18.0f;
+    float VariantFadeStartDelay = 0.0f;
+    float VariantFadeDuration = 1.1f;
+    float TurnThreshold = 0.12f;
+
+    float WaterHeightOffset = 0.05f;
+
+    FVector LastOwnerLocation = FVector::ZeroVector;
+    FVector LastBoatForward = FVector::ForwardVector;
+    float DistanceAccumulator = 0.0f;
+    bool bHasHistory = false;
+
+    UMaterialInterface* MainDecalMaterialRef = nullptr;
+    UMaterialInterface* VariantDecalMaterialRef = nullptr;
+};

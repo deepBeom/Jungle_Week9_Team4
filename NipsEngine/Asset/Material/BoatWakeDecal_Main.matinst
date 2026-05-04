@@ -1,0 +1,21 @@
+{
+    "Name" : "BoatWakeDecalMain",
+    "Parent" : "DecalMat",
+    "OverridedParams" : [{
+        "Name" : "DiffuseMap",
+        "Type" : "Texture",
+        "Value" : "Asset/Texture/boat_wake_decal2.png"
+      }, {
+        "Name" : "BaseColor",
+        "Type" : "Vector3",
+        "Value" : [0.930000, 0.970000, 1.000000]
+      }, {
+        "Name" : "Opacity",
+        "Type" : "Float",
+        "Value" : 0.880000
+      }, {
+        "Name" : "EmissiveColor",
+        "Type" : "Vector3",
+        "Value" : [0.000000, 0.000000, 0.000000]
+      }]
+}
