@@ -3,6 +3,8 @@
 #include "Component/ActorComponent.h"
 
 class UMaterialInterface;
+class UDecalComponent;
+class ADecalActor;
 
 class UBoatWakeComponent : public UActorComponent
 {
@@ -16,6 +18,7 @@ public:
     void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
     void PostEditProperty(const char* PropertyName) override;
     void BeginPlay() override;
+    void EndPlay() override;
 
 protected:
     void TickComponent(float DeltaTime) override;
@@ -23,6 +26,7 @@ protected:
 private:
     void RefreshMaterialRefs();
     bool ResolveBoatAxes(FVector& OutForward, FVector& OutRight) const;
+    void ResetWakeProgress(const FVector& CurrentLocation);
     void SpawnWakeSet(
         const FVector& BoatLocation,
         const FVector& BoatForward,
@@ -35,7 +39,11 @@ private:
         const FVector& DecalSize,
         UMaterialInterface* Material,
         float FadeStartDelay,
-        float FadeDuration) const;
+        float FadeDuration);
+    ADecalActor* AcquireWakeDecalActor(UWorld* World);
+    UDecalComponent* ResolveWakeDecalComponent(ADecalActor* DecalActor) const;
+    void DeactivateWakeDecal(ADecalActor* DecalActor) const;
+    void ReleaseWakeDecalPool();
 
 private:
     FString MainDecalMaterial = "BoatWakeDecalMain";
@@ -43,6 +51,7 @@ private:
     float MinSpawnSpeed = 1.5f;
     float MaxWakeSpeed = 15.0f;
     float SpawnSpacing = 2.25f;
+    int32 MaxActiveWakeDecals = 64;
 
     float MainWidth = 8.0f;
     float MainLength = 13.0f;
@@ -57,6 +66,9 @@ private:
     FVector LastOwnerLocation = FVector::ZeroVector;
     float DistanceAccumulator = 0.0f;
     bool bHasHistory = false;
+    bool bWasMovingAboveSpawnSpeed = false;
 
     UMaterialInterface* MainDecalMaterialRef = nullptr;
+    TArray<ADecalActor*> WakeDecalPool;
+    int32 NextWakeDecalPoolIndex = 0;
 };

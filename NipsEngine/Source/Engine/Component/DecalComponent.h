@@ -34,12 +34,15 @@ public:
 
     FMatrix GetDecalMatrix() const;
     FColor GetDecalColor() const { return DecalColor; }
+    bool AffectsOnlyWaterReceivers() const { return bAffectOnlyWaterReceivers; }
 
     void SetSize(const FVector& InSize);
     void SetFadeOutSizeMultiplier(const FVector& InMultiplier);
+    void SetAffectOnlyWaterReceivers(bool bInAffectOnlyWaterReceivers) { bAffectOnlyWaterReceivers = bInAffectOnlyWaterReceivers; }
 
     void SetFadeIn(float InStartDelay, float InDuration);
     void SetFadeOut(float InStartDelay, float InDuration, bool bInDestroyOwnerAfterFade = false);
+    void ResetFadeState();
 
     bool SupportsOutline() const override { return true; }
 
@@ -63,6 +66,7 @@ private:
     float FadeInDuration = 0.0f;
     float FadeInStartDelay = 0.0f;
     bool bDestroyOwnerAfterFade = false;
+    bool bAffectOnlyWaterReceivers = false;
 
     float LifeTime = 0.0f;
 };

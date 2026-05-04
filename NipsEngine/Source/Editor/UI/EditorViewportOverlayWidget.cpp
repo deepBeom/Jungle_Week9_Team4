@@ -89,7 +89,6 @@ namespace
         if (!Actor)
             return;
 
-        Actor->InitDefaultComponents();
         Actor->SetActorLocation(Location);
         SelectionManager.Select(Actor);
     }

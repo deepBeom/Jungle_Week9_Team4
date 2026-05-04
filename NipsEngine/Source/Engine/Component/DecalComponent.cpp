@@ -217,10 +217,16 @@ void UDecalComponent::TickFadeOut()
 
     if (FadeOutLifeTime >= FadeStartDelay + FadeDuration)
     {
+        SetVisibility(false);
         SetActive(false);
-        if (bDestroyOwnerAfterFade && GetOwner())
+        if (AActor* Owner = GetOwner())
         {
-            GetOwner()->Destroy();
+            Owner->SetVisible(false);
+            Owner->SetActive(false);
+            if (bDestroyOwnerAfterFade)
+            {
+                Owner->Destroy();
+            }
         }
     }
 }
@@ -236,4 +242,13 @@ void UDecalComponent::SetFadeOut(float InStartDelay, float InDuration, bool bInD
     FadeStartDelay = InStartDelay;
     FadeDuration = InDuration;
     bDestroyOwnerAfterFade = bInDestroyOwnerAfterFade;
+}
+
+void UDecalComponent::ResetFadeState()
+{
+    LifeTime = 0.0f;
+    InitialDecalSize = DecalSize;
+    DecalColor.A = (FadeInStartDelay + FadeInDuration) > 0.0f ? 0.0f : 1.0f;
+    SetVisibility(true);
+    SetActive(true);
 }
