@@ -19,6 +19,15 @@ function OnKeyDown(key)
     end
 
     local forward = mesh:GetForwardVector()
+    forward.Z = 0.0
+
+    local forwardLength = math.sqrt(forward.X * forward.X + forward.Y * forward.Y)
+    if forwardLength <= 0.0001 then
+        return
+    end
+
+    forward.X = forward.X / forwardLength
+    forward.Y = forward.Y / forwardLength
 
     if key == "W" then root:AddWorldOffset(forward.X * move_speed, forward.Y * move_speed, forward.Z * move_speed) end
     if key == "S" then root:AddWorldOffset(-forward.X * move_speed, -forward.Y * move_speed, -forward.Z * move_speed) end
