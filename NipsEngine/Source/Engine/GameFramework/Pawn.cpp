@@ -9,18 +9,6 @@ REGISTER_FACTORY(APawn)
 
 namespace
 {
-    constexpr float BoatForwardAccel = 120.0f;
-    constexpr float BoatReverseAccel = 70.0f;
-    constexpr float BoatBrakeAccel = 150.0f;
-    constexpr float BoatLinearDrag = 45.0f; 
-    constexpr float BoatTurnAccel = 220.0f;
-    constexpr float BoatTurnDrag = 260.0f;
-    constexpr float BoatMaxForwardSpeed = 120.0f;
-    constexpr float BoatMaxReverseSpeed = 45.0f;
-    constexpr float BoatMaxYawSpeed = 800.0f;
-    constexpr float BoatMinSteerAuthority = 0.30f;
-    constexpr float BoatSpeedEpsilon = 0.001f;
-
     float MoveToward(float Current, float Target, float MaxDelta)
     {
         if (Current < Target)
@@ -121,7 +109,22 @@ void APawn::ResetBoatMovement()
     BoatYawSpeed = 0.0f;
 }
 
-void APawn::UpdateBoatMovement(float DeltaTime, float ThrottleInput, float SteerInput, float Mass)
+void APawn::UpdateBoatMovement(
+    float DeltaTime,
+    float ThrottleInput,
+    float SteerInput,
+    float Mass,
+    float ForwardAccel,
+    float ReverseAccel,
+    float BrakeAccel,
+    float LinearDrag,
+    float TurnAccel,
+    float TurnDrag,
+    float MaxForwardSpeed,
+    float MaxReverseSpeed,
+    float MaxYawSpeed,
+    float MinSteerAuthority,
+    float SpeedEpsilon)
 {
     UStaticMeshComponent* CharacterComponent = GetCharacterComponent();
     USceneComponent* RootComponent = GetRootComponent();
@@ -135,13 +138,13 @@ void APawn::UpdateBoatMovement(float DeltaTime, float ThrottleInput, float Steer
     const float AccelScale = 1.0f / SafeMass;
     const float SpeedScale = 1.0f / std::sqrt(SafeMass);
 
-    const float ForwardAccelPerTick = BoatForwardAccel * AccelScale;
-    const float ReverseAccelPerTick = BoatReverseAccel * AccelScale;
-    const float BrakeAccelPerTick = BoatBrakeAccel * AccelScale;
-    const float TurnAccelPerTick = BoatTurnAccel * AccelScale;
-    const float MaxForwardSpeedForMass = BoatMaxForwardSpeed * SpeedScale;
-    const float MaxReverseSpeedForMass = BoatMaxReverseSpeed * SpeedScale;
-    const float MaxYawSpeedForMass = BoatMaxYawSpeed * AccelScale;
+    const float ForwardAccelPerTick = ForwardAccel * AccelScale;
+    const float ReverseAccelPerTick = ReverseAccel * AccelScale;
+    const float BrakeAccelPerTick = BrakeAccel * AccelScale;
+    const float TurnAccelPerTick = TurnAccel * AccelScale;
+    const float MaxForwardSpeedForMass = MaxForwardSpeed * SpeedScale;
+    const float MaxReverseSpeedForMass = MaxReverseSpeed * SpeedScale;
+    const float MaxYawSpeedForMass = MaxYawSpeed * AccelScale;
 
     if (ThrottleInput > 0.0f)
     {
@@ -160,17 +163,17 @@ void APawn::UpdateBoatMovement(float DeltaTime, float ThrottleInput, float Steer
     }
     else
     {
-        BoatForwardSpeed = MoveToward(BoatForwardSpeed, 0.0f, BoatLinearDrag * SafeDeltaTime);
+        BoatForwardSpeed = MoveToward(BoatForwardSpeed, 0.0f, LinearDrag * SafeDeltaTime);
     }
 
     BoatForwardSpeed = MathUtil::Clamp(BoatForwardSpeed, -MaxReverseSpeedForMass, MaxForwardSpeedForMass);
-    if (MathUtil::Abs(BoatForwardSpeed) < BoatSpeedEpsilon)
+    if (MathUtil::Abs(BoatForwardSpeed) < SpeedEpsilon)
     {
         BoatForwardSpeed = 0.0f;
     }
 
     const float SpeedRatio = MathUtil::Clamp(MathUtil::Abs(BoatForwardSpeed) / std::max(MaxForwardSpeedForMass, 0.001f), 0.0f, 1.0f);
-    const float SteerAuthority = BoatMinSteerAuthority + (1.0f - BoatMinSteerAuthority) * SpeedRatio;
+    const float SteerAuthority = MinSteerAuthority + (1.0f - MinSteerAuthority) * SpeedRatio;
 
     if (SteerInput != 0.0f)
     {
@@ -178,11 +181,11 @@ void APawn::UpdateBoatMovement(float DeltaTime, float ThrottleInput, float Steer
     }
     else
     {
-        BoatYawSpeed = MoveToward(BoatYawSpeed, 0.0f, BoatTurnDrag * SafeDeltaTime);
+        BoatYawSpeed = MoveToward(BoatYawSpeed, 0.0f, TurnDrag * SafeDeltaTime);
     }
 
     BoatYawSpeed = MathUtil::Clamp(BoatYawSpeed, -MaxYawSpeedForMass, MaxYawSpeedForMass);
-    if (MathUtil::Abs(BoatYawSpeed) < BoatSpeedEpsilon)
+    if (MathUtil::Abs(BoatYawSpeed) < SpeedEpsilon)
     {
         BoatYawSpeed = 0.0f;
     }
@@ -194,7 +197,7 @@ void APawn::UpdateBoatMovement(float DeltaTime, float ThrottleInput, float Steer
 
     const FVector Forward = GetForwardVector();
     const FVector MoveDelta = Forward * (BoatForwardSpeed * SafeDeltaTime);
-    if (MathUtil::Abs(MoveDelta.X) > BoatSpeedEpsilon || MathUtil::Abs(MoveDelta.Y) > BoatSpeedEpsilon)
+    if (MathUtil::Abs(MoveDelta.X) > SpeedEpsilon || MathUtil::Abs(MoveDelta.Y) > SpeedEpsilon)
     {
         AddActorWorldOffset(FVector(MoveDelta.X, MoveDelta.Y, 0.0f));
     }

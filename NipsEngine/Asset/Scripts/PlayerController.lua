@@ -3,6 +3,19 @@ local base_mass = 1.0                    -- 배의 최소 질량입니다. 실�
 local look_speed = 0.001
 local min_pitch = -1.4
 local max_pitch = 1.4
+
+local boat_forward_accel = 120.0
+local boat_reverse_accel = 70.0
+local boat_brake_accel = 150.0
+local boat_linear_drag = 45.0
+local boat_turn_accel = 220.0
+local boat_turn_drag = 260.0
+local boat_max_forward_speed = 120.0
+local boat_max_reverse_speed = 45.0
+local boat_max_yaw_speed = 110.0
+local boat_min_steer_authority = 0.30
+local boat_speed_epsilon = 0.001
+
 local orbit_yaw = nil
 local orbit_pitch = nil
 local orbit_radius = nil
@@ -68,12 +81,28 @@ function OnUpdate(delta_time)
         return
     end
 
-    local dt = clamp(delta_time or 0.0, 0.0001, 0.05)
+    -- local dt = clamp(delta_time or 0.0, 0.0001, 0.05)
     local throttle_input = get_input_axis("S", "W")
     local steer_input = get_input_axis("A", "D")
     local mass = get_effective_mass()
 
-    Pawn:UpdateBoatMovement(dt, throttle_input, steer_input, mass)
+    Pawn:UpdateBoatMovement(
+        delta_time,
+        throttle_input,
+        steer_input,
+        mass,
+        boat_forward_accel,
+        boat_reverse_accel,
+        boat_brake_accel,
+        boat_linear_drag,
+        boat_turn_accel,
+        boat_turn_drag,
+        boat_max_forward_speed,
+        boat_max_reverse_speed,
+        boat_max_yaw_speed,
+        boat_min_steer_authority,
+        boat_speed_epsilon
+    )
 end
 
 function OnKeyDown(key)

@@ -131,6 +131,7 @@ void FGameInputController::Tick(float DeltaTime)
     CachedLocalMouseX = static_cast<float>(MousePoint.x) - ViewportX;
     CachedLocalMouseY = static_cast<float>(MousePoint.y) - ViewportY;
 
+    // TODO: OnUpdate는.. 이 함수와 연관된 모든 것들을 지워야합니다. 더러워요
     CallLuaFunction("OnUpdate", DeltaTime);
     TickLuaInput(Input);
 }
