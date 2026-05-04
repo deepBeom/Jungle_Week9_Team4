@@ -115,6 +115,12 @@ FVector APawn::GetUpVector() const
     return FVector(0.0f, 0.0f, 1.0f);
 }
 
+void APawn::ResetBoatMovement()
+{
+    BoatForwardSpeed = 0.0f;
+    BoatYawSpeed = 0.0f;
+}
+
 void APawn::UpdateBoatMovement(float DeltaTime, float ThrottleInput, float SteerInput, float Mass)
 {
     UStaticMeshComponent* CharacterComponent = GetCharacterComponent();

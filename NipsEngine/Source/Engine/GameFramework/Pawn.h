@@ -22,6 +22,7 @@ public:
     FVector GetRightVector() const;
     FVector GetUpVector() const;
     void UpdateBoatMovement(float DeltaTime, float ThrottleInput, float SteerInput, float Mass);
+    void ResetBoatMovement();
     float GetBoatForwardSpeed() const { return BoatForwardSpeed; }
     float GetBoatYawSpeed() const { return BoatYawSpeed; }
 
