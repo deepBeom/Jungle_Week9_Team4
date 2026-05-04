@@ -120,6 +120,7 @@ local HeartAnimIndex = 0
 local HeartAnimTime = 0.0
 local HeartAnimFrame = 0
 local HeartHealth = HEART_COUNT
+local HeartTargetHealth = HEART_COUNT
 local BoatActor = nil
 local BoatHomePosition = nil
 local BoatHomeRotation = nil
@@ -352,11 +353,33 @@ end
 local function ApplyHeartHealth(health)
     local clamped = math.max(0, math.min(HEART_COUNT, math.floor((health or 0) + 0.5)))
     HeartHealth = clamped
+    HeartTargetHealth = clamped
     bHeartAnimPlaying = false
     HeartAnimIndex = 0
 
     for i = 1, HEART_COUNT do
         ApplyHeartFrame(i, i <= clamped and 0 or HEART_COLS - 1)
+    end
+end
+
+local function StartHeartAnimStep()
+    if HeartTargetHealth == HeartHealth then
+        return
+    end
+
+    HeartAnimDir = HeartTargetHealth < HeartHealth and 1 or -1
+    HeartAnimIndex = HeartAnimDir > 0 and HeartHealth or HeartHealth + 1
+    HeartAnimTime = 0.0
+    HeartAnimFrame = HeartAnimDir > 0 and 0 or HEART_COLS - 1
+    bHeartAnimPlaying = true
+    ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
+end
+
+local function SetHeartTargetHealth(health)
+    HeartTargetHealth = math.max(0, math.min(HEART_COUNT, math.floor((health or 0) + 0.5)))
+
+    if not bHeartAnimPlaying and HeartTargetHealth ~= HeartHealth then
+        StartHeartAnimStep()
     end
 end
 
@@ -398,8 +421,8 @@ local function SyncGameplayHud()
     end
 
     local health = GetHudHealth()
-    if health ~= HeartHealth then
-        ApplyHeartHealth(health)
+    if health ~= HeartTargetHealth then
+        SetHeartTargetHealth(health)
     end
 end
 
@@ -617,6 +640,7 @@ local function HideInGameHud()
         HeartAnimTime = 0.0
         HeartAnimFrame = 0
         HeartHealth = HEART_COUNT
+        HeartTargetHealth = HEART_COUNT
     end
 
     if ShipWheel then
@@ -742,6 +766,7 @@ local function ShowInGameHud()
     HeartAnimIndex = 0
     HeartAnimTime = 0.0
     HeartAnimFrame = 0
+    HeartTargetHealth = GetHudHealth()
     ApplyHeartHealth(GetHudHealth())
     SyncGameplayHud()
     
@@ -841,6 +866,7 @@ local function ShowGameOver()
     restartLabel:OnHoverEnter(function() restartLabel:SetColor(1.0, 1.0, 0.0, 1.0) end)
     restartLabel:OnHoverExit(function() restartLabel:SetColor(0.0, 0.0, 0.0, 1.0) end)
     restartLabel:OnClick(function()
+        _G.LogoHudNextStartMode = "Gameplay"
         RequestGameRestart()
     end)
 
@@ -850,6 +876,7 @@ local function ShowGameOver()
     titleLabel:OnHoverEnter(function() titleLabel:SetColor(1.0, 1.0, 0.0, 1.0) end)
     titleLabel:OnHoverExit(function() titleLabel:SetColor(0.0, 0.0, 0.0, 1.0) end)
     titleLabel:OnClick(function()
+        _G.LogoHudNextStartMode = "Title"
         RequestGameRestart()
     end)
 end
@@ -866,6 +893,18 @@ local function HideHud()
     if MenuPanel then
         UIManager.DestroyElement(MenuPanel)
         MenuPanel = nil
+    end
+end
+
+local function StartGameplay()
+    HideHud()
+    ShowInGameHud()
+    local ok, err = pcall(BeginBoatIntro)
+    if not ok then
+        if Log then
+            Log("BeginBoatIntro failed: " .. tostring(err))
+        end
+        SetGameplayInputEnabled(true)
     end
 end
 
@@ -886,15 +925,7 @@ ShowHud = function()
 
     local StartLabel = MakeHoverLabel(MenuPanel, 0.025, 0.03, 256, 28, "START", 48.0, "RelativePos")
     StartLabel:OnClick(function()
-        HideHud()
-        ShowInGameHud()
-        local ok, err = pcall(BeginBoatIntro)
-        if not ok then
-            if Log then
-                Log("BeginBoatIntro failed: " .. tostring(err))
-            end
-            SetGameplayInputEnabled(true)
-        end
+        StartGameplay()
     end)
 
     UIManager.CreateImage(MenuPanel, -0.25, 0.4, 0.15, 0.25, "Asset/Texture/UI/Icon_book.png", "ParentRelative")
@@ -912,6 +943,14 @@ ShowHud = function()
 end
 
 function OnStart(self)
+    local nextStartMode = _G.LogoHudNextStartMode
+    _G.LogoHudNextStartMode = nil
+
+    if nextStartMode == "Gameplay" then
+        StartGameplay()
+        return
+    end
+
     ShowHud()
 end
 
@@ -945,13 +984,14 @@ function OnUpdate(self, deltaTime)
 
             ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
             HeartAnimIndex = 0
+            StartHeartAnimStep()
         elseif nextFrame ~= HeartAnimFrame then
             HeartAnimFrame = nextFrame
             ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
         end
     end
 
-    if InGamePanel and not bIntroPlaying and GetHudHealth() <= 0 then
+    if InGamePanel and not bIntroPlaying and GetHudHealth() <= 0 and not bHeartAnimPlaying then
         ShowGameOver()
     end
 end
