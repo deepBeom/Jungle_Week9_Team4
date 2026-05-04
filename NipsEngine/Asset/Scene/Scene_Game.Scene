@@ -1,13 +1,13 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 5187,
+  "NextUUID" : 5474,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
-    "Location" : [-24.591064, 9.740972, 25.252684],
+    "Location" : [-1.413764, 12.512800, 12.424840],
     "NearClip" : 0.100000,
-    "Rotation" : [11.353038, 10.934897, -46.626709]
+    "Rotation" : [30.499205, 14.357378, -67.169800]
   },
   "Primitives" : {
     "1052" : {
@@ -48,6 +48,9 @@
       "EnableTick" : true,
       "EnableWaterSpecular" : true,
       "HiddenInEditor" : false,
+      "HorizonFadeEnd" : 0.000000,
+      "HorizonFadeStart" : 0.000000,
+      "NdotLFadeWidth" : 0.000000,
       "NormalScrollSpeedAX" : 0.030000,
       "NormalScrollSpeedAY" : 0.010000,
       "NormalScrollSpeedBX" : -0.020000,
@@ -1027,6 +1030,26 @@
       "ShapeColor" : [0.000000, 1.000000, 0.000000, 1.000000],
       "Type" : "UBoxComponent",
       "Visible" : true
+    },
+    "5287" : {
+      "EditorOnly" : false,
+      "EnableTick" : true,
+      "HiddenInEditor" : false,
+      "Main Backward Offset" : 4.000000,
+      "Main Decal Material" : "BoatWakeDecalMain",
+      "Main Depth" : 1.000000,
+      "Main Fade Duration" : 1.800000,
+      "Main Fade Out Size Multiplier" : [1.000000, 1.140000, 1.240000],
+      "Main Fade Start Delay" : 0.050000,
+      "Main Length" : 13.000000,
+      "Main Width" : 8.000000,
+      "Max Active Wake Decals" : 64,
+      "Max Wake Speed" : 15.000000,
+      "Min Spawn Speed" : 1.500000,
+      "OwnerRootUUID" : 2612,
+      "Spawn Spacing" : 2.250000,
+      "Type" : "UBoatWakeComponent",
+      "Water Height Offset" : 0.050000
     },
     "568" : {
       "ActorClass" : "AStaticMeshActor",

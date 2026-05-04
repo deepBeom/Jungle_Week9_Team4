@@ -47,11 +47,6 @@ local function is_input_locked()
     return IsActorPushed(Pawn)
 end
 
-function OnKeyDown(key)
-    if is_input_locked() then
-        return
-    end
-
 local function get_input_axis(negative_key, positive_key)
     local value = 0.0
     if Input.GetKey(negative_key) then
@@ -64,6 +59,10 @@ local function get_input_axis(negative_key, positive_key)
 end
 
 function OnUpdate(delta_time)
+    if is_input_locked() then
+        return
+    end
+
     local root, mesh, camera = get_components()
     if root == nil or mesh == nil or Pawn == nil then
         return
