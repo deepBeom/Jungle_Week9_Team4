@@ -76,17 +76,6 @@ local PROGRESS_GAP_TOP = 10
 local PROGRESS_GAP_BOTTOM = 8
 local PROGRESS_ANIM_DURATION = 0.35
 local DEFAULT_WEIGHT_CAPACITY = 30.0
-local INTRO_DURATION = 5
-local INTRO_START_OFFSET_X = -45.0
-local INTRO_START_OFFSET_Y = 0.0
-local INTRO_START_OFFSET_Z = -8.0
-
-local MENU_CAMERA_X = -55.763822
-local MENU_CAMERA_Y = 0.0
-local MENU_CAMERA_Z = 20.132818
-local MENU_CAMERA_ROT_X = 0.0
-local MENU_CAMERA_ROT_Y = 33.690063
-local MENU_CAMERA_ROT_Z = 0.0
 local MONEY_Y = HEART_DRAW_H + PROGRESS_GAP_TOP
 local PROGRESS_Y = MONEY_Y + MONEY_ICON_SIZE + PROGRESS_GAP_BOTTOM
 local INGAME_HUD_W = math.max(HEART_ROW_W, PROGRESS_W, MONEY_ROW_W)
@@ -121,8 +110,6 @@ local HeartTargetHealth = HEART_COUNT
 local BoatActor = nil
 local BoatHomePosition = nil
 local BoatHomeRotation = nil
-local bIntroPlaying = false
-local IntroTime = 0.0
 local ScoreManager = nil
 
 local function LoadScoreManager()
@@ -169,6 +156,18 @@ end
 
 local function Clamp01(value)
     return math.max(0.0, math.min(1.0, value or 0.0))
+end
+
+local function EnterUIMode()
+    if SetUIMode then
+        SetUIMode(true)
+    end
+end
+
+local function EnterGameplayMode()
+    if SetUIMode then
+        SetUIMode(false)
+    end
 end
 
 local function GetHudHealth()
@@ -264,22 +263,6 @@ local function GetActorYawDegrees(actor)
     return rot.Z or rot.Y or 0.0
 end
 
-local function SetMenuCamera()
-    if SetGameplayCameraFollowEnabled then
-        SetGameplayCameraFollowEnabled(false)
-    end
-
-    if SetGameplayCameraTransformValues then
-        SetGameplayCameraTransformValues(
-            MENU_CAMERA_X,
-            MENU_CAMERA_Y,
-            MENU_CAMERA_Z,
-            MENU_CAMERA_ROT_X,
-            MENU_CAMERA_ROT_Y,
-            MENU_CAMERA_ROT_Z)
-    end
-end
-
 local function SetBoatAtHome()
     local boat = ResolveBoatActor()
     if not boat then return end
@@ -293,36 +276,9 @@ local function SetBoatAtHome()
     end
 end
 
-local function GetBoatIntroStartPosition()
-    if not BoatHomePosition then
-        return nil, nil, nil
-    end
-
-    return
-        BoatHomePosition.X + INTRO_START_OFFSET_X,
-        BoatHomePosition.Y + INTRO_START_OFFSET_Y,
-        BoatHomePosition.Z + INTRO_START_OFFSET_Z
-end
-
-local function SetBoatAtIntroStart()
-    local boat = ResolveBoatActor()
-    local startX, startY, startZ = GetBoatIntroStartPosition()
-    if not boat or not startX then return end
-
-    boat:SetPosition(startX, startY, startZ)
-
-    if BoatHomeRotation then
-        boat:SetRotation(BoatHomeRotation.X, BoatHomeRotation.Y, BoatHomeRotation.Z)
-    end
-end
-
 local function PrepareMenuPresentation()
-    SetGameplayInputEnabled(false)
-    SetMenuCamera()
-    bIntroPlaying = false
-    IntroTime = 0.0
+    EnterUIMode()
     SetBoatAtHome()
-    SetBoatAtIntroStart()
 end
 
 local function GetHeartAnimFrame(time, direction)
@@ -423,7 +379,6 @@ end
 
 local function UpdateShipWheel(deltaTime)
     if not ShipWheel or not Input then return end
-    if IsGameplayInputEnabled and not IsGameplayInputEnabled() then return end
 
     local dt = deltaTime or 0.0
     local dir = 0
@@ -616,7 +571,7 @@ local function ShowMinimap()
 end
 
 local function HideInGameHud()
-    SetGameplayInputEnabled(false)
+    EnterUIMode()
 
     if InGamePanel then
         UIManager.DestroyElement(InGamePanel)
@@ -648,67 +603,6 @@ local function HideInGameHud()
     end
 
     HideMinimap()
-end
-
-local function BeginBoatIntro()
-    SetGameplayInputEnabled(false)
-    SetMenuCamera()
-
-    if ResetDriftSalvageStats then
-        ResetDriftSalvageStats()
-    end
-
-    local boat = ResolveBoatActor()
-    if boat and BoatHomePosition then
-        local startX, startY, startZ = GetBoatIntroStartPosition()
-        if startX then
-            boat:SetPosition(startX, startY, startZ)
-        end
-
-        if BoatHomeRotation then
-            boat:SetRotation(BoatHomeRotation.X, BoatHomeRotation.Y, BoatHomeRotation.Z)
-        end
-    end
-
-    bIntroPlaying = true
-    IntroTime = 0.0
-end
-
-local function UpdateBoatIntro(deltaTime)
-    if not bIntroPlaying then return end
-
-    local boat = ResolveBoatActor()
-    if not boat or not BoatHomePosition then
-        bIntroPlaying = false
-        if SetGameplayCameraFollowEnabled then
-            SetGameplayCameraFollowEnabled(true)
-        end
-        SetGameplayInputEnabled(true)
-        return
-    end
-
-    IntroTime = math.min(INTRO_DURATION, IntroTime + (deltaTime or 0.0))
-    local ratio = EaseSmoothStep(IntroTime / INTRO_DURATION)
-    local startX, startY, startZ = GetBoatIntroStartPosition()
-    if not startX then
-        bIntroPlaying = false
-        return
-    end
-
-    boat:SetPosition(
-        Lerp(startX, BoatHomePosition.X, ratio),
-        Lerp(startY, BoatHomePosition.Y, ratio),
-        Lerp(startZ, BoatHomePosition.Z, ratio))
-    SetMenuCamera()
-
-    if IntroTime >= INTRO_DURATION then
-        bIntroPlaying = false
-        SetBoatAtHome()
-        if SetGameplayCameraFollowEnabled then
-            SetGameplayCameraFollowEnabled(true)
-        end
-        SetGameplayInputEnabled(true)
-    end
 end
 
 local function ShowInGameHud()
@@ -823,7 +717,7 @@ end
 local function ShowGameOver()
     if GameOverPanel then return end
 
-    SetGameplayInputEnabled(false)
+    EnterUIMode()
     local finalScore = GetHudMoney()
     LoadScoreManager().RecordScore(finalScore)
     HideInGameHud()
@@ -879,13 +773,11 @@ end
 local function StartGameplay()
     HideHud()
     ShowInGameHud()
-    local ok, err = pcall(BeginBoatIntro)
-    if not ok then
-        if Log then
-            Log("BeginBoatIntro failed: " .. tostring(err))
-        end
-        SetGameplayInputEnabled(true)
+    if ResetDriftSalvageStats then
+        ResetDriftSalvageStats()
     end
+    SetBoatAtHome()
+    EnterGameplayMode()
 end
 
 ShowHud = function()
@@ -940,7 +832,6 @@ function OnUpdate(self, deltaTime)
         return
     end
 
-    UpdateBoatIntro(deltaTime)
     SyncGameplayHud()
     UpdateProgressBar(deltaTime)
     UpdateShipWheel(deltaTime)
@@ -971,14 +862,13 @@ function OnUpdate(self, deltaTime)
         end
     end
 
-    if InGamePanel and not bIntroPlaying and GetHudHealth() <= 0 and not bHeartAnimPlaying then
+    if InGamePanel and GetHudHealth() <= 0 and not bHeartAnimPlaying then
         ShowGameOver()
     end
 end
 
 function OnDestroy(self)
-    SetGameplayInputEnabled(false)
-    SetGameplayCameraFollowEnabled(false)
+    EnterUIMode()
     HideHud()
     HideScoreboard()
     HideGameOver()
