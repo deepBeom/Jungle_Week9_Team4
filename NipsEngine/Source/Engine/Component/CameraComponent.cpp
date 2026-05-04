@@ -55,15 +55,40 @@ void UCameraComponent::LookAt(const FVector& Target)
         return;
     }
 
-    // X-forward, Y-right, Z-up
-    // Unreal-like meaning:
-    //   Pitch = rotation around Y
-    //   Yaw   = rotation around Z
-    const float YawDegrees = MathUtil::RadiansToDegrees(std::atan2(Forward.Y, Forward.X));
-    const float FlatLength = std::sqrt(Forward.X * Forward.X + Forward.Y * Forward.Y);
-    const float PitchDegrees = MathUtil::RadiansToDegrees(std::atan2(Forward.Z, FlatLength));
+    // Build a world-space look rotation first so the result stays stable even when
+    // the camera is attached under another scene component.
+    const FVector Up = FVector::UpVector;
+    FVector Right = FVector::CrossProduct(Up, Forward).GetSafeNormal();
+    if (Right.IsNearlyZero())
+    {
+        const FVector FallbackUp =
+            (std::fabs(Forward.Z) < 0.999f) ? FVector::UpVector : FVector::RightVector;
+        Right = FVector::CrossProduct(FallbackUp, Forward).GetSafeNormal();
+    }
 
-    SetViewRotationDegrees(PitchDegrees, YawDegrees);
+    if (Right.IsNearlyZero())
+    {
+        return;
+    }
+
+    const FVector CameraUp = FVector::CrossProduct(Forward, Right).GetSafeNormal();
+    const FMatrix WorldLookMatrix(
+        Forward.X, Forward.Y, Forward.Z, 0.0f,
+        Right.X, Right.Y, Right.Z, 0.0f,
+        CameraUp.X, CameraUp.Y, CameraUp.Z, 0.0f,
+        Position.X, Position.Y, Position.Z, 1.0f
+    );
+
+    const FQuat WorldLookRotation(WorldLookMatrix);
+
+    if (USceneComponent* Parent = GetParent())
+    {
+        const FQuat ParentWorldRotation(Parent->GetWorldTransform().GetRotation());
+        SetRelativeRotationQuat(ParentWorldRotation.Inverse() * WorldLookRotation);
+        return;
+    }
+
+    SetRelativeRotationQuat(WorldLookRotation);
 }
 
 void UCameraComponent::OnResize(int32 Width, int32 Height)
