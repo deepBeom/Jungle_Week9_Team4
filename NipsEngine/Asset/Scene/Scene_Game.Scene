@@ -1,13 +1,13 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 3624,
+  "NextUUID" : 4070,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
     "Location" : [-40.793690, 24.300623, 13.906775],
     "NearClip" : 0.100000,
-    "Rotation" : [18.773424, 5.781313, -73.492889]
+    "Rotation" : [18.773426, 5.781312, -73.492889]
   },
   "Primitives" : {
     "1052" : {
@@ -708,10 +708,10 @@
       "Enable Cull" : true,
       "EnableTick" : true,
       "FogCutoffDistance" : 10000.000000,
-      "FogDensity" : 0.026697,
+      "FogDensity" : 0.020023,
       "FogHeight" : 0.000000,
-      "FogInscatteringColor" : [0.594462, 0.737453, 0.894443, 1.000000],
-      "FogMaxOpacity" : 0.531441,
+      "FogInscatteringColor" : [0.594492, 0.737491, 0.894489, 1.000000],
+      "FogMaxOpacity" : 0.478297,
       "FogStartDistance" : 0.000000,
       "HeightFalloff" : 0.000000,
       "HiddenInEditor" : false,
@@ -914,7 +914,7 @@
       "Location" : [0.000000, 0.000000, 0.000000],
       "Materials" : ["Material"],
       "NormalizeOnImport" : false,
-      "ObjStaticMeshAsset" : "Asset\\Mesh\\cube.obj",
+      "ObjStaticMeshAsset" : "Asset/Mesh/cube.obj",
       "ParentUUID" : 2614,
       "Rotation" : [0.000000, 0.000000, 0.000000],
       "Scale" : [1.000000, 1.000000, 1.000000],
@@ -922,6 +922,26 @@
       "Scroll V" : 0.000000,
       "Type" : "UStaticMeshComponent",
       "Visible" : true
+    },
+    "3624" : {
+      "EditorOnly" : false,
+      "EnableTick" : true,
+      "HiddenInEditor" : false,
+      "Main Backward Offset" : 4.000000,
+      "Main Decal Material" : "BoatWakeDecalMain",
+      "Main Depth" : 4.000000,
+      "Main Fade Duration" : 1.800000,
+      "Main Fade Out Size Multiplier" : [1.000000, 1.140000, 1.240000],
+      "Main Fade Start Delay" : 0.050000,
+      "Main Length" : 13.000000,
+      "Main Width" : 8.000000,
+      "Max Active Wake Decals" : 64,
+      "Max Wake Speed" : 15.000000,
+      "Min Spawn Speed" : 0.500000,
+      "OwnerRootUUID" : 2612,
+      "Spawn Spacing" : 3.000000,
+      "Type" : "UBoatWakeComponent",
+      "Water Height Offset" : 0.050000
     },
     "512" : {
       "ActorClass" : "AStaticMeshActor",

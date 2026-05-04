@@ -26,6 +26,7 @@ protected:
 private:
     void RefreshMaterialRefs();
     bool ResolveBoatAxes(FVector& OutForward, FVector& OutRight) const;
+    void ResetWakeProgress(const FVector& CurrentLocation);
     void SpawnWakeSet(
         const FVector& BoatLocation,
         const FVector& BoatForward,
@@ -50,7 +51,7 @@ private:
     float MinSpawnSpeed = 1.5f;
     float MaxWakeSpeed = 15.0f;
     float SpawnSpacing = 2.25f;
-    int32 MaxActiveWakeDecals = 24;
+    int32 MaxActiveWakeDecals = 64;
 
     float MainWidth = 8.0f;
     float MainLength = 13.0f;
