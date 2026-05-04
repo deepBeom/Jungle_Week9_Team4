@@ -35,7 +35,8 @@ public:
     FMatrix GetDecalMatrix() const;
     FColor GetDecalColor() const { return DecalColor; }
 
-    void SetSize(const FVector& InSize) { DecalSize = InSize; }
+    void SetSize(const FVector& InSize);
+    void SetFadeOutSizeMultiplier(const FVector& InMultiplier);
 
     void SetFadeIn(float InStartDelay, float InDuration);
     void SetFadeOut(float InStartDelay, float InDuration, bool bInDestroyOwnerAfterFade = false);
@@ -46,13 +47,16 @@ protected:
     void TickComponent(float DeltaTime) override;
 
 private:
+    void ApplyCurrentSize(const FVector& InSize, bool bUpdateInitialSize);
     void TickFadeIn();
     void TickFadeOut();
 
 private:
     TArray<UMaterialInterface*> Materials;
     FVector DecalSize = FVector(5.0f, 5.0f, 5.0f);
+    FVector InitialDecalSize = FVector(5.0f, 5.0f, 5.0f);
     FColor DecalColor = FColor::White();
+    FVector FadeOutSizeMultiplier = FVector::OneVector;
 
     float FadeStartDelay = 0.0f;
     float FadeDuration = 0.0f;

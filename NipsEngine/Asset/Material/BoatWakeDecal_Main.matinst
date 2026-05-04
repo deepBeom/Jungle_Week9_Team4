@@ -4,7 +4,15 @@
     "OverridedParams" : [{
         "Name" : "DiffuseMap",
         "Type" : "Texture",
-        "Value" : "Asset/Texture/boat_wake_decal2.png"
+        "Value" : "Asset/Texture/boat_wake_decal.png"
+      }, {
+        "Name" : "NormalMap",
+        "Type" : "Texture",
+        "Value" : "Asset/Texture/boat_wake_decal_normal.png"
+      }, {
+        "Name" : "bHasNormalMap",
+        "Type" : "Bool",
+        "Value" : true
       }, {
         "Name" : "BaseColor",
         "Type" : "Vector3",
@@ -16,6 +24,10 @@
       }, {
         "Name" : "EmissiveColor",
         "Type" : "Vector3",
-        "Value" : [0.000000, 0.000000, 0.000000]
+        "Value" : [0.030000, 0.070000, 0.095000]
+      }, {
+        "Name" : "DecalLightFloor",
+        "Type" : "Float",
+        "Value" : 0.085000
       }]
 }

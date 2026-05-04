@@ -124,4 +124,5 @@ private:
     FCollisionSystem CollisionSystem;
     FCollectionSystem CollectionSystem;
     FExplosionSystem ExplosionSystem;
+    bool bIsIteratingLevelActors = false;
 };

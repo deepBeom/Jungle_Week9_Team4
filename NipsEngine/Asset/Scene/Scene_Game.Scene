@@ -1172,17 +1172,7 @@
       "Min Spawn Speed" : 1.500000,
       "OwnerRootUUID" : 259,
       "Spawn Spacing" : 2.250000,
-      "Turn Threshold" : 0.120000,
       "Type" : "UBoatWakeComponent",
-      "Variant Backward Offset" : 4.750000,
-      "Variant Decal Material" : "BoatWakeDecalVariant",
-      "Variant Depth" : 0.800000,
-      "Variant Fade Duration" : 1.100000,
-      "Variant Fade Start Delay" : 0.000000,
-      "Variant Length" : 8.500000,
-      "Variant Side Offset" : 3.000000,
-      "Variant Turn Angle Degrees" : 18.000000,
-      "Variant Width" : 5.000000,
       "Water Height Offset" : 0.050000
     }
   },

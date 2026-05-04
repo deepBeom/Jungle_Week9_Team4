@@ -8,6 +8,17 @@
 DEFINE_CLASS(UDecalComponent, UPrimitiveComponent)
 REGISTER_FACTORY(UDecalComponent)
 
+namespace
+{
+    constexpr float DecalSizeChangeEpsilon = 1.0e-4f;
+
+    float SmoothStep01(float Alpha)
+    {
+        Alpha = MathUtil::Clamp(Alpha, 0.0f, 1.0f);
+        return Alpha * Alpha * (3.0f - 2.0f * Alpha);
+    }
+}
+
 // Decal Box가 화면 밖으로 나가도 컬링되지 않도록 합니다.
 UDecalComponent::UDecalComponent()
 {
@@ -47,9 +58,11 @@ void UDecalComponent::Serialize(FArchive& Ar)
     Ar << "Fade In Start Delay" << FadeInStartDelay;
     Ar << "Fade In Duration" << FadeInDuration;
     Ar << "Destroy Owner After Fade" << bDestroyOwnerAfterFade;
+    Ar << "Fade Out Size Multiplier" << FadeOutSizeMultiplier;
 
     if (Ar.IsLoading())
     {
+        InitialDecalSize = DecalSize;
         if (!MaterialName.empty())
         {
             SetMaterial(FResourceManager::Get().GetMaterialInterface(MaterialName));
@@ -62,6 +75,7 @@ void UDecalComponent::BeginPlay()
     UPrimitiveComponent::BeginPlay();
 
     LifeTime = 0.0f;
+    InitialDecalSize = DecalSize;
 }
 
 void UDecalComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
@@ -74,6 +88,7 @@ void UDecalComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProp
     OutProps.push_back({ "Fade In Start Delay", EPropertyType::Float, &FadeInStartDelay });
     OutProps.push_back({ "Fade In Duration", EPropertyType::Float, &FadeInDuration });
     OutProps.push_back({ "Destroy Owner After Fade", EPropertyType::Bool, &bDestroyOwnerAfterFade });
+    OutProps.push_back({ "Fade Out Size Multiplier", EPropertyType::Vec3, &FadeOutSizeMultiplier });
 }
 
 void UDecalComponent::PostEditProperty(const char* PropertyName)
@@ -114,6 +129,36 @@ FMatrix UDecalComponent::GetDecalMatrix() const
     return WorldMatrix;
 }
 
+void UDecalComponent::SetSize(const FVector& InSize)
+{
+    ApplyCurrentSize(InSize, true);
+}
+
+void UDecalComponent::SetFadeOutSizeMultiplier(const FVector& InMultiplier)
+{
+    FadeOutSizeMultiplier = InMultiplier;
+}
+
+void UDecalComponent::ApplyCurrentSize(const FVector& InSize, bool bUpdateInitialSize)
+{
+    if ((DecalSize - InSize).SizeSquared() <= DecalSizeChangeEpsilon)
+    {
+        if (bUpdateInitialSize)
+        {
+            InitialDecalSize = InSize;
+        }
+        return;
+    }
+
+    DecalSize = InSize;
+    if (bUpdateInitialSize)
+    {
+        InitialDecalSize = InSize;
+    }
+
+    NotifySpatialIndexDirty();
+}
+
 void UDecalComponent::TickComponent(float DeltaTime)
 {
     UPrimitiveComponent::TickComponent(DeltaTime);
@@ -146,8 +191,7 @@ void UDecalComponent::TickFadeIn()
     }
 
     float Alpha = FadeInTime / FadeInDuration;
-
-    DecalColor.A = MathUtil::Clamp(Alpha, 0.0f, 1.0f);
+    DecalColor.A = SmoothStep01(Alpha);
 }
 
 void UDecalComponent::TickFadeOut()
@@ -157,15 +201,26 @@ void UDecalComponent::TickFadeOut()
     float FadeOutTime = FadeOutLifeTime - FadeStartDelay;
     if (FadeOutTime < 0.0f) return;
 
-    float Alpha = 1.0f - (FadeOutTime / FadeDuration);
-    DecalColor.A = MathUtil::Clamp(Alpha, 0.0f, 1.0f);
+    if (FadeDuration <= 0.0f)
+    {
+        DecalColor.A = 0.0f;
+    }
+    else
+    {
+        const float FadeAlpha = SmoothStep01(FadeOutTime / FadeDuration);
+        const float Alpha = 1.0f - FadeAlpha;
+        DecalColor.A = MathUtil::Clamp(Alpha, 0.0f, 1.0f);
+
+        const FVector TargetSize = InitialDecalSize * FadeOutSizeMultiplier;
+        ApplyCurrentSize(FVector::Lerp(InitialDecalSize, TargetSize, FadeAlpha), false);
+    }
 
     if (FadeOutLifeTime >= FadeStartDelay + FadeDuration)
     {
         SetActive(false);
         if (bDestroyOwnerAfterFade && GetOwner())
         {
-            GetOwner()->GetFocusedWorld()->DestroyActor(GetOwner());
+            GetOwner()->Destroy();
         }
     }
 }

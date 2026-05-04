@@ -27,10 +27,7 @@ private:
         const FVector& BoatLocation,
         const FVector& BoatForward,
         const FVector& BoatRight,
-        const FVector& MoveDir,
-        float SpeedAlpha,
-        float TurnAlpha,
-        float SignedTurn);
+        float SpeedAlpha);
     void SpawnWakeDecal(
         const FVector& WorldLocation,
         const FVector& PlaneForward,
@@ -42,7 +39,6 @@ private:
 
 private:
     FString MainDecalMaterial = "BoatWakeDecalMain";
-    FString VariantDecalMaterial = "BoatWakeDecalVariant";
 
     float MinSpawnSpeed = 1.5f;
     float MaxWakeSpeed = 15.0f;
@@ -54,24 +50,13 @@ private:
     float MainBackwardOffset = 4.0f;
     float MainFadeStartDelay = 0.05f;
     float MainFadeDuration = 1.8f;
-
-    float VariantWidth = 5.0f;
-    float VariantLength = 8.5f;
-    float VariantDepth = 0.8f;
-    float VariantSideOffset = 3.0f;
-    float VariantBackwardOffset = 4.75f;
-    float VariantTurnAngleDegrees = 18.0f;
-    float VariantFadeStartDelay = 0.0f;
-    float VariantFadeDuration = 1.1f;
-    float TurnThreshold = 0.12f;
+    FVector MainFadeOutSizeMultiplier = FVector(1.0f, 1.14f, 1.24f);
 
     float WaterHeightOffset = 0.05f;
 
     FVector LastOwnerLocation = FVector::ZeroVector;
-    FVector LastBoatForward = FVector::ForwardVector;
     float DistanceAccumulator = 0.0f;
     bool bHasHistory = false;
 
     UMaterialInterface* MainDecalMaterialRef = nullptr;
-    UMaterialInterface* VariantDecalMaterialRef = nullptr;
 };

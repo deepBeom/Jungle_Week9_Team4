@@ -33,8 +33,10 @@ void ULevel::PostDuplicate(UObject* Original)
 
 void ULevel::BeginPlay()
 {
-    for (AActor* Actor : Actors)
+    const int32 InitialActorCount = static_cast<int32>(Actors.size());
+    for (int32 ActorIndex = 0; ActorIndex < InitialActorCount; ++ActorIndex)
     {
+        AActor* Actor = Actors[ActorIndex];
         if (Actor && !Actor->IsPendingDestroy())
         {
             Actor->BeginPlay();
@@ -44,8 +46,10 @@ void ULevel::BeginPlay()
 
 void ULevel::TickEditor(float DeltaTime)
 {
-    for (AActor* Actor : Actors)
+    const int32 InitialActorCount = static_cast<int32>(Actors.size());
+    for (int32 ActorIndex = 0; ActorIndex < InitialActorCount; ++ActorIndex)
     {
+        AActor* Actor = Actors[ActorIndex];
         if (Actor && !Actor->IsPendingDestroy() && Actor->IsActive() && Actor->ShouldTickInEditor())
         {
             Actor->Tick(DeltaTime);
@@ -55,8 +59,10 @@ void ULevel::TickEditor(float DeltaTime)
 
 void ULevel::TickGame(float DeltaTime)
 {
-    for (AActor* Actor : Actors)
+    const int32 InitialActorCount = static_cast<int32>(Actors.size());
+    for (int32 ActorIndex = 0; ActorIndex < InitialActorCount; ++ActorIndex)
     {
+        AActor* Actor = Actors[ActorIndex];
         if (Actor && !Actor->IsPendingDestroy() && Actor->IsActive())
         {
             Actor->Tick(DeltaTime);
@@ -66,8 +72,10 @@ void ULevel::TickGame(float DeltaTime)
 
 void ULevel::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
-    for (AActor* Actor : Actors)
+    const int32 InitialActorCount = static_cast<int32>(Actors.size());
+    for (int32 ActorIndex = 0; ActorIndex < InitialActorCount; ++ActorIndex)
     {
+        AActor* Actor = Actors[ActorIndex];
         if (Actor && !Actor->IsBeingDestroyed())
         {
             Actor->EndPlay(EndPlayReason);

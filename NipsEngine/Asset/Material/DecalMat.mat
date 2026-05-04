@@ -8,6 +8,7 @@
         { "Name": "DiffuseMap", "Type": "Texture", "Value": "Asset/Texture/Blood_Stain_sgfjdepc_1K.png" },
         { "Name": "NormalMap", "Type": "Texture", "Value": "DefaultNormal" },
         { "Name": "bHasNormalMap", "Type": "Bool", "Value": false },
-        { "Name": "EmissiveColor", "Type": "Vector3", "Value": [0.0, 0.0, 0.0] }
+        { "Name": "EmissiveColor", "Type": "Vector3", "Value": [0.0, 0.0, 0.0] },
+        { "Name": "DecalLightFloor", "Type": "Float", "Value": 0.0 }
     ]
 }

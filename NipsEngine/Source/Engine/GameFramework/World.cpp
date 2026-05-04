@@ -9,6 +9,27 @@
 DEFINE_CLASS(UWorld, UObject)
 REGISTER_FACTORY(UWorld)
 
+namespace
+{
+    class FScopedLevelActorIteration
+    {
+    public:
+        explicit FScopedLevelActorIteration(bool& InFlag)
+            : Flag(InFlag)
+        {
+            Flag = true;
+        }
+
+        ~FScopedLevelActorIteration()
+        {
+            Flag = false;
+        }
+
+    private:
+        bool& Flag;
+    };
+}
+
 // FName, UUID 발급, 메모리 추적 등을 위해 UObjectManager를 통해 생성, 삭제한다.
 UWorld::UWorld()
 {
@@ -60,7 +81,10 @@ void UWorld::BeginPlay()
     CollisionSystem.Reset();
     CollectionSystem.Reset();
     ExplosionSystem.Reset();
-    PersistentLevel->BeginPlay();
+    {
+        FScopedLevelActorIteration ScopedLevelActorIteration(bIsIteratingLevelActors);
+        PersistentLevel->BeginPlay();
+    }
     RebuildSpatialIndex();
 
     FSoundManager::Get().PlayBGM("Menu.mp3");
@@ -71,10 +95,13 @@ void UWorld::Tick(float DeltaTime)
     if (!PersistentLevel)
         return;
 
-    if (WorldType == EWorldType::Editor)
-        PersistentLevel->TickEditor(DeltaTime);
-    else
-        PersistentLevel->TickGame(DeltaTime);
+    {
+        FScopedLevelActorIteration ScopedLevelActorIteration(bIsIteratingLevelActors);
+        if (WorldType == EWorldType::Editor)
+            PersistentLevel->TickEditor(DeltaTime);
+        else
+            PersistentLevel->TickGame(DeltaTime);
+    }
 
     if (WorldType == EWorldType::PIE || WorldType == EWorldType::Game)
     {
@@ -91,6 +118,7 @@ void UWorld::EndPlay(EEndPlayReason::Type EndPlayReason)
     if (bHasBegunPlay)
     {
         bHasBegunPlay = false;
+        FScopedLevelActorIteration ScopedLevelActorIteration(bIsIteratingLevelActors);
         PersistentLevel->EndPlay(EndPlayReason);
     }
 	///* test
@@ -114,6 +142,12 @@ void UWorld::SyncSpatialIndex()
 void UWorld::DestroyActor(AActor* Actor) 
 {
     if (!Actor || !UObject::IsValid(Actor) || Actor->IsBeingDestroyed()) return;
+
+    if (bIsIteratingLevelActors)
+    {
+        RequestDestroyActor(Actor);
+        return;
+    }
 
     Actor->MarkBeingDestroyed();
     Actor->TeardownForDestroy(EEndPlayReason::Type::Destroyed);

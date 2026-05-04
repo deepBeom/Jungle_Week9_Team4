@@ -425,6 +425,7 @@ void ADecalActor::InitDefaultComponents()
 
     UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
     Billboard->AttachToComponent(Decal);
+    Billboard->SetEditorOnly(true);
     Billboard->SetTexturePath("Asset/Texture/Icons/S_DecalActorIcon.PNG");
 }
 
