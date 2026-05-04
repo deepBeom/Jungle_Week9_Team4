@@ -1,14 +1,11 @@
 ﻿#include "Engine/Input/GameInputController.h"
 
-#include <cmath>
 #include "Engine/Component/CameraComponent.h"
-#include "Engine/Component/SceneComponent.h"
 #include "Engine/Core/Paths.h"
 #include "Engine/GameFramework/Pawn.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Math/Quat.h"
-#include "Engine/Math/Utils.h"
 #include "Engine/Runtime/Engine.h"
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Scripting/LuaBinder.h"
@@ -18,13 +15,11 @@ namespace
 {
     constexpr int32 WatchedKeys[] = { 'W', 'A', 'S', 'D', 'Q', 'E' };
     constexpr int32 WatchedMouseButtons[] = { VK_LBUTTON, VK_RBUTTON, VK_MBUTTON };
-    constexpr int32 GameplayMouseInputWarmupFrameCount = 5;
 }
 
 void FGameInputController::SetCamera(FViewportCamera* InCamera)
 {
     Camera = InCamera;
-    SyncAnglesFromCamera();
 }
 
 void FGameInputController::SetViewportRect(float InX, float InY, float InWidth, float InHeight)
@@ -54,23 +49,11 @@ void FGameInputController::SetUIMode(bool bInUIMode)
 
     bUIMode = bInUIMode;
     LuaBinder::SetUIMode(bUIMode);
-    MouseInputWarmupFrames = 0;
-    if (!bUIMode)
-    {
-        BeginGameplayInputWarmup();
-    }
     ApplyUIModeState();
 }
 
 void FGameInputController::Tick(float DeltaTime)
 {
-    CurrentDeltaTime = DeltaTime;
-    PendingForward = 0.0f;
-    PendingRight = 0.0f;
-    PendingUp = 0.0f;
-    PendingYaw = 0.0f;
-    PendingPitch = 0.0f;
-
     if (!Camera)
     {
         return;
@@ -81,11 +64,6 @@ void FGameInputController::Tick(float DeltaTime)
     if (bUIMode != bRequestedUIMode)
     {
         bUIMode = bRequestedUIMode;
-        MouseInputWarmupFrames = 0;
-        if (!bUIMode)
-        {
-            BeginGameplayInputWarmup();
-        }
     }
 
     RefreshControlledPawn();
@@ -122,10 +100,9 @@ void FGameInputController::Tick(float DeltaTime)
 
     ActiveControllerScriptPath = ResolveActiveControllerScriptPath();
     EnsureScriptLoaded();
-
-    if (TickGameplayInputWarmup(Input))
+    if (bScriptLoaded)
     {
-        return;
+        ScriptEnvironment["Pawn"] = ControlledPawn;
     }
 
     POINT MousePoint = Input.GetMousePos();
@@ -139,7 +116,6 @@ void FGameInputController::Tick(float DeltaTime)
 
     TickLuaInput(Input);
 
-    ApplyPendingMovement(DeltaTime);
     if (LuaBinder::IsGameplayCameraFollowEnabled())
     {
         SyncViewportCameraFromPawn();
@@ -186,15 +162,8 @@ void FGameInputController::TickLuaInput(InputSystem& Input)
 
 void FGameInputController::Reset()
 {
-    PendingForward = 0.0f;
-    PendingRight = 0.0f;
-    PendingUp = 0.0f;
-    PendingYaw = 0.0f;
-    PendingPitch = 0.0f;
     bUIMode = false;
-    MouseInputWarmupFrames = 0;
     LuaBinder::SetUIMode(false);
-    BeginGameplayInputWarmup();
     ApplyUIModeState();
     ControlledPawn = nullptr;
     ControlledCameraComponent = nullptr;
@@ -203,7 +172,6 @@ void FGameInputController::Reset()
     ActiveControllerScriptPath.clear();
     LoadedScriptPath.clear();
     ScriptEnvironment = sol::environment();
-    SyncAnglesFromCamera();
 }
 
 void FGameInputController::SyncFollowCameraIfEnabled()
@@ -223,7 +191,6 @@ void FGameInputController::RefreshControlledPawn()
     {
         ControlledPawn = nullptr;
         ControlledCameraComponent = nullptr;
-        SyncAnglesFromCamera();
         return;
     }
 
@@ -251,48 +218,6 @@ void FGameInputController::RefreshControlledPawn()
     }
 
     ControlledCameraComponent = ControlledPawn ? ControlledPawn->GetCameraComponent() : nullptr;
-    CaptureStartupViewIfNeeded(bCurrentPawnInvalid);
-
-    if (ControlledCameraComponent)
-    {
-        const FVector Forward =
-            ControlledCameraComponent->GetWorldTransform().GetUnitAxis(EAxis::X).GetSafeNormal();
-        Pitch = MathUtil::RadiansToDegrees(std::asin(MathUtil::Clamp(Forward.Z, -1.0f, 1.0f)));
-        Yaw = MathUtil::RadiansToDegrees(std::atan2(Forward.Y, Forward.X));
-        return;
-    }
-
-    SyncAnglesFromCamera();
-}
-
-void FGameInputController::CaptureStartupViewIfNeeded(bool bForceCapture)
-{
-    if (!ControlledPawn || !ControlledCameraComponent)
-    {
-        return;
-    }
-
-    if (!bForceCapture)
-    {
-        return;
-    }
-
-    StartupPawnRotation = ControlledPawn->GetActorRotation();
-    StartupCameraRelativeRotation = ControlledCameraComponent->GetRelativeRotation();
-}
-
-void FGameInputController::ResetControlledPawnViewToStartup()
-{
-    RefreshControlledPawn();
-
-    if (!ControlledPawn || !ControlledCameraComponent)
-    {
-        return;
-    }
-
-    ControlledPawn->SetActorRotation(StartupPawnRotation);
-    ControlledCameraComponent->SetRelativeRotation(StartupCameraRelativeRotation);
-    RefreshControlledPawn();
 }
 
 void FGameInputController::SyncViewportCameraFromPawn()
@@ -350,25 +275,6 @@ void FGameInputController::ApplyUIModeState()
                     static_cast<float>(Origin.y),
                     ViewportWidth,
                     ViewportHeight);
-}
-
-void FGameInputController::BeginGameplayInputWarmup()
-{
-    ResetControlledPawnViewToStartup();
-    SyncViewportCameraFromPawn();
-    MouseInputWarmupFrames = GameplayMouseInputWarmupFrameCount;
-}
-
-bool FGameInputController::TickGameplayInputWarmup(InputSystem& Input)
-{
-    if (MouseInputWarmupFrames <= 0)
-    {
-        return false;
-    }
-
-    --MouseInputWarmupFrames;
-    Input.CenterMouseInLockedRegion();
-    return true;
 }
 
 void FGameInputController::EnsureScriptLoaded()
@@ -431,30 +337,57 @@ bool FGameInputController::LoadScript()
 
 void FGameInputController::InstallBindings()
 {
-    ScriptEnvironment["MoveForward"] = [this](float Value)
-    {
-        PendingForward += Value;
-    };
+    ScriptEnvironment["Pawn"] = ControlledPawn;
 
-    ScriptEnvironment["MoveRight"] = [this](float Value)
+    // When no Pawn-driven gameplay camera is available, expose the viewport free camera to Lua fallback scripts.
+    // Pawn 및 카메라가 없는 경우 Lua 스크립트에서 뷰포트의 카메라에 직접 접근할 수 있도록 바인딩을 제공
+    if (Camera)
     {
-        PendingRight += Value;
-    };
-
-    ScriptEnvironment["MoveUp"] = [this](float Value)
-    {
-        PendingUp += Value;
-    };
-
-    ScriptEnvironment["AddYaw"] = [this](float Value)
-    {
-        PendingYaw += Value;
-    };
-
-    ScriptEnvironment["AddPitch"] = [this](float Value)
-    {
-        PendingPitch += Value;
-    };
+        sol::state_view Lua(ScriptEnvironment.lua_state());
+        sol::table CameraTable = Lua.create_table();
+        CameraTable.set_function("GetPosition", [this]()
+        {
+            return Camera ? Camera->GetLocation() : FVector::ZeroVector;
+        });
+        CameraTable.set_function("SetPosition", [this](float X, float Y, float Z)
+        {
+            if (Camera)
+            {
+                Camera->SetLocation(FVector(X, Y, Z));
+            }
+        });
+        CameraTable.set_function("AddPosition", [this](float X, float Y, float Z)
+        {
+            if (Camera)
+            {
+                Camera->SetLocation(Camera->GetLocation() + FVector(X, Y, Z));
+            }
+        });
+        CameraTable.set_function("GetRotation", [this]()
+        {
+            return Camera ? Camera->GetRotation().Euler() : FVector::ZeroVector;
+        });
+        CameraTable.set_function("SetRotation", [this](float X, float Y, float Z)
+        {
+            if (Camera)
+            {
+                Camera->SetRotation(FQuat::MakeFromEuler(FVector(X, Y, Z)));
+            }
+        });
+        CameraTable.set_function("GetForwardVector", [this]()
+        {
+            return Camera ? Camera->GetForwardVector() : FVector(1.0f, 0.0f, 0.0f);
+        });
+        CameraTable.set_function("GetRightVector", [this]()
+        {
+            return Camera ? Camera->GetRightVector() : FVector(0.0f, 1.0f, 0.0f);
+        });
+        CameraTable.set_function("GetUpVector", [this]()
+        {
+            return Camera ? Camera->GetUpVector() : FVector(0.0f, 0.0f, 1.0f);
+        });
+        ScriptEnvironment["Camera"] = CameraTable;
+    }
 
     ScriptEnvironment["IsCursorHidden"] = [this]()
     {
@@ -466,25 +399,6 @@ void FGameInputController::InstallBindings()
         return bMouseLocked;
     };
 
-    ScriptEnvironment["SetMoveSpeed"] = [this](float Value)
-    {
-        MoveSpeed = Value;
-    };
-
-    ScriptEnvironment["SetTurnSpeed"] = [this](float Value)
-    {
-        TurnSpeed = Value;
-    };
-
-    ScriptEnvironment["SetLookSensitivity"] = [this](float Value)
-    {
-        LookSensitivity = Value;
-    };
-
-    ScriptEnvironment["GetDeltaTime"] = [this]()
-    {
-        return CurrentDeltaTime;
-    };
 }
 
 FString FGameInputController::ResolveScriptPath(const FString& InScriptPath) const
@@ -504,86 +418,6 @@ FString FGameInputController::ResolveActiveControllerScriptPath()
     }
 
     return DefaultControllerScriptPath;
-}
-
-void FGameInputController::ApplyPendingMovement(float DeltaTime)
-{
-    if (ControlledPawn)
-    {
-        USceneComponent* Root = ControlledPawn->GetRootComponent();
-        USceneComponent* MovementRoot = ControlledPawn->GetMovementRootComponent();
-        if (!Root || !MovementRoot)
-        {
-            RefreshControlledPawn();
-            return;
-        }
-
-        MovementRoot->Rotate(PendingRight * TurnSpeed * DeltaTime, 0.0f);
-        Root->AddWorldOffset(ControlledPawn->GetForwardVector() * (PendingForward * MoveSpeed * DeltaTime));
-        Root->AddWorldOffset(ControlledPawn->GetUpVector() * (PendingUp * MoveSpeed * DeltaTime));
-
-        RefreshControlledPawn();
-        return;
-    }
-
-    if (!Camera)
-    {
-        return;
-    }
-
-    const FVector Forward = Camera->GetForwardVector().GetSafeNormal();
-    const FVector Right = Camera->GetRightVector().GetSafeNormal();
-    const FVector Up = FVector::UpVector;
-    const FVector Move =
-        (Forward * PendingForward + Right * PendingRight + Up * PendingUp) * (MoveSpeed * DeltaTime);
-
-    if (!Move.IsNearlyZero())
-    {
-        Camera->SetLocation(Camera->GetLocation() + Move);
-    }
-
-    Yaw += PendingYaw * LookSensitivity;
-    Pitch += PendingPitch * LookSensitivity;
-    Pitch = MathUtil::Clamp(Pitch, -89.9f, 89.9f);
-    UpdateCameraRotation();
-}
-
-void FGameInputController::UpdateCameraRotation()
-{
-    if (!Camera)
-    {
-        return;
-    }
-
-    const float PitchRadians = MathUtil::DegreesToRadians(Pitch);
-    const float YawRadians = MathUtil::DegreesToRadians(Yaw);
-
-    FVector Forward(std::cos(PitchRadians) * std::cos(YawRadians),
-                    std::cos(PitchRadians) * std::sin(YawRadians),
-                    std::sin(PitchRadians));
-    Forward = Forward.GetSafeNormal();
-
-    const FVector Right = FVector::CrossProduct(FVector::UpVector, Forward).GetSafeNormal();
-    const FVector Up = FVector::CrossProduct(Forward, Right).GetSafeNormal();
-
-    FMatrix RotationMatrix = FMatrix::Identity;
-    RotationMatrix.SetAxes(Forward, Right, Up);
-
-    FQuat Rotation(RotationMatrix);
-    Rotation.Normalize();
-    Camera->SetRotation(Rotation);
-}
-
-void FGameInputController::SyncAnglesFromCamera()
-{
-    if (!Camera)
-    {
-        return;
-    }
-
-    const FVector Forward = Camera->GetForwardVector().GetSafeNormal();
-    Pitch = MathUtil::RadiansToDegrees(std::asin(MathUtil::Clamp(Forward.Z, -1.0f, 1.0f)));
-    Yaw = MathUtil::RadiansToDegrees(std::atan2(Forward.Y, Forward.X));
 }
 
 const char* FGameInputController::GetKeyName(int32 KeyCode) const

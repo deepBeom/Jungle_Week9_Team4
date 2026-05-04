@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "GameFramework/Actor.h"
 
@@ -13,8 +13,8 @@ public:
     APawn() = default;
 
     void InitDefaultComponents() override;
+    UStaticMeshComponent* GetCharacterComponent() const;
     UCameraComponent* GetCameraComponent() const;
-    USceneComponent* GetMovementRootComponent() const;
     void SetControllerScriptPath(const FString& InPath) { ControllerScriptPath = InPath; }
     const FString& GetControllerScriptPath() const { return ControllerScriptPath; }
 

@@ -8,9 +8,7 @@ void FGameViewportClient::Initialize(FWindowsWindow* InWindow)
     FViewportClient::Initialize(InWindow);
 
     Camera = FViewportCamera();
-    Camera.SetLocation(FVector(-55.763822, 0.0f, 20.132818f));
-    Camera.SetRotation(FQuat::MakeFromEuler(FVector(0.0f, 33.690063, 0.0f)));
-    Camera.SetFOV(1.047198f);
+    Camera.SetFOV(1.0f);
     Camera.SetNearPlane(0.1f);
     Camera.SetFarPlane(1000.0f);
     

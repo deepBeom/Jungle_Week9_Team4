@@ -1,4 +1,4 @@
-#include "GameFramework/Pawn.h"
+﻿#include "GameFramework/Pawn.h"
 
 #include "Component/CameraComponent.h"
 #include "Component/SceneComponent.h"
@@ -14,11 +14,8 @@ void APawn::InitDefaultComponents()
     USceneComponent* RootComponent = AddComponent<USceneComponent>();
     SetRootComponent(RootComponent);
 
-    USceneComponent* MovementRootComponent = AddComponent<USceneComponent>();
-    MovementRootComponent->AttachToComponent(RootComponent);
-
-    UStaticMeshComponent* MeshComponent = AddComponent<UStaticMeshComponent>();
-    MeshComponent->AttachToComponent(MovementRootComponent);
+    UStaticMeshComponent* CharacterComponent = AddComponent<UStaticMeshComponent>();
+    CharacterComponent->AttachToComponent(RootComponent);
 
     UCameraComponent* CameraComponent = AddComponent<UCameraComponent>();
     CameraComponent->AttachToComponent(RootComponent);
@@ -39,7 +36,7 @@ UCameraComponent* APawn::GetCameraComponent() const
     return nullptr;
 }
 
-USceneComponent* APawn::GetMovementRootComponent() const
+UStaticMeshComponent* APawn::GetCharacterComponent() const
 {
     USceneComponent* Root = GetRootComponent();
     if (!Root)
@@ -49,20 +46,20 @@ USceneComponent* APawn::GetMovementRootComponent() const
 
     for (USceneComponent* Child : Root->GetChildren())
     {
-        if (Child && Child->GetTypeInfo()->name == "USceneComponent")
+        if (UStaticMeshComponent* CharacterComponent = Cast<UStaticMeshComponent>(Child))
         {
-            return Child;
+            return CharacterComponent;
         }
     }
 
-    return Root;
+    return nullptr;
 }
 
 FVector APawn::GetForwardVector() const
 {
-    if (USceneComponent* MovementRoot = GetMovementRootComponent())
+    if (USceneComponent* CharacterComponent = GetCharacterComponent())
     {
-        return MovementRoot->GetForwardVector();
+        return CharacterComponent->GetForwardVector();
     }
 
     return FVector(1.0f, 0.0f, 0.0f);
@@ -70,9 +67,9 @@ FVector APawn::GetForwardVector() const
 
 FVector APawn::GetRightVector() const
 {
-    if (USceneComponent* MovementRoot = GetMovementRootComponent())
+    if (USceneComponent* CharacterComponent = GetCharacterComponent())
     {
-        return MovementRoot->GetRightVector();
+        return CharacterComponent->GetRightVector();
     }
 
     return FVector(0.0f, 1.0f, 0.0f);
@@ -80,9 +77,9 @@ FVector APawn::GetRightVector() const
 
 FVector APawn::GetUpVector() const
 {
-    if (USceneComponent* MovementRoot = GetMovementRootComponent())
+    if (USceneComponent* CharacterComponent = GetCharacterComponent())
     {
-        return MovementRoot->GetUpVector();
+        return CharacterComponent->GetUpVector();
     }
 
     return FVector(0.0f, 0.0f, 1.0f);

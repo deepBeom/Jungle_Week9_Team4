@@ -73,16 +73,8 @@ private:
     FString ResolveActiveControllerScriptPath();
     void RefreshControlledPawn();
     void SyncViewportCameraFromPawn();
-    void CaptureStartupViewIfNeeded(bool bForceCapture);
-    void ResetControlledPawnViewToStartup();
     void TickLuaInput(InputSystem& Input);
     void ApplyUIModeState();
-    void BeginGameplayInputWarmup();
-    bool TickGameplayInputWarmup(InputSystem& Input);
-
-    void ApplyPendingMovement(float DeltaTime);
-    void UpdateCameraRotation();
-    void SyncAnglesFromCamera();
 
     const char* GetKeyName(int32 KeyCode) const;
     const char* GetMouseButtonName(int32 KeyCode) const;
@@ -100,26 +92,10 @@ private:
     float CachedLocalMouseY = 0.0f;
     APawn* ControlledPawn = nullptr;
     UCameraComponent* ControlledCameraComponent = nullptr;
-    FVector StartupPawnRotation = FVector::ZeroVector;
-    FVector StartupCameraRelativeRotation = FVector::ZeroVector;
-
-    float MoveSpeed = 15.0f;
-    float TurnSpeed = 45.0f;
-    float LookSensitivity = 0.15f;
-    float CurrentDeltaTime = 0.0f;
-    float Yaw = 0.0f;
-    float Pitch = 0.0f;
-
-    float PendingForward = 0.0f;
-    float PendingRight = 0.0f;
-    float PendingUp = 0.0f;
-    float PendingYaw = 0.0f;
-    float PendingPitch = 0.0f;
 
     bool bUIMode = false;
     bool bCursorHidden = false;               // 실제 커서 숨김 상태입니다.
     bool bMouseLocked = false;                // 실제 마우스 고정 상태입니다.
-    int32 MouseInputWarmupFrames = 0;          // 마우스 락 전환 직후 OS 커서 워프가 안정될 때까지 mouse look을 무시합니다.
     bool bScriptLoadAttempted = false;
     bool bScriptLoaded = false;
 
