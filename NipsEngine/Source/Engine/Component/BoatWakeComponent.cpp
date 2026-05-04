@@ -19,6 +19,7 @@ namespace
     constexpr float WakeMinDistanceEpsilon = 1.0e-4f;
     constexpr float WakeMinAxisEpsilon = 1.0e-3f;
     constexpr float WakeFadeInDuration = 0.08f;
+    constexpr int32 DefaultMaxActiveWakeDecals = 24;
 
     float Clamp01(float Value)
     {
@@ -34,6 +35,11 @@ namespace
     {
         return FVector(Value.X, Value.Y, 0.0f);
     }
+
+    int32 SanitizeWakeDecalBudget(int32 Budget)
+    {
+        return Budget > 0 ? Budget : DefaultMaxActiveWakeDecals;
+    }
 }
 
 DEFINE_CLASS(UBoatWakeComponent, UActorComponent)
@@ -47,6 +53,7 @@ void UBoatWakeComponent::Serialize(FArchive& Ar)
     Ar << "Min Spawn Speed" << MinSpawnSpeed;
     Ar << "Max Wake Speed" << MaxWakeSpeed;
     Ar << "Spawn Spacing" << SpawnSpacing;
+    Ar << "Max Active Wake Decals" << MaxActiveWakeDecals;
 
     Ar << "Main Width" << MainWidth;
     Ar << "Main Length" << MainLength;
@@ -60,10 +67,14 @@ void UBoatWakeComponent::Serialize(FArchive& Ar)
 
     if (Ar.IsLoading())
     {
+        MaxActiveWakeDecals = SanitizeWakeDecalBudget(MaxActiveWakeDecals);
         MainDecalMaterialRef = nullptr;
         DistanceAccumulator = 0.0f;
         bHasHistory = false;
+        bWasMovingAboveSpawnSpeed = false;
         LastOwnerLocation = FVector::ZeroVector;
+        WakeDecalPool.clear();
+        NextWakeDecalPoolIndex = 0;
     }
 }
 
@@ -75,6 +86,7 @@ void UBoatWakeComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutP
     OutProps.push_back({ "Min Spawn Speed", EPropertyType::Float, &MinSpawnSpeed, 0.0f, 20.0f, 0.05f });
     OutProps.push_back({ "Max Wake Speed", EPropertyType::Float, &MaxWakeSpeed, 0.1f, 40.0f, 0.05f });
     OutProps.push_back({ "Spawn Spacing", EPropertyType::Float, &SpawnSpacing, 0.2f, 20.0f, 0.05f });
+    OutProps.push_back({ "Max Active Wake Decals", EPropertyType::Int, &MaxActiveWakeDecals });
 
     OutProps.push_back({ "Main Width", EPropertyType::Float, &MainWidth, 0.1f, 30.0f, 0.05f });
     OutProps.push_back({ "Main Length", EPropertyType::Float, &MainLength, 0.1f, 40.0f, 0.05f });
@@ -90,6 +102,7 @@ void UBoatWakeComponent::PostEditProperty(const char* PropertyName)
 {
     UActorComponent::PostEditProperty(PropertyName);
     (void)PropertyName;
+    MaxActiveWakeDecals = SanitizeWakeDecalBudget(MaxActiveWakeDecals);
     RefreshMaterialRefs();
 }
 
@@ -97,13 +110,23 @@ void UBoatWakeComponent::BeginPlay()
 {
     UActorComponent::BeginPlay();
 
+    MaxActiveWakeDecals = SanitizeWakeDecalBudget(MaxActiveWakeDecals);
     RefreshMaterialRefs();
+    WakeDecalPool.clear();
+    NextWakeDecalPoolIndex = 0;
 
     if (AActor* Owner = GetOwner())
     {
         LastOwnerLocation = Owner->GetActorLocation();
         bHasHistory = true;
+        bWasMovingAboveSpawnSpeed = false;
     }
+}
+
+void UBoatWakeComponent::EndPlay()
+{
+    ReleaseWakeDecalPool();
+    UActorComponent::EndPlay();
 }
 
 void UBoatWakeComponent::TickComponent(float DeltaTime)
@@ -144,6 +167,8 @@ void UBoatWakeComponent::TickComponent(float DeltaTime)
 
     if (MovedDistance <= WakeMinDistanceEpsilon)
     {
+        DistanceAccumulator = 0.0f;
+        bWasMovingAboveSpawnSpeed = false;
         LastOwnerLocation = CurrentLocation;
         return;
     }
@@ -152,9 +177,15 @@ void UBoatWakeComponent::TickComponent(float DeltaTime)
     const float Speed = MovedDistance / DeltaTime;
     const float SpeedRange = (MaxWakeSpeed - MinSpawnSpeed) > 0.001f ? (MaxWakeSpeed - MinSpawnSpeed) : 0.001f;
     const float SpeedAlpha = Clamp01((Speed - MinSpawnSpeed) / SpeedRange);
+    const bool bMovingAboveSpawnSpeed = Speed >= MinSpawnSpeed;
 
-    if (Speed >= MinSpawnSpeed)
+    if (bMovingAboveSpawnSpeed)
     {
+        if (!bWasMovingAboveSpawnSpeed && DistanceAccumulator < SpawnSpacing)
+        {
+            DistanceAccumulator = SpawnSpacing;
+        }
+
         DistanceAccumulator += MovedDistance;
 
         while (DistanceAccumulator >= SpawnSpacing)
@@ -170,6 +201,7 @@ void UBoatWakeComponent::TickComponent(float DeltaTime)
         DistanceAccumulator = 0.0f;
     }
 
+    bWasMovingAboveSpawnSpeed = bMovingAboveSpawnSpeed;
     LastOwnerLocation = CurrentLocation;
 }
 
@@ -260,7 +292,7 @@ void UBoatWakeComponent::SpawnWakeDecal(
     const FVector& DecalSize,
     UMaterialInterface* Material,
     float FadeStartDelay,
-    float FadeDuration) const
+    float FadeDuration)
 {
     AActor* Owner = GetOwner();
     UWorld* World = Owner ? Owner->GetFocusedWorld() : nullptr;
@@ -269,47 +301,37 @@ void UBoatWakeComponent::SpawnWakeDecal(
         return;
     }
 
-    ADecalActor* DecalActor = World->SpawnActor<ADecalActor>();
+    const FVector ProjectionAxis = -FVector::UpVector;
+    const FVector DecalForward = MakePlanarVector(PlaneForward).GetSafeNormal2D();
+    const FVector DecalRight = MakePlanarVector(PlaneRight).GetSafeNormal2D();
+    if (DecalForward.SizeSquared() <= WakeMinAxisEpsilon || DecalRight.SizeSquared() <= WakeMinAxisEpsilon)
+    {
+        return;
+    }
+
+    ADecalActor* DecalActor = AcquireWakeDecalActor(World);
     if (DecalActor == nullptr)
     {
         return;
     }
 
-    UDecalComponent* DecalComponent = Cast<UDecalComponent>(DecalActor->GetRootComponent());
+    UDecalComponent* DecalComponent = ResolveWakeDecalComponent(DecalActor);
     if (DecalComponent == nullptr)
     {
         DecalActor->Destroy();
         return;
     }
 
-    for (UActorComponent* Component : DecalActor->GetComponents())
-    {
-        UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(Component);
-        if (BillboardComponent == nullptr)
-        {
-            continue;
-        }
-
-        BillboardComponent->SetEditorOnly(true);
-        BillboardComponent->SetVisibility(false);
-        BillboardComponent->SetActive(false);
-    }
-
+    DecalActor->SetVisible(true);
+    DecalActor->SetActive(true);
     DecalActor->SetActorLocation(WorldLocation);
     DecalComponent->SetSize(DecalSize);
     DecalComponent->SetFadeOutSizeMultiplier(MainFadeOutSizeMultiplier);
+    DecalComponent->SetAffectOnlyWaterReceivers(true);
     DecalComponent->SetMaterial(Material);
     DecalComponent->SetFadeIn(0.0f, WakeFadeInDuration);
-    DecalComponent->SetFadeOut(FadeStartDelay, FadeDuration, true);
-
-    const FVector ProjectionAxis = -FVector::UpVector;
-    const FVector DecalForward = MakePlanarVector(PlaneForward).GetSafeNormal2D();
-    const FVector DecalRight = MakePlanarVector(PlaneRight).GetSafeNormal2D();
-    if (DecalForward.SizeSquared() <= WakeMinAxisEpsilon || DecalRight.SizeSquared() <= WakeMinAxisEpsilon)
-    {
-        DecalActor->Destroy();
-        return;
-    }
+    DecalComponent->SetFadeOut(FadeStartDelay, FadeDuration, false);
+    DecalComponent->ResetFadeState();
 
     FMatrix RotationMatrix = FMatrix::Identity;
     RotationMatrix.SetAxes(ProjectionAxis, DecalRight, DecalForward);
@@ -320,4 +342,144 @@ void UBoatWakeComponent::SpawnWakeDecal(
         RotationQuat.Normalize();
         RootComponent->SetRelativeRotationQuat(RotationQuat);
     }
+}
+
+ADecalActor* UBoatWakeComponent::AcquireWakeDecalActor(UWorld* World)
+{
+    const int32 PoolBudget = SanitizeWakeDecalBudget(MaxActiveWakeDecals);
+    if (World == nullptr)
+    {
+        return nullptr;
+    }
+
+    auto CreateWakeDecalActor = [this, World]() -> ADecalActor*
+    {
+        ADecalActor* NewDecalActor = World->SpawnActor<ADecalActor>();
+        if (NewDecalActor == nullptr)
+        {
+            return nullptr;
+        }
+
+        for (UActorComponent* Component : NewDecalActor->GetComponents())
+        {
+            UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(Component);
+            if (BillboardComponent == nullptr)
+            {
+                continue;
+            }
+
+            BillboardComponent->SetEditorOnly(true);
+            BillboardComponent->SetVisibility(false);
+            BillboardComponent->SetActive(false);
+        }
+
+        UDecalComponent* DecalComponent = ResolveWakeDecalComponent(NewDecalActor);
+        if (DecalComponent == nullptr)
+        {
+            NewDecalActor->Destroy();
+            return nullptr;
+        }
+
+        DeactivateWakeDecal(NewDecalActor);
+        return NewDecalActor;
+    };
+
+    for (ADecalActor*& PooledDecalActor : WakeDecalPool)
+    {
+        if (PooledDecalActor == nullptr)
+        {
+            continue;
+        }
+
+        if (!UObject::IsValid(PooledDecalActor) ||
+            PooledDecalActor->IsPendingDestroy() ||
+            PooledDecalActor->IsBeingDestroyed() ||
+            ResolveWakeDecalComponent(PooledDecalActor) == nullptr)
+        {
+            PooledDecalActor = nullptr;
+        }
+    }
+
+    for (ADecalActor* PooledDecalActor : WakeDecalPool)
+    {
+        if (PooledDecalActor != nullptr && !PooledDecalActor->IsActive())
+        {
+            return PooledDecalActor;
+        }
+    }
+
+    if (static_cast<int32>(WakeDecalPool.size()) < PoolBudget)
+    {
+        ADecalActor* NewDecalActor = CreateWakeDecalActor();
+        if (NewDecalActor != nullptr)
+        {
+            WakeDecalPool.push_back(NewDecalActor);
+        }
+        return NewDecalActor;
+    }
+
+    const int32 PoolCount = static_cast<int32>(WakeDecalPool.size());
+    if (PoolCount <= 0)
+    {
+        return nullptr;
+    }
+
+    if (NextWakeDecalPoolIndex < 0 || NextWakeDecalPoolIndex >= PoolCount)
+    {
+        NextWakeDecalPoolIndex = 0;
+    }
+
+    const int32 ReuseIndex = NextWakeDecalPoolIndex;
+    NextWakeDecalPoolIndex = (NextWakeDecalPoolIndex + 1) % PoolCount;
+
+    if (WakeDecalPool[ReuseIndex] == nullptr)
+    {
+        WakeDecalPool[ReuseIndex] = CreateWakeDecalActor();
+    }
+
+    return WakeDecalPool[ReuseIndex];
+}
+
+UDecalComponent* UBoatWakeComponent::ResolveWakeDecalComponent(ADecalActor* DecalActor) const
+{
+    if (DecalActor == nullptr || !UObject::IsValid(DecalActor))
+    {
+        return nullptr;
+    }
+
+    return Cast<UDecalComponent>(DecalActor->GetRootComponent());
+}
+
+void UBoatWakeComponent::DeactivateWakeDecal(ADecalActor* DecalActor) const
+{
+    if (DecalActor == nullptr || !UObject::IsValid(DecalActor))
+    {
+        return;
+    }
+
+    if (UDecalComponent* DecalComponent = ResolveWakeDecalComponent(DecalActor))
+    {
+        DecalComponent->SetVisibility(false);
+        DecalComponent->SetActive(false);
+    }
+
+    DecalActor->SetVisible(false);
+    DecalActor->SetActive(false);
+}
+
+void UBoatWakeComponent::ReleaseWakeDecalPool()
+{
+    for (ADecalActor* DecalActor : WakeDecalPool)
+    {
+        if (DecalActor == nullptr || !UObject::IsValid(DecalActor))
+        {
+            continue;
+        }
+
+        DeactivateWakeDecal(DecalActor);
+        DecalActor->Destroy();
+    }
+
+    WakeDecalPool.clear();
+    NextWakeDecalPoolIndex = 0;
 }

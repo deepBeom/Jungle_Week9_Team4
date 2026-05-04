@@ -704,6 +704,11 @@ void FPrimitiveRenderCollector::CollectFromComponent(
             if (Prim->GetPrimitiveType() != EPrimitiveType::EPT_StaticMesh) continue;
 
             UStaticMeshComponent* StaticMeshComp = static_cast<UStaticMeshComponent*>(Prim);
+            if (DecalComp->AffectsOnlyWaterReceivers() && FindComponentByType<UWaterComponent>(StaticMeshComp->GetOwner()) == nullptr)
+            {
+                continue;
+            }
+
             const UStaticMesh* StaticMesh = StaticMeshComp->GetStaticMesh();
 
             if (!StaticMesh || !StaticMesh->HasValidMeshData()) continue;

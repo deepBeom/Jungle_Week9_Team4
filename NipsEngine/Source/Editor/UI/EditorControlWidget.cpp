@@ -24,7 +24,6 @@ namespace
     void SpawnActor(UWorld* World, const FVector& Location)
     {
         T* Actor = World->SpawnActor<T>();
-        Actor->InitDefaultComponents();
         Actor->SetActorLocation(Location);
     }
 
