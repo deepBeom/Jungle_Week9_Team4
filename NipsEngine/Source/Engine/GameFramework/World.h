@@ -54,7 +54,6 @@ public:
     {
         // create and register an actor
         T* Actor = UObjectManager::Get().CreateObject<T>();
-        Actor->InitDefaultComponents();
         Actor->SetWorld(this);
         if (bHasBegunPlay)
         {
