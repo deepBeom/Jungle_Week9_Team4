@@ -386,6 +386,43 @@ void UBoatWakeComponent::SpawnWakeDecal(
     }
 }
 
+ADecalActor* UBoatWakeComponent::CreateWakeDecalActor(UWorld* World) const
+{
+    if (World == nullptr)
+    {
+        return nullptr;
+    }
+
+    ADecalActor* NewDecalActor = World->SpawnActor<ADecalActor>();
+    if (NewDecalActor == nullptr)
+    {
+        return nullptr;
+    }
+
+    for (UActorComponent* Component : NewDecalActor->GetComponents())
+    {
+        UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(Component);
+        if (BillboardComponent == nullptr)
+        {
+            continue;
+        }
+
+        BillboardComponent->SetEditorOnly(true);
+        BillboardComponent->SetVisibility(false);
+        BillboardComponent->SetActive(false);
+    }
+
+    UDecalComponent* DecalComponent = ResolveWakeDecalComponent(NewDecalActor);
+    if (DecalComponent == nullptr)
+    {
+        NewDecalActor->Destroy();
+        return nullptr;
+    }
+
+    DeactivateWakeDecal(NewDecalActor);
+    return NewDecalActor;
+}
+
 ADecalActor* UBoatWakeComponent::AcquireWakeDecalActor(UWorld* World)
 {
     const int32 PoolBudget = SanitizeWakeDecalBudget(MaxActiveWakeDecals);
@@ -393,38 +430,6 @@ ADecalActor* UBoatWakeComponent::AcquireWakeDecalActor(UWorld* World)
     {
         return nullptr;
     }
-
-    auto CreateWakeDecalActor = [this, World]() -> ADecalActor*
-    {
-        ADecalActor* NewDecalActor = World->SpawnActor<ADecalActor>();
-        if (NewDecalActor == nullptr)
-        {
-            return nullptr;
-        }
-
-        for (UActorComponent* Component : NewDecalActor->GetComponents())
-        {
-            UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(Component);
-            if (BillboardComponent == nullptr)
-            {
-                continue;
-            }
-
-            BillboardComponent->SetEditorOnly(true);
-            BillboardComponent->SetVisibility(false);
-            BillboardComponent->SetActive(false);
-        }
-
-        UDecalComponent* DecalComponent = ResolveWakeDecalComponent(NewDecalActor);
-        if (DecalComponent == nullptr)
-        {
-            NewDecalActor->Destroy();
-            return nullptr;
-        }
-
-        DeactivateWakeDecal(NewDecalActor);
-        return NewDecalActor;
-    };
 
     for (ADecalActor*& PooledDecalActor : WakeDecalPool)
     {
@@ -452,7 +457,7 @@ ADecalActor* UBoatWakeComponent::AcquireWakeDecalActor(UWorld* World)
 
     if (static_cast<int32>(WakeDecalPool.size()) < PoolBudget)
     {
-        ADecalActor* NewDecalActor = CreateWakeDecalActor();
+        ADecalActor* NewDecalActor = CreateWakeDecalActor(World);
         if (NewDecalActor != nullptr)
         {
             WakeDecalPool.push_back(NewDecalActor);
@@ -476,7 +481,7 @@ ADecalActor* UBoatWakeComponent::AcquireWakeDecalActor(UWorld* World)
 
     if (WakeDecalPool[ReuseIndex] == nullptr)
     {
-        WakeDecalPool[ReuseIndex] = CreateWakeDecalActor();
+        WakeDecalPool[ReuseIndex] = CreateWakeDecalActor(World);
     }
 
     return WakeDecalPool[ReuseIndex];

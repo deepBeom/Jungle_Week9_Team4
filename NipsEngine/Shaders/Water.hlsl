@@ -99,7 +99,8 @@ struct FGPULight
 
 StructuredBuffer<FGPULight> GlobalLights : register(t3);
 
-// b4/t8 are reused from the existing local-light forward buffers.
+// b4/t8/t9 are reused from the existing local-light forward buffers.
+// WaterLocalLightCount caps both point and spot loops for stable prototype cost.
 cbuffer VisibleLightInfo : register(b4)
 {
     uint TileCountX;
@@ -156,8 +157,6 @@ struct FWaterPSInput
     float3 WorldPos : TEXCOORD0;
     float3 WorldNormal : TEXCOORD1;
     float2 UV : TEXCOORD2;
-    float3 WorldTangent : TEXCOORD3;
-    float3 WorldBitangent : TEXCOORD4;
 };
 
 struct FWaterPSOutput
@@ -184,26 +183,38 @@ float2 BuildWaterSampleUV(FWaterPSInput Input)
 {
     const float2 MeshUV = Input.UV;
     const float2 WorldProjectedUV = Input.WorldPos.xy * float2(WorldUVScaleX, WorldUVScaleY);
-    return lerp(MeshUV, WorldProjectedUV, saturate(WorldUVBlendFactor));
+    const float WorldBlend = saturate(WorldUVBlendFactor);
+    return (WorldBlend >= 0.999f) ? WorldProjectedUV : lerp(MeshUV, WorldProjectedUV, WorldBlend);
+}
+
+float3 SampleWaterNormalA(float2 BaseUV)
+{
+    if (bHasNormalMapA == 0u)
+    {
+        return float3(0.0f, 0.0f, 1.0f);
+    }
+
+    const float2 LayerUV = BaseUV * NormalTilingA + Time * NormalScrollSpeedA;
+    return WaterNormalA.Sample(SampleState, LayerUV).xyz * 2.0f - 1.0f;
+}
+
+float3 SampleWaterNormalB(float2 BaseUV)
+{
+    if (bHasNormalMapB == 0u)
+    {
+        return float3(0.0f, 0.0f, 1.0f);
+    }
+
+    const float2 LayerUV = BaseUV * NormalTilingB + Time * NormalScrollSpeedB;
+    return WaterNormalB.Sample(SampleState, LayerUV).xyz * 2.0f - 1.0f;
 }
 
 float3 ResolveWaterWorldNormal(FWaterPSInput Input, float2 UV)
 {
     const float3 GeometricNormal = normalize(Input.WorldNormal);
 
-    float3 N1 = float3(0.0f, 0.0f, 1.0f);
-    if (bHasNormalMapA != 0u)
-    {
-        const float2 UV1 = UV * NormalTilingA + Time * NormalScrollSpeedA;
-        N1 = WaterNormalA.Sample(SampleState, UV1).xyz * 2.0f - 1.0f;
-    }
-
-    float3 N2 = float3(0.0f, 0.0f, 1.0f);
-    if (bHasNormalMapB != 0u)
-    {
-        const float2 UV2 = UV * NormalTilingB + Time * NormalScrollSpeedB;
-        N2 = WaterNormalB.Sample(SampleState, UV2).xyz * 2.0f - 1.0f;
-    }
+    const float3 N1 = SampleWaterNormalA(UV);
+    const float3 N2 = SampleWaterNormalB(UV);
 
     float3 WaterNormalTS = normalize(N1 + N2);
     WaterNormalTS.xy *= NormalStrength;
@@ -321,8 +332,6 @@ FWaterPSInput mainVS(FWaterVSInput Input)
     FWaterPSInput Output;
     Output.WorldPos = mul(float4(Input.Position, 1.0f), Model).xyz;
     Output.WorldNormal = normalize(mul(Input.Normal, (float3x3)WorldInvTrans));
-    Output.WorldTangent = normalize(mul(Input.Tangent, (float3x3)Model));
-    Output.WorldBitangent = normalize(mul(Input.Bitangent, (float3x3)Model));
     Output.UV = Input.UV;
     Output.ClipPos = ApplyWaterMVP(Input.Position);
     return Output;

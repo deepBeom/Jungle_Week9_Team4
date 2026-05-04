@@ -5,6 +5,7 @@
 class UMaterialInterface;
 class UDecalComponent;
 class ADecalActor;
+class UWorld;
 
 class UBoatWakeComponent : public UActorComponent
 {
@@ -40,6 +41,7 @@ private:
         UMaterialInterface* Material,
         float FadeStartDelay,
         float FadeDuration);
+    ADecalActor* CreateWakeDecalActor(UWorld* World) const;
     ADecalActor* AcquireWakeDecalActor(UWorld* World);
     UDecalComponent* ResolveWakeDecalComponent(ADecalActor* DecalActor) const;
     void DeactivateWakeDecal(ADecalActor* DecalActor) const;
@@ -48,6 +50,7 @@ private:
 private:
     FString MainDecalMaterial = "BoatWakeDecalMain";
 
+    // Wake decals are component-owned runtime effects; materials stay shared assets.
     float MinSpawnSpeed = 1.5f;
     float MaxWakeSpeed = 15.0f;
     float SpawnSpacing = 2.25f;

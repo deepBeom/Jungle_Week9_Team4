@@ -204,6 +204,7 @@ struct alignas(16) FWaterUniformData
     float WaterFresnelIntensity = 0.45f;
     float WaterLightContributionScale = 1.0f;
     uint32 bEnableWaterSpecular = 1u;
+    // Shared loop cap for point and spot water highlights.
     uint32 WaterLocalLightCount = 0u;
 
     uint32 bHasDiffuseMap = 0u;

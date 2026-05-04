@@ -6,6 +6,9 @@
 
 class UTextRenderComponent;
 class UDecalComponent;
+class UMaterialInterface;
+class UStaticMesh;
+class UStaticMeshComponent;
 
 class ASceneActor : public AActor
 {
@@ -53,6 +56,11 @@ public:
 private:
     void ClampSettings();
     void RebuildRings();
+    UStaticMeshComponent* CreateOceanTile(
+        UStaticMesh* TileMesh,
+        UMaterialInterface* SharedWaterMaterial,
+        const FVector& RelativeLocation,
+        const FVector& RelativeScale);
     void ApplyGlobalProfileToWaterComponent();
     void UpdateOceanFollowTransform();
     void RegisterToOceanSystemIfNeeded();
@@ -67,11 +75,11 @@ private:
     float BaseTileSize = 128.0f;
     float RingScaleMultiplier = 2.0f;
     bool bFollowCamera = true;
-    bool bSnapToGrid = true;
+    bool bSnapToGrid = false;
     float SnapGridSize = 128.0f;
     float OceanHeight = 0.0f;
 
-    struct FOceanWaterProfile GlobalWaterProfile = {};
+    FOceanWaterProfile GlobalWaterProfile = {};
     uint64 LastAppliedProfileRevision = 0;
     bool bOceanSystemRegistered = false;
 };
