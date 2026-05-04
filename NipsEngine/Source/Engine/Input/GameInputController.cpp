@@ -131,7 +131,6 @@ void FGameInputController::Tick(float DeltaTime)
     CachedLocalMouseX = static_cast<float>(MousePoint.x) - ViewportX;
     CachedLocalMouseY = static_cast<float>(MousePoint.y) - ViewportY;
 
-    UE_LOG("[LuaInput] Before OnUpdate dt=%.4f\n", DeltaTime);
     CallLuaFunction("OnUpdate", DeltaTime);
     TickLuaInput(Input);
 }
