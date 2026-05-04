@@ -68,7 +68,7 @@ private:
     void EnsureScriptLoaded();
     bool LoadScript();
     void InstallBindings();
-    FString ResolveScriptPath(const FString& InScriptPath) const;
+    FWString ResolveScriptPathWide(const FString& InScriptPath) const;
     FString ResolveActiveControllerScriptPath();
     void RefreshControlledPawn();
     void SyncViewportCameraFromPawn();

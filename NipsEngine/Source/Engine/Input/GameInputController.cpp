@@ -10,11 +10,50 @@
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Scripting/LuaBinder.h"
 #include "Engine/Viewport/ViewportCamera.h"
+#include <filesystem>
+#include <fstream>
 
 namespace
 {
     constexpr int32 WatchedKeys[] = { 'W', 'A', 'S', 'D', 'Q', 'E' };
     constexpr int32 WatchedMouseButtons[] = { VK_LBUTTON, VK_RBUTTON, VK_MBUTTON };
+
+    bool ReadFileToStringByWidePath(const FWString& FilePath, FString& OutSource)
+    {
+        std::ifstream File(std::filesystem::path(FilePath), std::ios::binary);
+        if (!File.is_open())
+        {
+            return false;
+        }
+
+        File.seekg(0, std::ios::end);
+        const std::streamsize Size = File.tellg();
+        File.seekg(0, std::ios::beg);
+        if (Size < 0)
+        {
+            return false;
+        }
+
+        OutSource.resize(static_cast<size_t>(Size));
+        if (Size == 0)
+        {
+            return true;
+        }
+
+        File.read(OutSource.data(), Size);
+        return static_cast<std::streamsize>(File.gcount()) == Size;
+    }
+
+    void StripUtf8Bom(FString& Source)
+    {
+        if (Source.size() >= 3 &&
+            static_cast<unsigned char>(Source[0]) == 0xEF &&
+            static_cast<unsigned char>(Source[1]) == 0xBB &&
+            static_cast<unsigned char>(Source[2]) == 0xBF)
+        {
+            Source.erase(0, 3);
+        }
+    }
 }
 
 void FGameInputController::SetCamera(FViewportCamera* InCamera)
@@ -274,8 +313,19 @@ bool FGameInputController::LoadScript()
     ScriptEnvironment = sol::environment(Lua, sol::create, Lua.globals());
     InstallBindings();
 
-    LoadedScriptPath = ResolveScriptPath(ActiveControllerScriptPath);
-    sol::load_result LoadedScript = Lua.load_file(LoadedScriptPath);
+    const FWString ResolvedScriptPathWide = ResolveScriptPathWide(ActiveControllerScriptPath);
+    LoadedScriptPath = FPaths::ToUtf8(ResolvedScriptPathWide);
+
+    FString ScriptSource;
+    if (!ReadFileToStringByWidePath(ResolvedScriptPathWide, ScriptSource))
+    {
+        printf("[Lua Input Load Error] Failed to open script file: %s\n", LoadedScriptPath.c_str());
+        return false;
+    }
+
+    StripUtf8Bom(ScriptSource);
+
+    sol::load_result LoadedScript = Lua.load(ScriptSource, LoadedScriptPath);
     if (!LoadedScript.valid())
     {
         sol::error Error = LoadedScript;
@@ -363,9 +413,9 @@ void FGameInputController::InstallBindings()
 
 }
 
-FString FGameInputController::ResolveScriptPath(const FString& InScriptPath) const
+FWString FGameInputController::ResolveScriptPathWide(const FString& InScriptPath) const
 {
-    return FPaths::ToAbsoluteString(FPaths::ToWide(FPaths::Normalize(InScriptPath)));
+    return FPaths::ToAbsolute(FPaths::ToWide(FPaths::Normalize(InScriptPath)));
 }
 
 FString FGameInputController::ResolveActiveControllerScriptPath()
