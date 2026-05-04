@@ -7,6 +7,7 @@
 #include "Engine/Component/StaticMeshComponent.h"
 #include "Engine/Core/ActorTags.h"
 #include "Engine/Core/CollisionTypes.h"
+#include "Engine/Core/Paths.h"
 #include "Engine/Core/Logging/Timer.h"
 #include "Engine/Core/ResourceManager.h"
 #include "Engine/GameFramework/Actor.h"
@@ -18,6 +19,8 @@
 #include "Engine/UI/UIManager.h"
 
 #include <algorithm>
+#include <filesystem>
+#include <fstream>
 
 namespace
 {
@@ -91,6 +94,40 @@ namespace
         return (Object && UObject::IsValid(Object))
             ? static_cast<FString>(Object->GetName())
             : FString();
+    }
+
+    bool ResolveLuaWritablePath(const FString& RelativePath, std::filesystem::path& OutPath)
+    {
+        if (RelativePath.empty())
+        {
+            return false;
+        }
+
+        std::filesystem::path Input(FPaths::ToWide(RelativePath));
+        if (Input.is_absolute())
+        {
+            return false;
+        }
+
+        std::filesystem::path Root(FPaths::RootDir());
+        std::filesystem::path Target = (Root / Input).lexically_normal();
+        std::filesystem::path Relative = Target.lexically_relative(Root);
+
+        if (Relative.empty())
+        {
+            return false;
+        }
+
+        for (const std::filesystem::path& Part : Relative)
+        {
+            if (Part == L"..")
+            {
+                return false;
+            }
+        }
+
+        OutPath = Target;
+        return true;
     }
 
     // Type-name lookup used by both GetComponent and FindComponentByClass.
@@ -889,6 +926,43 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
     Lua.set_function("GetDriftSalvageWeightCapacity", []()
     {
         return LuaBinder::GetDriftSalvageWeightCapacity();
+    });
+
+    Lua.set_function("ReadTextFile", [](const FString& RelativePath) -> FString
+    {
+        std::filesystem::path FilePath;
+        if (!ResolveLuaWritablePath(RelativePath, FilePath))
+        {
+            return FString();
+        }
+
+        std::ifstream File(FilePath, std::ios::in | std::ios::binary);
+        if (!File.is_open())
+        {
+            return FString();
+        }
+
+        return FString((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
+    });
+
+    Lua.set_function("WriteTextFile", [](const FString& RelativePath, const FString& Content) -> bool
+    {
+        std::filesystem::path FilePath;
+        if (!ResolveLuaWritablePath(RelativePath, FilePath))
+        {
+            return false;
+        }
+
+        std::filesystem::create_directories(FilePath.parent_path());
+
+        std::ofstream File(FilePath, std::ios::out | std::ios::binary | std::ios::trunc);
+        if (!File.is_open())
+        {
+            return false;
+        }
+
+        File << Content;
+        return File.good();
     });
 
     Lua.set_function("Log", [](const FString& Message)

@@ -142,6 +142,16 @@ void AActor::Serialize(FArchive& Ar)
     }
 }
 
+void AActor::EnsureDefaultComponentsInitialized()
+{
+    if (RootComponent != nullptr || !OwnedComponents.empty())
+    {
+        return;
+    }
+
+    InitDefaultComponents();
+}
+
 UActorComponent* AActor::AddComponentByClass(const FTypeInfo* Class)
 {
     if (!Class)

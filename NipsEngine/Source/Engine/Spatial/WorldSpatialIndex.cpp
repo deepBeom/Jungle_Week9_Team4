@@ -482,7 +482,20 @@ bool FWorldSpatialIndex::ShouldRunRotation(int32 TotalDirtyCount, int32 Structur
 
 bool FWorldSpatialIndex::ShouldTrackPrimitive(const UPrimitiveComponent* Primitive) const
 {
-    return Primitive != nullptr && Primitive->GetOwner() != nullptr;
+    if (Primitive == nullptr || Primitive->GetOwner() == nullptr)
+    {
+        return false;
+    }
+
+    const UWorld* World = Primitive->GetOwner()->GetFocusedWorld();
+    if (World != nullptr &&
+        World->GetWorldType() != EWorldType::Editor &&
+        Primitive->GetPrimitiveType() == EPrimitiveType::EPT_Decal)
+    {
+        return false;
+    }
+
+    return true;
 }
 
 bool FWorldSpatialIndex::ShouldInsertIntoBVH(const UPrimitiveComponent* Primitive, const FAABB& BoundsSnapshot) const

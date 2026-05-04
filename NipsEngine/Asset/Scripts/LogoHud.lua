@@ -3,12 +3,10 @@
 local ShowHud
 local MakeHoverLabel
 
-local NUMBER_COLS = 5
-local NUMBER_ROWS = 2
-local NUMBER_SHEET = "Asset/Texture/UI/Number.png"
 local HUD_BG_SHEET = "Asset/Texture/UI/BG.png"
 local SCORE_BG_PATH = "Asset/Texture/UI/ScoreBoardBG.png"
 local ENDING_SHEET = "Asset/Texture/UI/Ending.png"
+local SCORE_MANAGER_PATH = "Asset/Scripts/ScoreManager.lua"
 
 local MONEY_SHEET = "Asset/Texture/UI/Money.png"
 local MONEY_ICON_SIZE = 96
@@ -108,17 +106,47 @@ local HeartAnimIndex = 0
 local HeartAnimTime = 0.0
 local HeartAnimFrame = 0
 local HeartHealth = HEART_COUNT
+local HeartTargetHealth = HEART_COUNT
 local BoatActor = nil
 local BoatHomePosition = nil
 local BoatHomeRotation = nil
+local ScoreManager = nil
 
-local function DigitUV(d)
-    local digit = math.max(0, math.min(9, math.floor(d)))
-    local col = digit % NUMBER_COLS
-    local row = math.floor(digit / NUMBER_COLS)
+local function LoadScoreManager()
+    if ScoreManager then
+        return ScoreManager
+    end
 
-    return col / NUMBER_COLS, row / NUMBER_ROWS,
-           (col + 1) / NUMBER_COLS, (row + 1) / NUMBER_ROWS
+    local paths = {
+        SCORE_MANAGER_PATH,
+        "NipsEngine/" .. SCORE_MANAGER_PATH,
+    }
+
+    local lastError = nil
+    for _, path in ipairs(paths) do
+        local ok, managerOrError = pcall(dofile, path)
+        if ok and managerOrError then
+            ScoreManager = managerOrError
+            return ScoreManager
+        end
+        lastError = managerOrError
+    end
+
+    if Log then
+        Log("ScoreManager load failed: " .. tostring(lastError))
+    end
+
+    ScoreManager = {
+        GetRecords = function()
+            return { 0, 0, 0 }
+        end,
+        RecordScore = function(score)
+            local records = { 0, math.max(0, math.floor(score or 0)), 0 }
+            table.sort(records, function(a, b) return a > b end)
+            return records
+        end,
+    }
+    return ScoreManager
 end
 
 local function HeartUV(index)
@@ -276,11 +304,33 @@ end
 local function ApplyHeartHealth(health)
     local clamped = math.max(0, math.min(HEART_COUNT, math.floor((health or 0) + 0.5)))
     HeartHealth = clamped
+    HeartTargetHealth = clamped
     bHeartAnimPlaying = false
     HeartAnimIndex = 0
 
     for i = 1, HEART_COUNT do
         ApplyHeartFrame(i, i <= clamped and 0 or HEART_COLS - 1)
+    end
+end
+
+local function StartHeartAnimStep()
+    if HeartTargetHealth == HeartHealth then
+        return
+    end
+
+    HeartAnimDir = HeartTargetHealth < HeartHealth and 1 or -1
+    HeartAnimIndex = HeartAnimDir > 0 and HeartHealth or HeartHealth + 1
+    HeartAnimTime = 0.0
+    HeartAnimFrame = HeartAnimDir > 0 and 0 or HEART_COLS - 1
+    bHeartAnimPlaying = true
+    ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
+end
+
+local function SetHeartTargetHealth(health)
+    HeartTargetHealth = math.max(0, math.min(HEART_COUNT, math.floor((health or 0) + 0.5)))
+
+    if not bHeartAnimPlaying and HeartTargetHealth ~= HeartHealth then
+        StartHeartAnimStep()
     end
 end
 
@@ -322,8 +372,8 @@ local function SyncGameplayHud()
     end
 
     local health = GetHudHealth()
-    if health ~= HeartHealth then
-        ApplyHeartHealth(health)
+    if health ~= HeartTargetHealth then
+        SetHeartTargetHealth(health)
     end
 end
 
@@ -541,6 +591,7 @@ local function HideInGameHud()
         HeartAnimTime = 0.0
         HeartAnimFrame = 0
         HeartHealth = HEART_COUNT
+        HeartTargetHealth = HEART_COUNT
     end
 
     if ShipWheel then
@@ -605,6 +656,7 @@ local function ShowInGameHud()
     HeartAnimIndex = 0
     HeartAnimTime = 0.0
     HeartAnimFrame = 0
+    HeartTargetHealth = GetHudHealth()
     ApplyHeartHealth(GetHudHealth())
     SyncGameplayHud()
     
@@ -626,38 +678,32 @@ local function HideGameOver()
     end
 end
 
-local function ShowScoreboard(bestScore)
+local function CreateCenteredText(parent, x, y, text, fontSize)
+    local value = tostring(text or "")
+    local size = fontSize or 16.0
+    return UIManager.CreateText(parent, x, y, math.max(size, #value * size), size, value, size, "Centered")
+end
+
+local function ShowScoreboard(records)
     if ScorePanel then return end
 
-    ScorePanel = UIManager.CreateImage(nil, 0.5, 0.5, 0.6, 0.5, SCORE_BG_PATH, "FullRelative")
+    ScorePanel = UIManager.CreateImage(nil, 0.5, 0.5, 448, 558, SCORE_BG_PATH, "RelativePos")
     ScorePanel:SetColor(1.0, 1.0, 1.0, 1.0)
 
-    local title = UIManager.CreateText(ScorePanel, -0.005, -0.195, 300, 50, "BEST SCORE", 32.0, "RelativePos")
+    local title = CreateCenteredText(ScorePanel, 0, -186, "RECORD", 36.0)
     title:SetColor(0.0, 0.0, 0.0, 1.0)
 
-    local digitList = {}
-    local n = math.max(0, math.floor(bestScore or 0))
-    if n == 0 then
-        digitList = { 0 }
-    else
-        while n > 0 do
-            table.insert(digitList, 1, n % 10)
-            n = math.floor(n / 10)
-        end
+    if type(records) ~= "table" then
+        records = LoadScoreManager().GetRecords()
     end
 
-    local digitW = 0.08
-    local digitH = 0.25
-    local spacing = 0.085
-    local startX = -((#digitList - 1) * spacing) * 0.5
-
-    for i, digit in ipairs(digitList) do
-        local x = startX + (i - 1) * spacing
-        local img = UIManager.CreateImage(ScorePanel, x, 0.0, digitW, digitH, NUMBER_SHEET, "ParentRelative")
-        img:SetUV(DigitUV(digit))
+    local rowY = { -100, -5, 90 }
+    for rank = 1, 3 do
+        local scoreText = CreateCenteredText(ScorePanel, 20, rowY[rank], records[rank] or 0, 60.0)
+        scoreText:SetColor(0.0, 0.0, 0.0, 1.0)
     end
 
-    local closeBtn = UIManager.CreateText(ScorePanel, 0.0, 0.17, 120, 28, "CLOSE", 28.0, "RelativePos")
+    local closeBtn = CreateCenteredText(ScorePanel, 0, 226, "CLOSE", 30.0)
     closeBtn:SetColor(0, 0, 0, 1.0)
     closeBtn:SetInteractable(true)
     closeBtn:OnHoverEnter(function() closeBtn:SetColor(1.0, 1.0, 0.0, 1.0) end)
@@ -673,6 +719,7 @@ local function ShowGameOver()
 
     EnterUIMode()
     local finalScore = GetHudMoney()
+    LoadScoreManager().RecordScore(finalScore)
     HideInGameHud()
 
     GameOverPanel = UIManager.CreateImage(nil, 0.5, 0.5, 0.55, 0.55, nil, "FullRelative")
@@ -693,6 +740,7 @@ local function ShowGameOver()
     restartLabel:OnHoverEnter(function() restartLabel:SetColor(1.0, 1.0, 0.0, 1.0) end)
     restartLabel:OnHoverExit(function() restartLabel:SetColor(0.0, 0.0, 0.0, 1.0) end)
     restartLabel:OnClick(function()
+        _G.LogoHudNextStartMode = "Gameplay"
         RequestGameRestart()
     end)
 
@@ -702,6 +750,7 @@ local function ShowGameOver()
     titleLabel:OnHoverEnter(function() titleLabel:SetColor(1.0, 1.0, 0.0, 1.0) end)
     titleLabel:OnHoverExit(function() titleLabel:SetColor(0.0, 0.0, 0.0, 1.0) end)
     titleLabel:OnClick(function()
+        _G.LogoHudNextStartMode = "Title"
         RequestGameRestart()
     end)
 end
@@ -721,6 +770,16 @@ local function HideHud()
     end
 end
 
+local function StartGameplay()
+    HideHud()
+    ShowInGameHud()
+    if ResetDriftSalvageStats then
+        ResetDriftSalvageStats()
+    end
+    SetBoatAtHome()
+    EnterGameplayMode()
+end
+
 ShowHud = function()
     if MenuPanel then return end
 
@@ -738,13 +797,7 @@ ShowHud = function()
 
     local StartLabel = MakeHoverLabel(MenuPanel, 0.025, 0.03, 256, 28, "START", 48.0, "RelativePos")
     StartLabel:OnClick(function()
-        HideHud()
-        ShowInGameHud()
-        if ResetDriftSalvageStats then
-            ResetDriftSalvageStats()
-        end
-        SetBoatAtHome()
-        EnterGameplayMode()
+        StartGameplay()
     end)
 
     UIManager.CreateImage(MenuPanel, -0.25, 0.4, 0.15, 0.25, "Asset/Texture/UI/Icon_book.png", "ParentRelative")
@@ -752,7 +805,7 @@ ShowHud = function()
     local RecordLabel = MakeHoverLabel(MenuPanel, 0.025, 0.18, 256, 28, "RECORD", 48.0, "RelativePos")
     RecordLabel:OnClick(function()
         HideHud()
-        ShowScoreboard(1557)
+        ShowScoreboard(LoadScoreManager().GetRecords())
     end)
 
     local ok, err = pcall(PrepareMenuPresentation)
@@ -762,6 +815,14 @@ ShowHud = function()
 end
 
 function OnStart(self)
+    local nextStartMode = _G.LogoHudNextStartMode
+    _G.LogoHudNextStartMode = nil
+
+    if nextStartMode == "Gameplay" then
+        StartGameplay()
+        return
+    end
+
     ShowHud()
 end
 
@@ -794,13 +855,14 @@ function OnUpdate(self, deltaTime)
 
             ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
             HeartAnimIndex = 0
+            StartHeartAnimStep()
         elseif nextFrame ~= HeartAnimFrame then
             HeartAnimFrame = nextFrame
             ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
         end
     end
 
-    if InGamePanel and GetHudHealth() <= 0 then
+    if InGamePanel and GetHudHealth() <= 0 and not bHeartAnimPlaying then
         ShowGameOver()
     end
 end
