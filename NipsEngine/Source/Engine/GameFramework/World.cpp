@@ -3,9 +3,6 @@
 #include "Collision/CollisionSystem.h"
 #include "Component/Light/LightComponent.h"
 
-
-//test
-#include "DelegateTestActor.h"
 #include "Engine/Core/SoundManager.h"
 
 
@@ -66,10 +63,7 @@ void UWorld::BeginPlay()
     PersistentLevel->BeginPlay();
     RebuildSpatialIndex();
 
-    ///* test
-    SpawnActor<ADelegateTestActor>();
     FSoundManager::Get().PlayBGM("Menu.mp3");
-    //*/
 }
 
 void UWorld::Tick(float DeltaTime)

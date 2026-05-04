@@ -285,6 +285,7 @@ FWaterPSOutput mainPS(FWaterPSInput Input)
     FWaterPSOutput Output;
 
     const float2 WaterSampleUV = BuildWaterSampleUV(Input);
+    const float2 DiffuseSampleUV = WaterSampleUV + Time * NormalScrollSpeedA;
     const float3 WaterWorldNormal = ResolveWaterWorldNormal(Input, WaterSampleUV);
     const float3 ViewDir = normalize(CameraPosition - Input.WorldPos);
     const float Fresnel = pow(1.0f - saturate(dot(WaterWorldNormal, ViewDir)), 3.0f);
@@ -292,7 +293,7 @@ FWaterPSOutput mainPS(FWaterPSInput Input)
     const float FallbackFlow = sin((WaterSampleUV.x + WaterSampleUV.y) * 6.0f + Time * 1.7f);
     const bool bHasAnyWaterNormal = (bHasNormalMapA != 0u) || (bHasNormalMapB != 0u);
     const float AnimatedSignal = bHasAnyWaterNormal ? WaveTint : (FallbackFlow * 0.5f);
-    const float3 DiffuseTint = (bHasDiffuseMap != 0u) ? DiffuseMap.Sample(SampleState, WaterSampleUV).rgb : 1.0f.xxx;
+    const float3 DiffuseTint = (bHasDiffuseMap != 0u) ? DiffuseMap.Sample(SampleState, DiffuseSampleUV).rgb : 1.0f.xxx;
 
     // Stage 1: subtle animated color response only. Specular/refraction/foam are reserved for later stages.
     float3 FinalColor = BaseColor * DiffuseTint;
