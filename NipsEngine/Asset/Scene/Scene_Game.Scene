@@ -1,13 +1,13 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 4123,
+  "NextUUID" : 5187,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
-    "Location" : [6.161964, -1.356774, 11.822250],
+    "Location" : [-24.591064, 9.740972, 25.252684],
     "NearClip" : 0.100000,
-    "Rotation" : [-4.023376, 20.895966, 11.155716]
+    "Rotation" : [11.353038, 10.934897, -46.626709]
   },
   "Primitives" : {
     "1052" : {
@@ -708,10 +708,10 @@
       "Enable Cull" : true,
       "EnableTick" : true,
       "FogCutoffDistance" : 10000.000000,
-      "FogDensity" : 0.008447,
+      "FogDensity" : 0.004751,
       "FogHeight" : 0.000000,
       "FogInscatteringColor" : [0.594500, 0.737500, 0.894500, 1.000000],
-      "FogMaxOpacity" : 0.348678,
+      "FogMaxOpacity" : 0.282429,
       "FogStartDistance" : 0.000000,
       "HeightFalloff" : 0.000000,
       "HiddenInEditor" : false,
@@ -906,23 +906,6 @@
       "UseDeterministicPhase" : true,
       "Velocity" : [-1.000000, 0.000000, 1.000000]
     },
-    "3444" : {
-      "EditorOnly" : false,
-      "Enable Cull" : true,
-      "EnableTick" : true,
-      "HiddenInEditor" : false,
-      "Location" : [0.000000, 0.000000, 0.000000],
-      "Materials" : ["Material"],
-      "NormalizeOnImport" : false,
-      "ObjStaticMeshAsset" : "Asset/Mesh/cube.obj",
-      "ParentUUID" : 2614,
-      "Rotation" : [0.000000, 0.000000, 0.000000],
-      "Scale" : [1.000000, 1.000000, 1.000000],
-      "Scroll U" : 0.000000,
-      "Scroll V" : 0.000000,
-      "Type" : "UStaticMeshComponent",
-      "Visible" : true
-    },
     "3719" : {
       "ActorClass" : "AStaticMeshActor",
       "ActorTag" : "Trash",
@@ -959,24 +942,6 @@
       "Type" : "UStaticMeshComponent",
       "Visible" : true
     },
-    "3818" : {
-      "ActorClass" : "ASubUVActor",
-      "ActorTag" : "Untagged",
-      "EditorOnly" : false,
-      "Enable Cull" : true,
-      "EnableTick" : true,
-      "Height" : 2.000000,
-      "HiddenInEditor" : false,
-      "Location" : [25.775021, -1.759446, 3.651775],
-      "Particle" : "Asset/Particle/Explosion.dds",
-      "PlayRate" : 30.000000,
-      "Rotation" : [0.000000, 0.000000, 0.000000],
-      "Scale" : [10.000000, 10.000000, 10.000000],
-      "Type" : "USubUVComponent",
-      "Visible" : true,
-      "Width" : 2.000000,
-      "bLoop" : true
-    },
     "3820" : {
       "BlockComponent" : false,
       "BoxExtent" : [0.261427, 0.479518, 0.309487],
@@ -1010,6 +975,23 @@
       "ShapeColor" : [0.000000, 1.000000, 0.000000, 1.000000],
       "Type" : "UBoxComponent",
       "Visible" : true
+    },
+    "4318" : {
+      "EditorOnly" : false,
+      "Enable Cull" : true,
+      "EnableTick" : true,
+      "Height" : 2.000000,
+      "HiddenInEditor" : false,
+      "Location" : [0.000000, 0.800000, 1.400000],
+      "ParentUUID" : 571,
+      "Particle" : "Asset/Particle/Explosion.dds",
+      "PlayRate" : 25.000000,
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [3.000000, 3.000000, 3.000000],
+      "Type" : "USubUVComponent",
+      "Visible" : true,
+      "Width" : 2.000000,
+      "bLoop" : true
     },
     "512" : {
       "ActorClass" : "AStaticMeshActor",
@@ -1071,7 +1053,7 @@
       "Enable Cull" : true,
       "EnableTick" : true,
       "HiddenInEditor" : false,
-      "Location" : [30.972643, 4.266149, -2.217085],
+      "Location" : [29.267826, 4.266149, -2.217085],
       "Materials" : ["Asset/Mesh/Hazard/Hazard_Inst_1.matinst"],
       "NormalizeOnImport" : false,
       "ObjStaticMeshAsset" : "Asset/Mesh/Hazard/Hazard.obj",

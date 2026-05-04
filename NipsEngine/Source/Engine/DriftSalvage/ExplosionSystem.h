@@ -1,10 +1,12 @@
 ﻿#pragma once
 
 #include "Core/Containers/Array.h"
+#include "Core/Delegate/MulticastDelegate.h"
 #include "Math/Vector.h"
 
 class UWorld;
 class AActor;
+class USubUVComponent;
 
 // 폭발/충돌로 떠밀린 actor의 push 속도를 추적하면서
 // 매 tick: 위치 갱신 + Rock 슬라이드 + collectible 끼리 밀어내기 + 마찰 감속을 처리한다.
@@ -20,6 +22,7 @@ public:
     // Hazard 폭발: Center 반경 안의 회수 가능 actor에게 바깥 방향 push.
     // 같은 반경의 다른 Hazard는 거리에 비례한 딜레이로 연쇄 폭발 예약된다.
     void TriggerExplosion(UWorld* World, const FVector& Center);
+    void TriggerExplosion(UWorld* World, AActor* SourceHazard, const FVector& Center);
 
     // 임의의 actor에 push 속도를 부여한다 (Boat 충돌 등에서 사용).
     // 이미 떠밀리는 중이면 속도가 누적된다.
@@ -59,9 +62,25 @@ private:
         float   TimeRemaining = 0.0f;
     };
 
-    void TriggerImmediate(UWorld* World, const FVector& Center);
+    struct FHazardSubUVEffect
+    {
+        AActor* Actor = nullptr;
+        TArray<USubUVComponent*> SubUVs;
+        float Age = 0.0f;
+        float MaxLifetime = 2.0f;
+    };
+
+    using FOnExplosionDelegate = TMulticastDelegate<void(UWorld*, AActor*, const FVector&)>;
+
+    void BindDefaultExplosionEvents();
+    void PlayExplosionSound(UWorld* World, AActor* SourceHazard, const FVector& Center);
+    void StartHazardSubUVEffect(UWorld* World, AActor* SourceHazard, const FVector& Center);
+    void TickHazardSubUVEffects(float DeltaTime);
+    bool IsHazardSubUVEffectActive(const AActor* Actor) const;
+
+    void TriggerImmediate(UWorld* World, AActor* SourceHazard, const FVector& Center);
     void EnqueuePushToCollectibles(UWorld* World, const FVector& Center);
-    void EnqueueChainExplosions(UWorld* World, const FVector& Center);
+    void EnqueueChainExplosions(UWorld* World, AActor* SourceHazard, const FVector& Center);
 
     void HandleRockCollision(AActor* Actor, FVector& Velocity);
     void HandleCollectibleCollision(AActor* Actor, FVector& Velocity);
@@ -79,7 +98,9 @@ private:
     TArray<FPushedActor> Pushed;
     TArray<FPendingExplosion> Pending;
     TArray<FPendingPush> PendingPushes;
+    TArray<FHazardSubUVEffect> HazardSubUVEffects;
     TArray<FDebugRing> DebugRings;
+    FOnExplosionDelegate OnExplosion;
 
     // 폭발 파라미터
     float Radius              = 20.0f; // 폭발 영햠 범위

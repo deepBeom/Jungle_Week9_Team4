@@ -6,6 +6,7 @@
 
 class UTextRenderComponent;
 class UDecalComponent;
+class USubUVComponent;
 
 class ASceneActor : public AActor
 {
@@ -83,6 +84,10 @@ public:
     ASubUVActor() = default;
 
     void InitDefaultComponents();
+    USubUVComponent* GetSubUVComponent() const { return SubUVComponent; }
+
+private:
+    USubUVComponent* SubUVComponent = nullptr;
 };
 
 class ATextRenderActor : public AActor
