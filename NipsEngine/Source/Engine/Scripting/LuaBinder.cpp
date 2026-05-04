@@ -28,7 +28,7 @@ namespace
 
     struct FDriftSalvageStats
     {
-        int32 Health = 3;
+        int32 Health = 5;
         int32 Money = 0;
         float Weight = 0.0f;
     };
@@ -39,7 +39,7 @@ namespace
         int32 Money = 0;
     };
 
-    constexpr int32 DriftSalvageMaxHealth = 3;
+    constexpr int32 DriftSalvageMaxHealth = 5;
     constexpr float DriftSalvageWeightCapacity = 150.0f;
     FDriftSalvageStats DriftSalvageStats;
     bool bDriftSalvageGameOverRequested = false;

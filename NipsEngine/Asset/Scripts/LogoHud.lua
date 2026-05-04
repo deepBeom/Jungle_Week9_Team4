@@ -23,7 +23,7 @@ local SHIP_WHEEL_RELEASE_DURATION = 0.45
 
 local HEART_SHEET = "Asset/Texture/UI/Heart.png"
 local HEART_COLS = 5
-local HEART_COUNT = 3
+local HEART_COUNT = 5
 local HEART_ANIM_FPS = 12.0
 local HEART_FRAME_W = 17
 local HEART_FRAME_H = 17
@@ -41,7 +41,7 @@ local PROGRESS_ANCHOR_SHEET = "Asset/Texture/UI/Anchor.png"
 local MINIMAP_SIZE = 260
 local MINIMAP_RELATIVE_X = 0.86   -- 화면 중앙 기준 가로 비율 (panel 중심)
 local MINIMAP_RELATIVE_Y = 0.20   -- 화면 중앙 기준 세로 비율 (panel 중심)
-local MINIMAP_RANGE_HALF = 50.0   -- boat 중심에서 보여줄 world 반경 (XZ)
+local MINIMAP_RANGE_HALF = 75.0   -- boat 중심에서 보여줄 world 반경 (XZ)
 local MINIMAP_EDGE_PADDING = 8    -- 사거리 밖 아이콘을 패널 가장자리로부터 안쪽 여백
 local MINIMAP_DOT_SIZE = 8
 local MINIMAP_ICON_SIZE = 24
