@@ -3,7 +3,6 @@
 #include "GameFramework/Actor.h"
 #include "DriftSalvage/CollectionSystem.h"
 #include "DriftSalvage/ExplosionSystem.h"
-#include "DriftSalvage/BoatInputSystem.h"
 #include "Level.h"
 #include "Spatial/WorldSpatialIndex.h"
 #include "Collision/CollisionSystem.h"
@@ -85,7 +84,7 @@ public:
 
     bool HasBegunPlay() const { return bHasBegunPlay; }
 
-    // Active Camera — EditorViewportClient 또는 PlayerController가 세팅
+    // Active Camera — EditorViewportClient 또는 PlayerController가 세팅e
     void SetActiveCamera(FViewportCamera* InCamera) { ActiveCamera = InCamera; }
     FViewportCamera* GetActiveCamera() const { return ActiveCamera; }
 
@@ -124,5 +123,4 @@ private:
     FCollisionSystem CollisionSystem;
     FCollectionSystem CollectionSystem;
     FExplosionSystem ExplosionSystem;
-    FBoatInputSystem BoatInputSystem;
 };

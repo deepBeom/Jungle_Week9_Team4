@@ -870,6 +870,9 @@
     <ClCompile Include="Source\Engine\UI\UIElement.cpp" />
     <ClCompile Include="Source\Engine\Render\UIBatcher.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.cpp" />
+    <ClCompile Include="Source\Engine\DriftSalvage\CollectionSystem.cpp" />
+    <ClCompile Include="Source\Engine\DriftSalvage\ExplosionSystem.cpp" />
+    <ClCompile Include="Source\Engine\Render\RingBatcher.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -1625,7 +1628,6 @@
     <ClInclude Include="Source\Engine\Core\SoundManager.h" />
     <ClInclude Include="Source\Engine\Collision\CollisionSystem.h" />
     <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
-    <ClInclude Include="Source\Engine\Core\GameObjectTypes.h" />
     <ClInclude Include="Source\Editor\Input\EditorController.h">
       <Filter>Source\Editor\Input</Filter>
     </ClInclude>
@@ -1648,5 +1650,8 @@
     <ClInclude Include="Source\Engine\UI\UIElement.h" />
     <ClInclude Include="Source\Engine\Render\UIBatcher.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.h" />
+    <ClInclude Include="Source\Engine\DriftSalvage\CollectionSystem.h" />
+    <ClInclude Include="Source\Engine\DriftSalvage\ExplosionSystem.h" />
+    <ClInclude Include="Source\Engine\Render\RingBatcher.h" />
   </ItemGroup>
 </Project>

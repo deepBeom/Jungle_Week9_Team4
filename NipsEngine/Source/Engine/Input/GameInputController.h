@@ -114,6 +114,7 @@ private:
     FVector StartupCameraRelativeRotation = FVector::ZeroVector;
 
     float MoveSpeed = 15.0f;
+    float TurnSpeed = 45.0f;
     float LookSensitivity = 0.15f;
     float CurrentDeltaTime = 0.0f;
     float Yaw = 0.0f;

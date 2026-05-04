@@ -84,7 +84,6 @@ void UWorld::Tick(float DeltaTime)
 
     if (WorldType == EWorldType::PIE || WorldType == EWorldType::Game)
     {
-        BoatInputSystem.Tick(this, DeltaTime);
         CollisionSystem.Tick(this, DeltaTime);
         ExplosionSystem.Tick(this, DeltaTime);
         CollectionSystem.Tick(this, DeltaTime);

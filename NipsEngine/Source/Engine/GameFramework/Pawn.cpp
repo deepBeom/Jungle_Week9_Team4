@@ -1,4 +1,4 @@
-#include "GameFramework/Pawn.h"
+﻿#include "GameFramework/Pawn.h"
 
 #include "Component/CameraComponent.h"
 #include "Component/SceneComponent.h"
@@ -9,8 +9,14 @@ REGISTER_FACTORY(APawn)
 
 void APawn::InitDefaultComponents()
 {
-    USceneComponent* RootComponent = AddComponent<UStaticMeshComponent>();
+    USceneComponent* RootComponent = AddComponent<USceneComponent>();
     SetRootComponent(RootComponent);
+
+    USceneComponent* MovementRootComponent = AddComponent<USceneComponent>();
+    MovementRootComponent->AttachToComponent(RootComponent);
+
+    UStaticMeshComponent* MeshComponent = AddComponent<UStaticMeshComponent>();
+    MeshComponent->AttachToComponent(MovementRootComponent);
 
     UCameraComponent* CameraComponent = AddComponent<UCameraComponent>();
     CameraComponent->AttachToComponent(RootComponent);
@@ -31,11 +37,30 @@ UCameraComponent* APawn::GetCameraComponent() const
     return nullptr;
 }
 
+USceneComponent* APawn::GetMovementRootComponent() const
+{
+    USceneComponent* Root = GetRootComponent();
+    if (!Root)
+    {
+        return nullptr;
+    }
+
+    for (USceneComponent* Child : Root->GetChildren())
+    {
+        if (Child && Child->GetTypeInfo()->name == "USceneComponent")
+        {
+            return Child;
+        }
+    }
+
+    return Root;
+}
+
 FVector APawn::GetForwardVector() const
 {
-    if (USceneComponent* Root = GetRootComponent())
+    if (USceneComponent* MovementRoot = GetMovementRootComponent())
     {
-        return Root->GetForwardVector();
+        return MovementRoot->GetForwardVector();
     }
 
     return FVector(1.0f, 0.0f, 0.0f);
@@ -43,9 +68,9 @@ FVector APawn::GetForwardVector() const
 
 FVector APawn::GetRightVector() const
 {
-    if (USceneComponent* Root = GetRootComponent())
+    if (USceneComponent* MovementRoot = GetMovementRootComponent())
     {
-        return Root->GetRightVector();
+        return MovementRoot->GetRightVector();
     }
 
     return FVector(0.0f, 1.0f, 0.0f);
@@ -53,9 +78,9 @@ FVector APawn::GetRightVector() const
 
 FVector APawn::GetUpVector() const
 {
-    if (USceneComponent* Root = GetRootComponent())
+    if (USceneComponent* MovementRoot = GetMovementRootComponent())
     {
-        return Root->GetUpVector();
+        return MovementRoot->GetUpVector();
     }
 
     return FVector(0.0f, 0.0f, 1.0f);

@@ -513,6 +513,11 @@ void FGameInputController::InstallBindings()
         MoveSpeed = Value;
     };
 
+    ScriptEnvironment["SetTurnSpeed"] = [this](float Value)
+    {
+        TurnSpeed = Value;
+    };
+
     ScriptEnvironment["SetLookSensitivity"] = [this](float Value)
     {
         LookSensitivity = Value;
@@ -581,17 +586,16 @@ void FGameInputController::ApplyPendingMovement(float DeltaTime)
     if (ControlledPawn)
     {
         USceneComponent* Root = ControlledPawn->GetRootComponent();
-        UCameraComponent* CameraComponent = ControlledPawn->GetCameraComponent();
-
-        Root->AddWorldOffset(ControlledPawn->GetForwardVector() * (PendingForward * MoveSpeed * DeltaTime));
-        Root->AddWorldOffset(ControlledPawn->GetRightVector() * (PendingRight * MoveSpeed * DeltaTime));
-        Root->AddWorldOffset(ControlledPawn->GetUpVector() * (PendingUp * MoveSpeed * DeltaTime));
-        Root->Rotate(PendingYaw * LookSensitivity, 0.0f);
-
-        if (CameraComponent)
+        USceneComponent* MovementRoot = ControlledPawn->GetMovementRootComponent();
+        if (!Root || !MovementRoot)
         {
-            CameraComponent->AddPitchInput(-PendingPitch * LookSensitivity);
+            RefreshControlledPawn();
+            return;
         }
+
+        MovementRoot->Rotate(PendingRight * TurnSpeed * DeltaTime, 0.0f);
+        Root->AddWorldOffset(ControlledPawn->GetForwardVector() * (PendingForward * MoveSpeed * DeltaTime));
+        Root->AddWorldOffset(ControlledPawn->GetUpVector() * (PendingUp * MoveSpeed * DeltaTime));
 
         RefreshControlledPawn();
         return;

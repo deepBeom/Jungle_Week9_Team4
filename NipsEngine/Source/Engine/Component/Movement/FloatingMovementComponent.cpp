@@ -61,10 +61,12 @@ void UFloatingMovementComponent::TickComponent(float DeltaTime)
     const float PhaseRadians = BobPhase * (3.14159265359f / 180.0f);
     const float BobWave = std::sin(ElapsedTime * BobFrequency * TwoPi + PhaseRadians);
     const float TiltWave = std::sin(ElapsedTime * TiltFrequency * TwoPi + PhaseRadians);
-    const FVector Drift = DriftDirection.GetSafeNormal2D() * (DriftSpeed * ElapsedTime);
 
-    FVector NewLocation = BaseLocation + Drift;
-    NewLocation.Z += BobWave * BobAmplitude;
+    // Drift를 증분으로 적용해 외부 이동 시스템(BoatInputSystem 등)과 공존.
+    // XY는 현재 위치 기준으로 유지하고, Z만 BaseLocation.Z 기준으로 Floating 효과 적용.
+    const FVector DriftDelta = DriftDirection.GetSafeNormal2D() * (DriftSpeed * DeltaTime);
+    FVector NewLocation = UpdatedComponent->GetWorldLocation() + DriftDelta;
+    NewLocation.Z = BaseLocation.Z + BobWave * BobAmplitude;
     UpdatedComponent->SetWorldLocation(NewLocation);
 
     FVector NewRotation = BaseRotation;

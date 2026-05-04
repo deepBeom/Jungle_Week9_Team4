@@ -3,6 +3,7 @@
 #include "GameFramework/Actor.h"
 
 class UCameraComponent;
+class USceneComponent;
 class UStaticMeshComponent;
 
 class APawn : public AActor
@@ -13,6 +14,7 @@ public:
 
     void InitDefaultComponents() override;
     UCameraComponent* GetCameraComponent() const;
+    USceneComponent* GetMovementRootComponent() const;
 
     FVector GetForwardVector() const;
     FVector GetRightVector() const;

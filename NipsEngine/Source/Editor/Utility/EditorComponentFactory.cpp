@@ -18,6 +18,8 @@
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/WaterComponent.h"
+#include "Component/Movement/FloatingMovementComponent.h"
+
 #include "Engine/GameFramework/Actor.h"
 
 namespace
@@ -167,6 +169,7 @@ namespace
         { "InterpToMovement Component", "Movement", &RegisterSimple<UInterpToMovementComponent> },
         { "PursuitMovement Component", "Movement", &RegisterSimple<UPursuitMovementComponent> },
         { "ProjectileMovement Component", "Movement", &RegisterSimple<UProjectileMovementComponent> },
+        { "FloatingMovement Component", "Movement", &RegisterSimple<UFloatingMovementComponent> },
 
         { "AmbientLight Component", "Light", &RegisterLightWithBillboard<UAmbientLightComponent> },
         { "DirectionalLight Component", "Light", &RegisterLightWithBillboard<UDirectionalLightComponent> },
