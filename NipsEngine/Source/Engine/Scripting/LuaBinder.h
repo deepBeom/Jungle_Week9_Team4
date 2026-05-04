@@ -16,14 +16,6 @@ namespace LuaBinder
 {
     void SetUIMode(bool bEnabled);
     bool IsUIMode();
-    void SetGameplayCameraFollowEnabled(bool bEnabled);
-    bool IsGameplayCameraFollowEnabled();
-    void SetGameplayCameraLookAt(const FVector& Location, const FVector& Target);
-    void SetGameplayCameraLookAt(float LocationX, float LocationY, float LocationZ, float TargetX, float TargetY, float TargetZ);
-    bool GetGameplayCameraLookAt(FVector& OutLocation, FVector& OutTarget);
-    void SetGameplayCameraTransform(const FVector& Location, const FVector& RotationEuler);
-    void SetGameplayCameraTransform(float LocationX, float LocationY, float LocationZ, float RotationX, float RotationY, float RotationZ);
-    bool GetGameplayCameraTransform(FVector& OutLocation, FVector& OutRotationEuler);
     void ResetDriftSalvageStats();
     void ApplyDriftSalvageDamage(int32 Damage);
     void ApplyDriftSalvagePickup(const FString& ActorTag);

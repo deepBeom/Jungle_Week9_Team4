@@ -68,29 +68,7 @@ void FGameInputController::Tick(float DeltaTime)
 
     RefreshControlledPawn();
 
-    if (LuaBinder::IsGameplayCameraFollowEnabled())
-    {
-        SyncViewportCameraFromPawn();
-    }
-    else
-    {
-        FVector CameraLocation;
-        FVector CameraRotationEuler;
-        if (LuaBinder::GetGameplayCameraTransform(CameraLocation, CameraRotationEuler))
-        {
-            Camera->SetLocation(CameraLocation);
-            Camera->SetRotation(FQuat::MakeFromEuler(CameraRotationEuler));
-        }
-        else
-        {
-            FVector CameraTarget;
-            if (LuaBinder::GetGameplayCameraLookAt(CameraLocation, CameraTarget))
-            {
-                Camera->SetLocation(CameraLocation);
-                Camera->SetLookAt(CameraTarget);
-            }
-        }
-    }
+    SyncViewportCameraFromPawn();
 
     ApplyUIModeState();
     if (bUIMode)
@@ -115,11 +93,6 @@ void FGameInputController::Tick(float DeltaTime)
     CachedLocalMouseY = static_cast<float>(MousePoint.y) - ViewportY;
 
     TickLuaInput(Input);
-
-    if (LuaBinder::IsGameplayCameraFollowEnabled())
-    {
-        SyncViewportCameraFromPawn();
-    }
 }
 
 void FGameInputController::TickLuaInput(InputSystem& Input)
@@ -172,17 +145,6 @@ void FGameInputController::Reset()
     ActiveControllerScriptPath.clear();
     LoadedScriptPath.clear();
     ScriptEnvironment = sol::environment();
-}
-
-void FGameInputController::SyncFollowCameraIfEnabled()
-{
-    if (!Camera || !LuaBinder::IsGameplayCameraFollowEnabled())
-    {
-        return;
-    }
-
-    RefreshControlledPawn();
-    SyncViewportCameraFromPawn();
 }
 
 void FGameInputController::RefreshControlledPawn()

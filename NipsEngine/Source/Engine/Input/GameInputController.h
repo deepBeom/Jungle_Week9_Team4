@@ -31,7 +31,6 @@ public:
 
     void Tick(float DeltaTime);
     void Reset();
-    void SyncFollowCameraIfEnabled();
 
     bool IsCursorHidden() const { return bCursorHidden; }
     bool IsMouseLocked() const { return bMouseLocked; }

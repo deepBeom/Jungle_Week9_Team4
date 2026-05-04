@@ -22,7 +22,6 @@ public:
 
     FViewportCamera& GetCamera() { return Camera; }
     void ResetInputState();
-    void SyncFollowCameraIfEnabled();
 
 private:
     void TickInput(float DeltaTime);

@@ -21,12 +21,6 @@
 namespace
 {
     bool bUIMode = false;
-    bool bGameplayCameraFollowEnabled = false;
-    bool bHasGameplayCameraLookAt = false;
-    bool bHasGameplayCameraTransform = false;
-    FVector GameplayCameraLocation = FVector(-52.0f, 0.0f, 24.0f);
-    FVector GameplayCameraTarget = FVector(-8.0f, 0.0f, -1.0f);
-    FVector GameplayCameraRotationEuler = FVector::ZeroVector;
 
     struct FDriftSalvageStats
     {
@@ -678,82 +672,6 @@ bool LuaBinder::IsUIMode()
     return bUIMode;
 }
 
-void LuaBinder::SetGameplayCameraFollowEnabled(bool bEnabled)
-{
-    bGameplayCameraFollowEnabled = bEnabled;
-}
-
-bool LuaBinder::IsGameplayCameraFollowEnabled()
-{
-    return bGameplayCameraFollowEnabled;
-}
-
-void LuaBinder::SetGameplayCameraLookAt(const FVector& Location, const FVector& Target)
-{
-    GameplayCameraLocation = Location;
-    GameplayCameraTarget = Target;
-    bHasGameplayCameraLookAt = true;
-    bHasGameplayCameraTransform = false;
-}
-
-void LuaBinder::SetGameplayCameraLookAt(
-    float LocationX,
-    float LocationY,
-    float LocationZ,
-    float TargetX,
-    float TargetY,
-    float TargetZ)
-{
-    SetGameplayCameraLookAt(
-        FVector(LocationX, LocationY, LocationZ),
-        FVector(TargetX, TargetY, TargetZ));
-}
-
-bool LuaBinder::GetGameplayCameraLookAt(FVector& OutLocation, FVector& OutTarget)
-{
-    if (!bHasGameplayCameraLookAt)
-    {
-        return false;
-    }
-
-    OutLocation = GameplayCameraLocation;
-    OutTarget = GameplayCameraTarget;
-    return true;
-}
-
-void LuaBinder::SetGameplayCameraTransform(const FVector& Location, const FVector& RotationEuler)
-{
-    GameplayCameraLocation = Location;
-    GameplayCameraRotationEuler = RotationEuler;
-    bHasGameplayCameraTransform = true;
-    bHasGameplayCameraLookAt = false;
-}
-
-void LuaBinder::SetGameplayCameraTransform(
-    float LocationX,
-    float LocationY,
-    float LocationZ,
-    float RotationX,
-    float RotationY,
-    float RotationZ)
-{
-    SetGameplayCameraTransform(
-        FVector(LocationX, LocationY, LocationZ),
-        FVector(RotationX, RotationY, RotationZ));
-}
-
-bool LuaBinder::GetGameplayCameraTransform(FVector& OutLocation, FVector& OutRotationEuler)
-{
-    if (!bHasGameplayCameraTransform)
-    {
-        return false;
-    }
-
-    OutLocation = GameplayCameraLocation;
-    OutRotationEuler = GameplayCameraRotationEuler;
-    return true;
-}
-
 void LuaBinder::ResetDriftSalvageStats()
 {
     DriftSalvageStats.Health = DriftSalvageMaxHealth;
@@ -879,28 +797,6 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
     Lua.set_function("IsUIMode", []()
     {
         return LuaBinder::IsUIMode();
-    });
-
-    Lua.set_function("SetGameplayCameraFollowEnabled", [](bool bEnabled)
-    {
-        LuaBinder::SetGameplayCameraFollowEnabled(bEnabled);
-    });
-
-    Lua.set_function("SetGameplayCameraLookAt", [](const FVector& Location, const FVector& Target)
-    {
-        LuaBinder::SetGameplayCameraLookAt(Location, Target);
-    });
-
-    Lua.set_function("SetGameplayCameraLookAtValues",
-        [](float LocationX, float LocationY, float LocationZ, float TargetX, float TargetY, float TargetZ)
-    {
-        LuaBinder::SetGameplayCameraLookAt(LocationX, LocationY, LocationZ, TargetX, TargetY, TargetZ);
-    });
-
-    Lua.set_function("SetGameplayCameraTransformValues",
-        [](float LocationX, float LocationY, float LocationZ, float RotationX, float RotationY, float RotationZ)
-    {
-        LuaBinder::SetGameplayCameraTransform(LocationX, LocationY, LocationZ, RotationX, RotationY, RotationZ);
     });
 
     Lua.set_function("FindActorByTag", [](const FString& Tag) -> AActor*

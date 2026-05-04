@@ -76,11 +76,6 @@ void FGameViewportClient::ResetInputState()
     InputRouter.GetGameInputController().SetWorld(World);
 }
 
-void FGameViewportClient::SyncFollowCameraIfEnabled()
-{
-    InputRouter.GetGameInputController().SyncFollowCameraIfEnabled();
-}
-
 void FGameViewportClient::TickInput(float DeltaTime)
 {
     InputRouter.Tick(DeltaTime);

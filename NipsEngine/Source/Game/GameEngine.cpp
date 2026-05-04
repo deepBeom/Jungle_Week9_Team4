@@ -58,7 +58,6 @@ void UGameEngine::BeginPlay()
 void UGameEngine::ResetStartLevelRuntimeState()
 {
     LuaBinder::SetUIMode(false);
-    LuaBinder::SetGameplayCameraFollowEnabled(false);
     LuaBinder::ResetDriftSalvageStats();
 }
 
@@ -130,7 +129,6 @@ void UGameEngine::Tick(float DeltaTime)
 	InputSystem::Get().Tick();
 	ViewportClient.Tick(DeltaTime);
 	WorldTick(DeltaTime);
-    ViewportClient.SyncFollowCameraIfEnabled();
 	++FrameCounter;
 	Render(DeltaTime);
 }
