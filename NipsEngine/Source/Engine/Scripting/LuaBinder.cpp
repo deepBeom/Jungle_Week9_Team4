@@ -11,6 +11,7 @@
 #include "Engine/Core/ResourceManager.h"
 #include "Engine/GameFramework/Actor.h"
 #include "Engine/GameFramework/Pawn.h"
+#include "Engine/GameFramework/World.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Runtime/Engine.h"
 #include "Engine/UI/UIElement.h"
@@ -844,6 +845,17 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         }
 
         return Result;
+    });
+
+    Lua.set_function("IsActorPushed", [](AActor* Actor)
+    {
+        if (!IsUsableActor(Actor))
+        {
+            return false;
+        }
+
+        UWorld* World = Actor->GetFocusedWorld();
+        return World && World->GetExplosionSystem().IsActorPushed(Actor);
     });
 
     Lua.set_function("RequestGameRestart", []()

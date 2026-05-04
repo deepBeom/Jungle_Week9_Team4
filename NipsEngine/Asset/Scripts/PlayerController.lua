@@ -12,7 +12,19 @@ local function get_components()
     return Pawn:GetRootComponent(), Pawn:GetCharacterComponent(), Pawn:GetCameraComponent()
 end
 
+local function is_input_locked()
+    if Pawn == nil or IsActorPushed == nil then
+        return false
+    end
+
+    return IsActorPushed(Pawn)
+end
+
 function OnKeyDown(key)
+    if is_input_locked() then
+        return
+    end
+
     local root, mesh, camera = get_components()
     if root == nil or mesh == nil then
         return
