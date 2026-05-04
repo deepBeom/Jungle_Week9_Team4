@@ -75,19 +75,102 @@ void FPaths::CreateDir(const FWString& Path)
 
 FWString FPaths::ToWide(const FString& Utf8Str)
 {
-    if (Utf8Str.empty()) return {};
-    int32_t Size = MultiByteToWideChar(CP_UTF8, 0, Utf8Str.c_str(), -1, nullptr, 0);
-    FWString Result(Size - 1, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, Utf8Str.c_str(), -1, &Result[0], Size);
+    if (Utf8Str.empty())
+    {
+        return {};
+    }
+
+    const int Utf8Length = static_cast<int>(Utf8Str.size());
+    int WideLength = MultiByteToWideChar(
+        CP_UTF8,
+        MB_ERR_INVALID_CHARS,
+        Utf8Str.data(),
+        Utf8Length,
+        nullptr,
+        0);
+
+    if (WideLength == 0)
+    {
+        // Fallback without strict validation to preserve legacy behavior for malformed input.
+        WideLength = MultiByteToWideChar(
+            CP_UTF8,
+            0,
+            Utf8Str.data(),
+            Utf8Length,
+            nullptr,
+            0);
+        if (WideLength == 0)
+        {
+            return {};
+        }
+    }
+
+    FWString Result(static_cast<size_t>(WideLength), L'\0');
+    const int ConvertedLength = MultiByteToWideChar(
+        CP_UTF8,
+        0,
+        Utf8Str.data(),
+        Utf8Length,
+        Result.data(),
+        WideLength);
+    if (ConvertedLength == 0)
+    {
+        return {};
+    }
+
     return Result;
 }
 
 FString FPaths::ToUtf8(const FWString& WideStr)
 {
-    if (WideStr.empty()) return {};
-    int32_t Size = WideCharToMultiByte(CP_UTF8, 0, WideStr.c_str(), static_cast<int>(WideStr.length()), nullptr, 0, nullptr, nullptr);
-    FString Result(Size, '\0');
-    WideCharToMultiByte(CP_UTF8, 0, WideStr.c_str(), static_cast<int>(WideStr.length()), Result.data(), Size, nullptr, nullptr);
+    if (WideStr.empty())
+    {
+        return {};
+    }
+
+    const int WideLength = static_cast<int>(WideStr.size());
+    int Utf8Length = WideCharToMultiByte(
+        CP_UTF8,
+        WC_ERR_INVALID_CHARS,
+        WideStr.data(),
+        WideLength,
+        nullptr,
+        0,
+        nullptr,
+        nullptr);
+
+    if (Utf8Length == 0)
+    {
+        Utf8Length = WideCharToMultiByte(
+            CP_UTF8,
+            0,
+            WideStr.data(),
+            WideLength,
+            nullptr,
+            0,
+            nullptr,
+            nullptr);
+        if (Utf8Length == 0)
+        {
+            return {};
+        }
+    }
+
+    FString Result(static_cast<size_t>(Utf8Length), '\0');
+    const int ConvertedLength = WideCharToMultiByte(
+        CP_UTF8,
+        0,
+        WideStr.data(),
+        WideLength,
+        Result.data(),
+        Utf8Length,
+        nullptr,
+        nullptr);
+    if (ConvertedLength == 0)
+    {
+        return {};
+    }
+
     return Result;
 }
 

@@ -204,15 +204,22 @@ struct alignas(16) FWaterUniformData
     float WaterFresnelIntensity = 0.45f;
     float WaterLightContributionScale = 1.0f;
     uint32 bEnableWaterSpecular = 1u;
+    // Shared loop cap for point and spot water highlights.
     uint32 WaterLocalLightCount = 0u;
 
     uint32 bHasDiffuseMap = 0u;
     float WorldUVScaleX = 0.02f;
     float WorldUVScaleY = 0.02f;
     float WorldUVBlendFactor = 1.0f;
+
+    // Directional-light specular soft fade controls.
+    float HorizonFadeStart = -0.08f;
+    float HorizonFadeEnd = 0.06f;
+    float NdotLFadeWidth = 0.08f;
+    float _WaterDirectionalFadePad0 = 0.0f;
 };
 
-static_assert(sizeof(FWaterUniformData) == 112, "FWaterUniformData layout must match Water.hlsl cbuffer b2.");
+static_assert(sizeof(FWaterUniformData) == 128, "FWaterUniformData layout must match Water.hlsl cbuffer b2.");
 
 struct FWaterRenderData
 {

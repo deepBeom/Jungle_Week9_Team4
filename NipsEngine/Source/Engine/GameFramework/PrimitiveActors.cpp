@@ -22,6 +22,46 @@
 
 #include <cmath>
 
+namespace
+{
+    UMaterialInterface* ResolveDefaultWaterMaterial()
+    {
+        UStaticMesh* DefaultWaterMesh = FResourceManager::Get().LoadStaticMesh(WaterDefaultAssets::MeshPath);
+        if (DefaultWaterMesh == nullptr)
+        {
+            return nullptr;
+        }
+
+        const TArray<FStaticMeshMaterialSlot>& Slots = DefaultWaterMesh->GetMaterialSlots();
+        return Slots.empty() ? nullptr : Slots[0].Material;
+    }
+
+    UStaticMesh* LoadOceanTileMesh()
+    {
+        UStaticMesh* TileMesh = FResourceManager::Get().LoadStaticMesh(WaterDefaultAssets::FlatTileMeshPath);
+        if (TileMesh != nullptr)
+        {
+            return TileMesh;
+        }
+
+        static bool bFlatTileMissingLogged = false;
+        if (!bFlatTileMissingLogged)
+        {
+            UE_LOG("[Ocean] Failed to load flat tile mesh (%s). Falling back to default wave mesh (%s).",
+                WaterDefaultAssets::FlatTileMeshPath,
+                WaterDefaultAssets::MeshPath);
+            bFlatTileMissingLogged = true;
+        }
+
+        return FResourceManager::Get().LoadStaticMesh(WaterDefaultAssets::MeshPath);
+    }
+
+    float SnapToNearestGrid(float Value, float GridSize)
+    {
+        return std::round(Value / GridSize) * GridSize;
+    }
+}
+
 DEFINE_CLASS(ASceneActor, AActor)
 REGISTER_FACTORY(ASceneActor)
 
@@ -187,6 +227,9 @@ void AGlobalOceanActor::GetEditableProperties(TArray<FPropertyDescriptor>& OutPr
     OutProps.push_back({ "Ocean.WaterFresnelPower", EPropertyType::Float, &GlobalWaterProfile.WaterFresnelPower, 1.0f, 16.0f, 0.1f });
     OutProps.push_back({ "Ocean.WaterFresnelIntensity", EPropertyType::Float, &GlobalWaterProfile.WaterFresnelIntensity, 0.0f, 10.0f, 0.01f });
     OutProps.push_back({ "Ocean.WaterLightContributionScale", EPropertyType::Float, &GlobalWaterProfile.WaterLightContributionScale, 0.0f, 10.0f, 0.01f });
+    OutProps.push_back({ "Ocean.HorizonFadeStart", EPropertyType::Float, &GlobalWaterProfile.HorizonFadeStart, -1.0f, 1.0f, 0.01f });
+    OutProps.push_back({ "Ocean.HorizonFadeEnd", EPropertyType::Float, &GlobalWaterProfile.HorizonFadeEnd, -1.0f, 1.0f, 0.01f });
+    OutProps.push_back({ "Ocean.NdotLFadeWidth", EPropertyType::Float, &GlobalWaterProfile.NdotLFadeWidth, 0.001f, 1.0f, 0.005f });
     OutProps.push_back({ "Ocean.EnableWaterSpecular", EPropertyType::Bool, &GlobalWaterProfile.bEnableWaterSpecular });
 }
 
@@ -224,37 +267,14 @@ void AGlobalOceanActor::RebuildRings()
     }
     RingTiles.clear();
 
-    UStaticMesh* TileMesh = FResourceManager::Get().LoadStaticMesh(WaterDefaultAssets::FlatTileMeshPath);
-    if (TileMesh == nullptr)
-    {
-        static bool bFlatTileMissingLogged = false;
-        if (!bFlatTileMissingLogged)
-        {
-            UE_LOG("[Ocean] Failed to load flat tile mesh (%s). Falling back to default wave mesh (%s).",
-                WaterDefaultAssets::FlatTileMeshPath,
-                WaterDefaultAssets::MeshPath);
-            bFlatTileMissingLogged = true;
-        }
-        TileMesh = FResourceManager::Get().LoadStaticMesh(WaterDefaultAssets::MeshPath);
-    }
-
+    UStaticMesh* TileMesh = LoadOceanTileMesh();
     if (TileMesh == nullptr)
     {
         UE_LOG("[Ocean] Failed to build global ocean rings: no usable tile mesh.");
         return;
     }
 
-    UMaterialInterface* SharedWaterMaterial = nullptr;
-    UStaticMesh* DefaultWaterMesh = FResourceManager::Get().LoadStaticMesh(WaterDefaultAssets::MeshPath);
-    if (DefaultWaterMesh != nullptr)
-    {
-        const TArray<FStaticMeshMaterialSlot>& Slots = DefaultWaterMesh->GetMaterialSlots();
-        if (!Slots.empty())
-        {
-            SharedWaterMaterial = Slots[0].Material;
-        }
-    }
-
+    UMaterialInterface* SharedWaterMaterial = ResolveDefaultWaterMaterial();
     if (SharedWaterMaterial == nullptr)
     {
         static bool bMissingDefaultMaterialLogged = false;
@@ -266,31 +286,23 @@ void AGlobalOceanActor::RebuildRings()
         }
     }
 
-    const float RingDepthLayerStep = 0.02f;
     float PreviousRingOuterHalfExtent = 0.0f;
     for (int32 RingIndex = 0; RingIndex < RingCount; ++RingIndex)
     {
         const float RingScale = BaseTileSize * std::pow(RingScaleMultiplier, static_cast<float>(RingIndex));
-        const float RingDepthOffset = -RingDepthLayerStep * static_cast<float>(RingIndex);
 
-        auto SpawnRingTile = [&](float OffsetX, float OffsetY, float ScaleX, float ScaleY)
+        auto AddRingTile = [&](float OffsetX, float OffsetY, float ScaleX, float ScaleY)
         {
-            UStaticMeshComponent* Tile = AddComponent<UStaticMeshComponent>();
-            Tile->AttachToComponent(OceanRoot ? OceanRoot : GetRootComponent());
-            Tile->SetRelativeLocation(FVector(OffsetX, OffsetY, RingDepthOffset));
-            Tile->SetRelativeScale(FVector(ScaleX, ScaleY, 1.0f));
-            Tile->SetStaticMesh(TileMesh);
-            if (SharedWaterMaterial != nullptr)
-            {
-                Tile->SetMaterial(0, SharedWaterMaterial);
-            }
-
-            RingTiles.push_back(Tile);
+            CreateOceanTile(
+                TileMesh,
+                SharedWaterMaterial,
+                FVector(OffsetX, OffsetY, 0.0f),
+                FVector(ScaleX, ScaleY, 1.0f));
         };
 
         if (RingIndex == 0)
         {
-            SpawnRingTile(0.0f, 0.0f, RingScale, RingScale);
+            AddRingTile(0.0f, 0.0f, RingScale, RingScale);
             PreviousRingOuterHalfExtent = RingScale * 0.5f;
             continue;
         }
@@ -301,18 +313,38 @@ void AGlobalOceanActor::RebuildRings()
 
         // Keep the requested 8-piece ring layout, but use edge strips plus
         // corner quads so larger LOD rings still tile contiguously.
-        SpawnRingTile(0.0f, +RingCenterOffset, InnerSpan, RingScale);
-        SpawnRingTile(0.0f, -RingCenterOffset, InnerSpan, RingScale);
-        SpawnRingTile(+RingCenterOffset, 0.0f, RingScale, InnerSpan);
-        SpawnRingTile(-RingCenterOffset, 0.0f, RingScale, InnerSpan);
+        AddRingTile(0.0f, +RingCenterOffset, InnerSpan, RingScale);
+        AddRingTile(0.0f, -RingCenterOffset, InnerSpan, RingScale);
+        AddRingTile(+RingCenterOffset, 0.0f, RingScale, InnerSpan);
+        AddRingTile(-RingCenterOffset, 0.0f, RingScale, InnerSpan);
 
-        SpawnRingTile(+RingCenterOffset, +RingCenterOffset, RingScale, RingScale);
-        SpawnRingTile(-RingCenterOffset, +RingCenterOffset, RingScale, RingScale);
-        SpawnRingTile(+RingCenterOffset, -RingCenterOffset, RingScale, RingScale);
-        SpawnRingTile(-RingCenterOffset, -RingCenterOffset, RingScale, RingScale);
+        AddRingTile(+RingCenterOffset, +RingCenterOffset, RingScale, RingScale);
+        AddRingTile(-RingCenterOffset, +RingCenterOffset, RingScale, RingScale);
+        AddRingTile(+RingCenterOffset, -RingCenterOffset, RingScale, RingScale);
+        AddRingTile(-RingCenterOffset, -RingCenterOffset, RingScale, RingScale);
 
         PreviousRingOuterHalfExtent += RingScale;
     }
+}
+
+UStaticMeshComponent* AGlobalOceanActor::CreateOceanTile(
+    UStaticMesh* TileMesh,
+    UMaterialInterface* SharedWaterMaterial,
+    const FVector& RelativeLocation,
+    const FVector& RelativeScale)
+{
+    UStaticMeshComponent* Tile = AddComponent<UStaticMeshComponent>();
+    Tile->AttachToComponent(OceanRoot ? OceanRoot : GetRootComponent());
+    Tile->SetRelativeLocation(RelativeLocation);
+    Tile->SetRelativeScale(RelativeScale);
+    Tile->SetStaticMesh(TileMesh);
+    if (SharedWaterMaterial != nullptr)
+    {
+        Tile->SetMaterial(0, SharedWaterMaterial);
+    }
+
+    RingTiles.push_back(Tile);
+    return Tile;
 }
 
 void AGlobalOceanActor::ApplyGlobalProfileToWaterComponent()
@@ -322,7 +354,7 @@ void AGlobalOceanActor::ApplyGlobalProfileToWaterComponent()
         return;
     }
 
-    WaterComponent->ApplyOceanWaterProfile(GlobalWaterProfile);
+    WaterComponent->ApplyWaterSurfaceProfile(GlobalWaterProfile);
 }
 
 void AGlobalOceanActor::UpdateOceanFollowTransform()
@@ -341,10 +373,11 @@ void AGlobalOceanActor::UpdateOceanFollowTransform()
     FVector CameraLocation = World->GetActiveCamera()->GetLocation();
     float TargetX = CameraLocation.X;
     float TargetY = CameraLocation.Y;
+    // Follow only camera XY; ocean height stays author-controlled for stable water level.
     if (bSnapToGrid)
     {
-        TargetX = std::floor(TargetX / SnapGridSize) * SnapGridSize;
-        TargetY = std::floor(TargetY / SnapGridSize) * SnapGridSize;
+        TargetX = SnapToNearestGrid(TargetX, SnapGridSize);
+        TargetY = SnapToNearestGrid(TargetY, SnapGridSize);
     }
 
     SetActorLocation(FVector(TargetX, TargetY, OceanHeight));
