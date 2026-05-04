@@ -148,15 +148,16 @@ bool FRenderPipeline::Initialize()
     RenderPasses.push_back(BufferVisualizationRenderPass);
     RenderPasses.push_back(HitMapRenderPass);
 
+    RenderPasses.push_back(LineBatchRenderPass); // FIXME: GameJam을 위해 임시로 앞으로 당겼음
     RenderPasses.push_back(FogRenderPass);
-    RenderPasses.push_back(FXAARenderPass); 
+    RenderPasses.push_back(FXAARenderPass);
     RenderPasses.push_back(FontRenderPass);
     RenderPasses.push_back(SubUVRenderPass);
     RenderPasses.push_back(BillboardRenderPass);
     RenderPasses.push_back(TranslucentRenderPass);
     RenderPasses.push_back(SelectionMaskRenderPass);
     RenderPasses.push_back(GridRenderPass);
-    RenderPasses.push_back(LineBatchRenderPass);
+    // RenderPasses.push_back(LineBatchRenderPass);
     RenderPasses.push_back(UIRenderPass);      // 게임 UI — 그리드 뒤, 에디터 앞
 
     RenderPasses.push_back(DepthLessRenderPass);

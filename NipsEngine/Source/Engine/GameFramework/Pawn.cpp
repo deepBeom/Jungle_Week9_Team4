@@ -7,6 +7,36 @@
 DEFINE_CLASS(APawn, AActor)
 REGISTER_FACTORY(APawn)
 
+namespace
+{
+    constexpr float BoatForwardAccel = 120.0f;
+    constexpr float BoatReverseAccel = 70.0f;
+    constexpr float BoatBrakeAccel = 150.0f;
+    constexpr float BoatLinearDrag = 45.0f;
+    constexpr float BoatTurnAccel = 220.0f;
+    constexpr float BoatTurnDrag = 260.0f;
+    constexpr float BoatMaxForwardSpeed = 120.0f;
+    constexpr float BoatMaxReverseSpeed = 45.0f;
+    constexpr float BoatMaxYawSpeed = 110.0f;
+    constexpr float BoatMinSteerAuthority = 0.30f;
+    constexpr float BoatSpeedEpsilon = 0.001f;
+
+    float MoveToward(float Current, float Target, float MaxDelta)
+    {
+        if (Current < Target)
+        {
+            return std::min(Current + MaxDelta, Target);
+        }
+
+        if (Current > Target)
+        {
+            return std::max(Current - MaxDelta, Target);
+        }
+
+        return Target;
+    }
+}
+
 void APawn::InitDefaultComponents()
 {
     ControllerScriptPath = "Asset/Scripts/PlayerController.lua";
@@ -83,5 +113,84 @@ FVector APawn::GetUpVector() const
     }
 
     return FVector(0.0f, 0.0f, 1.0f);
+}
+
+void APawn::UpdateBoatMovement(float DeltaTime, float ThrottleInput, float SteerInput, float Mass)
+{
+    UStaticMeshComponent* CharacterComponent = GetCharacterComponent();
+    USceneComponent* RootComponent = GetRootComponent();
+    if (CharacterComponent == nullptr || RootComponent == nullptr)
+    {
+        return;
+    }
+
+    const float SafeDeltaTime = MathUtil::Clamp(DeltaTime, 0.0001f, 0.05f);
+    const float SafeMass = std::max(1.0f, Mass);
+    const float AccelScale = 1.0f / SafeMass;
+    const float SpeedScale = 1.0f / std::sqrt(SafeMass);
+
+    const float ForwardAccelPerTick = BoatForwardAccel * AccelScale;
+    const float ReverseAccelPerTick = BoatReverseAccel * AccelScale;
+    const float BrakeAccelPerTick = BoatBrakeAccel * AccelScale;
+    const float TurnAccelPerTick = BoatTurnAccel * AccelScale;
+    const float MaxForwardSpeedForMass = BoatMaxForwardSpeed * SpeedScale;
+    const float MaxReverseSpeedForMass = BoatMaxReverseSpeed * SpeedScale;
+    const float MaxYawSpeedForMass = BoatMaxYawSpeed * AccelScale;
+
+    if (ThrottleInput > 0.0f)
+    {
+        BoatForwardSpeed += ForwardAccelPerTick * SafeDeltaTime;
+    }
+    else if (ThrottleInput < 0.0f)
+    {
+        if (BoatForwardSpeed > 0.0f)
+        {
+            BoatForwardSpeed -= BrakeAccelPerTick * SafeDeltaTime;
+        }
+        else
+        {
+            BoatForwardSpeed -= ReverseAccelPerTick * SafeDeltaTime;
+        }
+    }
+    else
+    {
+        BoatForwardSpeed = MoveToward(BoatForwardSpeed, 0.0f, BoatLinearDrag * SafeDeltaTime);
+    }
+
+    BoatForwardSpeed = MathUtil::Clamp(BoatForwardSpeed, -MaxReverseSpeedForMass, MaxForwardSpeedForMass);
+    if (MathUtil::Abs(BoatForwardSpeed) < BoatSpeedEpsilon)
+    {
+        BoatForwardSpeed = 0.0f;
+    }
+
+    const float SpeedRatio = MathUtil::Clamp(MathUtil::Abs(BoatForwardSpeed) / std::max(MaxForwardSpeedForMass, 0.001f), 0.0f, 1.0f);
+    const float SteerAuthority = BoatMinSteerAuthority + (1.0f - BoatMinSteerAuthority) * SpeedRatio;
+
+    if (SteerInput != 0.0f)
+    {
+        BoatYawSpeed += SteerInput * TurnAccelPerTick * SteerAuthority * SafeDeltaTime;
+    }
+    else
+    {
+        BoatYawSpeed = MoveToward(BoatYawSpeed, 0.0f, BoatTurnDrag * SafeDeltaTime);
+    }
+
+    BoatYawSpeed = MathUtil::Clamp(BoatYawSpeed, -MaxYawSpeedForMass, MaxYawSpeedForMass);
+    if (MathUtil::Abs(BoatYawSpeed) < BoatSpeedEpsilon)
+    {
+        BoatYawSpeed = 0.0f;
+    }
+
+    if (BoatYawSpeed != 0.0f)
+    {
+        CharacterComponent->Rotate(BoatYawSpeed * SafeDeltaTime, 0.0f);
+    }
+
+    const FVector Forward = GetForwardVector();
+    const FVector MoveDelta = Forward * (BoatForwardSpeed * SafeDeltaTime);
+    if (MathUtil::Abs(MoveDelta.X) > BoatSpeedEpsilon || MathUtil::Abs(MoveDelta.Y) > BoatSpeedEpsilon)
+    {
+        AddActorWorldOffset(FVector(MoveDelta.X, MoveDelta.Y, 0.0f));
+    }
 }
 

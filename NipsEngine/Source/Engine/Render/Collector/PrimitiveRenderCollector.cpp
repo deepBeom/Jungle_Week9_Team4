@@ -93,22 +93,28 @@ namespace
         return std::chrono::duration<float>(WaterTimeNow - WaterTimeStart).count();
     }
 
-    uint32 GetClampedWaterLocalLightCount()
+    uint32 GetClampedWaterLocalLightIterationCount()
     {
         static bool bWaterLocalLightClampWarned = false;
 
         const FLightCullingOutputs& LightOutputs = FLightCullingPass::GetOutputs();
         const uint32 RawPointLightCount = LightOutputs.PointLightCount;
-        const uint32 ClampedPointLightCount = std::min(RawPointLightCount, WaterRenderingLimits::MaxLocalLights);
-        if (RawPointLightCount > WaterRenderingLimits::MaxLocalLights && !bWaterLocalLightClampWarned)
+        const uint32 RawSpotLightCount = LightOutputs.SpotLightCount;
+        // Water uses one per-draw scalar to cap both point and spot loops in Water.hlsl.
+        const uint32 RawMaxLocalLightCount = std::max(RawPointLightCount, RawSpotLightCount);
+        const uint32 ClampedLocalLightCount = std::min(RawMaxLocalLightCount, WaterRenderingLimits::MaxLocalLights);
+        if ((RawPointLightCount > WaterRenderingLimits::MaxLocalLights ||
+                RawSpotLightCount > WaterRenderingLimits::MaxLocalLights) &&
+            !bWaterLocalLightClampWarned)
         {
-            UE_LOG("[Water] Local light count (%u) exceeds water shader limit (%u). Clamping for stable Stage 2 specular.",
+            UE_LOG("[Water] Local point/spot light count (%u/%u) exceeds water shader limit (%u). Clamping for stable Stage 2 specular.",
                 RawPointLightCount,
+                RawSpotLightCount,
                 WaterRenderingLimits::MaxLocalLights);
             bWaterLocalLightClampWarned = true;
         }
 
-        return ClampedPointLightCount;
+        return ClampedLocalLightCount;
     }
 
     void BuildWaterUniformData(const UWaterComponent* WaterComponent, uint32 LocalLightCount, FWaterRenderData& OutWater)
@@ -212,8 +218,8 @@ namespace
 
     bool IsWaterAssetPath(const FString& MeshAssetPath)
     {
-        return MeshAssetPath.find(WaterDefaultAssets::MeshDirectoryA) != FString::npos ||
-            MeshAssetPath.find(WaterDefaultAssets::MeshDirectoryB) != FString::npos;
+        return MeshAssetPath.find("Asset/Mesh/Water/") != FString::npos ||
+            MeshAssetPath.find("Asset\\Mesh\\Water\\") != FString::npos;
     }
 
     void ConfigureWaterRenderData(const UStaticMeshComponent* StaticMeshComp, UMaterialInterface* Material, FRenderCommand& Cmd)
@@ -232,7 +238,7 @@ namespace
         // Water resource contract:
         // - b2: FWaterUniformData
         // - t0: WaterNormalA, t1: WaterNormalB, t2: DiffuseMap
-        BuildWaterUniformData(WaterComponent, GetClampedWaterLocalLightCount(), Cmd.Water);
+        BuildWaterUniformData(WaterComponent, GetClampedWaterLocalLightIterationCount(), Cmd.Water);
         CopyWaterTextureBindings(ResolveWaterTextures(Material), Cmd.Water);
     }
 

@@ -58,6 +58,11 @@ cbuffer WaterMaterial : register(b2)
     float WorldUVScaleX;
     float WorldUVScaleY;
     float WorldUVBlendFactor;
+
+    float HorizonFadeStart;
+    float HorizonFadeEnd;
+    float NdotLFadeWidth;
+    float _WaterDirectionalFadePad0;
 }
 
 // t0/t1: optional water normal or noise textures.
@@ -99,7 +104,8 @@ struct FGPULight
 
 StructuredBuffer<FGPULight> GlobalLights : register(t3);
 
-// b4/t8 are reused from the existing local-light forward buffers.
+// b4/t8/t9 are reused from the existing local-light forward buffers.
+// WaterLocalLightCount caps both point and spot loops for stable prototype cost.
 cbuffer VisibleLightInfo : register(b4)
 {
     uint TileCountX;
@@ -135,6 +141,7 @@ struct FVisibleLightData
 };
 
 StructuredBuffer<FVisibleLightData> PointLights : register(t8);
+StructuredBuffer<FVisibleLightData> SpotLights : register(t9);
 
 static const uint LIGHT_TYPE_DIRECTIONAL = 0u;
 static const uint MAX_WATER_LOCAL_LIGHTS = 8u;
@@ -155,8 +162,6 @@ struct FWaterPSInput
     float3 WorldPos : TEXCOORD0;
     float3 WorldNormal : TEXCOORD1;
     float2 UV : TEXCOORD2;
-    float3 WorldTangent : TEXCOORD3;
-    float3 WorldBitangent : TEXCOORD4;
 };
 
 struct FWaterPSOutput
@@ -183,26 +188,38 @@ float2 BuildWaterSampleUV(FWaterPSInput Input)
 {
     const float2 MeshUV = Input.UV;
     const float2 WorldProjectedUV = Input.WorldPos.xy * float2(WorldUVScaleX, WorldUVScaleY);
-    return lerp(MeshUV, WorldProjectedUV, saturate(WorldUVBlendFactor));
+    const float WorldBlend = saturate(WorldUVBlendFactor);
+    return (WorldBlend >= 0.999f) ? WorldProjectedUV : lerp(MeshUV, WorldProjectedUV, WorldBlend);
+}
+
+float3 SampleWaterNormalA(float2 BaseUV)
+{
+    if (bHasNormalMapA == 0u)
+    {
+        return float3(0.0f, 0.0f, 1.0f);
+    }
+
+    const float2 LayerUV = BaseUV * NormalTilingA + Time * NormalScrollSpeedA;
+    return WaterNormalA.Sample(SampleState, LayerUV).xyz * 2.0f - 1.0f;
+}
+
+float3 SampleWaterNormalB(float2 BaseUV)
+{
+    if (bHasNormalMapB == 0u)
+    {
+        return float3(0.0f, 0.0f, 1.0f);
+    }
+
+    const float2 LayerUV = BaseUV * NormalTilingB + Time * NormalScrollSpeedB;
+    return WaterNormalB.Sample(SampleState, LayerUV).xyz * 2.0f - 1.0f;
 }
 
 float3 ResolveWaterWorldNormal(FWaterPSInput Input, float2 UV)
 {
     const float3 GeometricNormal = normalize(Input.WorldNormal);
 
-    float3 N1 = float3(0.0f, 0.0f, 1.0f);
-    if (bHasNormalMapA != 0u)
-    {
-        const float2 UV1 = UV * NormalTilingA + Time * NormalScrollSpeedA;
-        N1 = WaterNormalA.Sample(SampleState, UV1).xyz * 2.0f - 1.0f;
-    }
-
-    float3 N2 = float3(0.0f, 0.0f, 1.0f);
-    if (bHasNormalMapB != 0u)
-    {
-        const float2 UV2 = UV * NormalTilingB + Time * NormalScrollSpeedB;
-        N2 = WaterNormalB.Sample(SampleState, UV2).xyz * 2.0f - 1.0f;
-    }
+    const float3 N1 = SampleWaterNormalA(UV);
+    const float3 N2 = SampleWaterNormalB(UV);
 
     float3 WaterNormalTS = normalize(N1 + N2);
     WaterNormalTS.xy *= NormalStrength;
@@ -223,6 +240,32 @@ float ComputeWaterSpecular(float3 NormalWS, float3 ViewDirWS, float3 LightDirWS,
     return pow(NdotH, max(SpecularPower, 1.0f));
 }
 
+float ComputeWaterDistanceAttenuation(float Distance, float Radius)
+{
+    float Attenuation = saturate(1.0f - (Distance / max(Radius, 1.0e-4f)));
+    return Attenuation * Attenuation;
+}
+
+float ComputeDirectionalSpecularFade(float3 NormalWS, float3 LightDirWS)
+{
+    const float FadeWidth = max(NdotLFadeWidth, 1.0e-4f);
+    const float NdotL = dot(NormalWS, LightDirWS);
+    const float NormalFacingFade = smoothstep(-FadeWidth, FadeWidth, NdotL);
+
+    float HorizonFade = 1.0f;
+    const float HorizonRange = HorizonFadeEnd - HorizonFadeStart;
+    if (abs(HorizonRange) > 1.0e-4f)
+    {
+        HorizonFade = smoothstep(HorizonFadeStart, HorizonFadeEnd, LightDirWS.z);
+    }
+    else
+    {
+        HorizonFade = (LightDirWS.z >= HorizonFadeEnd) ? 1.0f : 0.0f;
+    }
+
+    return NormalFacingFade * HorizonFade;
+}
+
 float3 ComputeDirectionalWaterSpecular(float3 NormalWS, float3 ViewDirWS)
 {
     float3 SpecularAccum = 0.0f.xxx;
@@ -237,7 +280,8 @@ float3 ComputeDirectionalWaterSpecular(float3 NormalWS, float3 ViewDirWS)
 
         const float3 LightDirWS = normalize(Light.Direction);
         const float Spec = ComputeWaterSpecular(NormalWS, ViewDirWS, LightDirWS, WaterSpecularPower);
-        SpecularAccum += Light.Color * (Light.Intensity * Spec);
+        const float DirectionalFade = ComputeDirectionalSpecularFade(NormalWS, LightDirWS);
+        SpecularAccum += Light.Color * (Light.Intensity * Spec * DirectionalFade);
     }
     return SpecularAccum;
 }
@@ -259,12 +303,53 @@ float3 ComputePointWaterSpecular(float3 WorldPos, float3 NormalWS, float3 ViewDi
         }
 
         const float3 LightDirWS = ToLight / Distance;
-        float Attenuation = saturate(1.0f - (Distance / max(Light.Radius, 1.0e-4f)));
-        Attenuation *= Attenuation;
+        const float Attenuation = ComputeWaterDistanceAttenuation(Distance, Light.Radius);
 
         const float Spec = ComputeWaterSpecular(NormalWS, ViewDirWS, LightDirWS, WaterSpecularPower);
         SpecularAccum += Light.Color * (Light.Intensity * Spec * Attenuation);
     }
+    return SpecularAccum;
+}
+
+float3 ComputeSpotWaterSpecular(float3 WorldPos, float3 NormalWS, float3 ViewDirWS)
+{
+    float3 SpecularAccum = 0.0f.xxx;
+    const uint LocalLightLimit = min(min(SpotLightCount, WaterLocalLightCount), MAX_WATER_LOCAL_LIGHTS);
+
+    [loop]
+    for (uint LightIndex = 0u; LightIndex < LocalLightLimit; ++LightIndex)
+    {
+        const FVisibleLightData Light = SpotLights[LightIndex];
+        const float3 ToLight = Light.WorldPos - WorldPos;
+        const float Distance = length(ToLight);
+        if (Distance <= 1.0e-4f || Distance >= Light.Radius)
+        {
+            continue;
+        }
+
+        const float3 LightDirWS = ToLight / Distance;
+        float Attenuation = ComputeWaterDistanceAttenuation(Distance, Light.Radius);
+        if (Attenuation <= 0.0f)
+        {
+            continue;
+        }
+
+        // Match the existing forward spot-light convention:
+        // Light.Direction points outward from the spot source, so the receiver
+        // test uses dot(SpotDir, -L) where L is surface -> light.
+        const float3 SpotDir = normalize(Light.Direction);
+        const float CosAngle = dot(SpotDir, -LightDirWS);
+        const float ConeRange = max(Light.SpotInnerCos - Light.SpotOuterCos, 1.0e-4f);
+        Attenuation *= saturate((CosAngle - Light.SpotOuterCos) / ConeRange);
+        if (Attenuation <= 0.0f)
+        {
+            continue;
+        }
+
+        const float Spec = ComputeWaterSpecular(NormalWS, ViewDirWS, LightDirWS, WaterSpecularPower);
+        SpecularAccum += Light.Color * (Light.Intensity * Spec * Attenuation);
+    }
+
     return SpecularAccum;
 }
 
@@ -273,8 +358,6 @@ FWaterPSInput mainVS(FWaterVSInput Input)
     FWaterPSInput Output;
     Output.WorldPos = mul(float4(Input.Position, 1.0f), Model).xyz;
     Output.WorldNormal = normalize(mul(Input.Normal, (float3x3)WorldInvTrans));
-    Output.WorldTangent = normalize(mul(Input.Tangent, (float3x3)Model));
-    Output.WorldBitangent = normalize(mul(Input.Bitangent, (float3x3)Model));
     Output.UV = Input.UV;
     Output.ClipPos = ApplyWaterMVP(Input.Position);
     return Output;
@@ -305,6 +388,7 @@ FWaterPSOutput mainPS(FWaterPSInput Input)
     {
         float3 SpecularColor = ComputeDirectionalWaterSpecular(WaterWorldNormal, ViewDir);
         SpecularColor += ComputePointWaterSpecular(Input.WorldPos, WaterWorldNormal, ViewDir);
+        SpecularColor += ComputeSpotWaterSpecular(Input.WorldPos, WaterWorldNormal, ViewDir);
 
         const float FresnelBoost = 1.0f + pow(1.0f - saturate(dot(WaterWorldNormal, ViewDir)), max(WaterFresnelPower, 1.0f))
             * WaterFresnelIntensity;

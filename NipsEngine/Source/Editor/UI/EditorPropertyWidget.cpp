@@ -13,6 +13,7 @@
 #include "Editor/Utility/EditorComponentFactory.h"
 
 #include "GameFramework/Actor.h"
+#include "Component/CameraComponent.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/ShapeComponent.h"
 #include "Component/GizmoComponent.h"
@@ -48,6 +49,7 @@ namespace
     void DrawDirectionalShadowPreview(FRenderTargetSet* RenderTargets, ImDrawList* DrawList);
     void DrawSpotShadowPreview(ULightComponent* LightComp, FRenderTargetSet* RenderTargets, ImDrawList* DrawList);
     void OverrideCameraWithLightPerspective(ULightComponent* LightComp, UEditorEngine* EditorEngine);
+    void LookCameraAtOwnerRoot(UCameraComponent* CameraComp);
     void VisualizeShadowMap(ULightComponent* LightComp, UEditorEngine* EditorEngine);
 
     // ─────────────────── Helper ───────────────────────────
@@ -646,6 +648,17 @@ void FEditorPropertyWidget::RenderComponentProperties()
 		VisualizeShadowMap(LightComp, EditorEngine);
 	}
 
+	if (SelectedComponent->IsA<UCameraComponent>())
+	{
+		UCameraComponent* CameraComp = static_cast<UCameraComponent*>(SelectedComponent);
+		SEPARATOR();
+		if (ImGui::Button("LookAt Root", ImVec2(-1, 0)))
+		{
+			LookCameraAtOwnerRoot(CameraComp);
+			SelectionManager->GetGizmo()->UpdateGizmoTransform();
+		}
+	}
+
 	if (UShapeComponent* ShapeComp = Cast<UShapeComponent>(SelectedComponent))
 	{
 		UStaticMeshComponent* MeshComp = FindFirstStaticMeshComponent(Owner);
@@ -1106,6 +1119,29 @@ namespace
 		Camera->ClearCustomLookDir();
 		Camera->SetProjectionType(EViewportProjectionType::Perspective);
 		Client->SyncCameraTarget();
+	}
+
+	void LookCameraAtOwnerRoot(UCameraComponent* CameraComp)
+	{
+		if (CameraComp == nullptr)
+		{
+			return;
+		}
+
+		AActor* Owner = CameraComp->GetOwner();
+		if (Owner == nullptr)
+		{
+			return;
+		}
+
+		USceneComponent* RootComp = Owner->GetRootComponent();
+		if (RootComp == nullptr || RootComp == CameraComp)
+		{
+			return;
+		}
+
+		CameraComp->LookAt(RootComp->GetWorldLocation());
+		CameraComp->MarkTransformDirty();
 	}
 
 	// 선택된 light를 소유한 actor ID 추출

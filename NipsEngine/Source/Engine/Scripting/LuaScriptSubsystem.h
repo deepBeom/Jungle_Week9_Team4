@@ -109,8 +109,8 @@ private:
     void RebuildScriptPathCache();
     /** @brief Validity gate before invoking Lua callbacks. */
     bool CanInvoke(const std::shared_ptr<FLuaScriptInstance>& Instance) const;
-    /** @brief Resolves project-relative script path to absolute normalized path. */
-    FString ResolveScriptPath(const FString& ScriptPath) const;
+    /** @brief Resolves project-relative script path to absolute normalized wide path. */
+    FWString ResolveScriptPathWide(const FString& ScriptPath) const;
     /** @brief Logs callback runtime errors in a consistent format. */
     void LogFunctionError(const FString& FunctionName, const FString& ScriptPath, const char* ErrorMessage) const;
 

@@ -8,9 +8,48 @@
 #include <algorithm>
 #include <cwctype>
 #include <filesystem>
+#include <fstream>
 
 namespace
 {
+    bool ReadFileToStringByWidePath(const FWString& FilePath, FString& OutSource)
+    {
+        std::ifstream File(std::filesystem::path(FilePath), std::ios::binary);
+        if (!File.is_open())
+        {
+            return false;
+        }
+
+        File.seekg(0, std::ios::end);
+        const std::streamsize Size = File.tellg();
+        File.seekg(0, std::ios::beg);
+
+        if (Size < 0)
+        {
+            return false;
+        }
+
+        OutSource.resize(static_cast<size_t>(Size));
+        if (Size == 0)
+        {
+            return true;
+        }
+
+        File.read(OutSource.data(), Size);
+        return static_cast<std::streamsize>(File.gcount()) == Size;
+    }
+
+    void StripUtf8Bom(FString& Source)
+    {
+        if (Source.size() >= 3 &&
+            static_cast<unsigned char>(Source[0]) == 0xEF &&
+            static_cast<unsigned char>(Source[1]) == 0xBB &&
+            static_cast<unsigned char>(Source[2]) == 0xBF)
+        {
+            Source.erase(0, 3);
+        }
+    }
+
     // Bind commonly used script globals into an already created environment.
     void PopulateInstanceEnvironment(FLuaScriptInstance& Instance, AActor* Owner, UScriptComponent* OwnerComponent)
     {
@@ -85,9 +124,9 @@ bool FLuaScriptSubsystem::CanInvoke(const std::shared_ptr<FLuaScriptInstance>& I
     return true;
 }
 
-FString FLuaScriptSubsystem::ResolveScriptPath(const FString& ScriptPath) const
+FWString FLuaScriptSubsystem::ResolveScriptPathWide(const FString& ScriptPath) const
 {
-    return FPaths::ToAbsoluteString(FPaths::ToWide(FPaths::Normalize(ScriptPath)));
+    return FPaths::ToAbsolute(FPaths::ToWide(FPaths::Normalize(ScriptPath)));
 }
 
 void FLuaScriptSubsystem::BindEngineTypes()
@@ -130,13 +169,24 @@ bool FLuaScriptSubsystem::LoadScript(std::shared_ptr<FLuaScriptInstance> Instanc
     Instance->bLoaded = false;
 
     // Resolve to absolute path to avoid working-directory sensitivity.
-    const FString ResolvedScriptPath = ResolveScriptPath(Instance->ScriptPath);
-    sol::load_result LoadedScript = Lua.load_file(ResolvedScriptPath);
+    const FWString ResolvedScriptPathWide = ResolveScriptPathWide(Instance->ScriptPath);
+    const FString ResolvedScriptPathUtf8 = FPaths::ToUtf8(ResolvedScriptPathWide);
+
+    FString ScriptSource;
+    if (!ReadFileToStringByWidePath(ResolvedScriptPathWide, ScriptSource))
+    {
+        UE_LOG("[Lua Load Error] Failed to open script file: %s\n", ResolvedScriptPathUtf8.c_str());
+        return false;
+    }
+
+    StripUtf8Bom(ScriptSource);
+
+    sol::load_result LoadedScript = Lua.load(ScriptSource, ResolvedScriptPathUtf8);
 
     if (!LoadedScript.valid())
     {
         sol::error Error = LoadedScript;
-        UE_LOG("[Lua Load Error] %s : %s\n", ResolvedScriptPath.c_str(), Error.what());
+        UE_LOG("[Lua Load Error] %s : %s\n", ResolvedScriptPathUtf8.c_str(), Error.what());
         return false;
     }
 
@@ -147,11 +197,11 @@ bool FLuaScriptSubsystem::LoadScript(std::shared_ptr<FLuaScriptInstance> Instanc
     if (!Result.valid())
     {
         sol::error Error = Result;
-        UE_LOG("[Lua Runtime Error] %s : %s\n", ResolvedScriptPath.c_str(), Error.what());
+        UE_LOG("[Lua Runtime Error] %s : %s\n", ResolvedScriptPathUtf8.c_str(), Error.what());
         return false;
     }
 
-    Instance->ScriptPath = ResolvedScriptPath;
+    Instance->ScriptPath = ResolvedScriptPathUtf8;
     Instance->bLoaded = true;
     return true;
 }

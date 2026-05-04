@@ -19,7 +19,12 @@ namespace
     constexpr float WakeMinDistanceEpsilon = 1.0e-4f;
     constexpr float WakeMinAxisEpsilon = 1.0e-3f;
     constexpr float WakeFadeInDuration = 0.08f;
-    constexpr int32 DefaultMaxActiveWakeDecals = 24;
+    constexpr float WakeMinSpawnSpacing = 0.05f;
+    constexpr float WakeMaxDeltaTime = 0.25f;
+    constexpr float WakeMinFrameMovementForActive = 0.05f;
+    constexpr float WakeTeleportSpacingMultiplier = 8.0f;
+    constexpr int32 WakeMaxDecalsPerFrame = 2;
+    constexpr int32 DefaultMaxActiveWakeDecals = 64;
 
     float Clamp01(float Value)
     {
@@ -39,6 +44,13 @@ namespace
     int32 SanitizeWakeDecalBudget(int32 Budget)
     {
         return Budget > 0 ? Budget : DefaultMaxActiveWakeDecals;
+    }
+
+    float SanitizeSpawnSpacing(float InSpawnSpacing)
+    {
+        return std::isfinite(InSpawnSpacing) && InSpawnSpacing >= WakeMinSpawnSpacing
+            ? InSpawnSpacing
+            : WakeMinSpawnSpacing;
     }
 }
 
@@ -67,6 +79,7 @@ void UBoatWakeComponent::Serialize(FArchive& Ar)
 
     if (Ar.IsLoading())
     {
+        SpawnSpacing = SanitizeSpawnSpacing(SpawnSpacing);
         MaxActiveWakeDecals = SanitizeWakeDecalBudget(MaxActiveWakeDecals);
         MainDecalMaterialRef = nullptr;
         DistanceAccumulator = 0.0f;
@@ -102,6 +115,7 @@ void UBoatWakeComponent::PostEditProperty(const char* PropertyName)
 {
     UActorComponent::PostEditProperty(PropertyName);
     (void)PropertyName;
+    SpawnSpacing = SanitizeSpawnSpacing(SpawnSpacing);
     MaxActiveWakeDecals = SanitizeWakeDecalBudget(MaxActiveWakeDecals);
     RefreshMaterialRefs();
 }
@@ -110,6 +124,7 @@ void UBoatWakeComponent::BeginPlay()
 {
     UActorComponent::BeginPlay();
 
+    SpawnSpacing = SanitizeSpawnSpacing(SpawnSpacing);
     MaxActiveWakeDecals = SanitizeWakeDecalBudget(MaxActiveWakeDecals);
     RefreshMaterialRefs();
     WakeDecalPool.clear();
@@ -131,14 +146,41 @@ void UBoatWakeComponent::EndPlay()
 
 void UBoatWakeComponent::TickComponent(float DeltaTime)
 {
-    if (DeltaTime <= 0.0f)
+    AActor* Owner = GetOwner();
+    if (Owner == nullptr || Owner->IsPendingDestroy())
     {
         return;
     }
 
-    AActor* Owner = GetOwner();
-    if (Owner == nullptr || Owner->IsPendingDestroy())
+    const FVector CurrentLocation = Owner->GetActorLocation();
+    if (!bHasHistory)
     {
+        LastOwnerLocation = CurrentLocation;
+        bHasHistory = true;
+        return;
+    }
+
+    if (DeltaTime <= 0.0f || !std::isfinite(DeltaTime))
+    {
+        ResetWakeProgress(CurrentLocation);
+        return;
+    }
+
+    const FVector MovementDelta = MakePlanarVector(CurrentLocation - LastOwnerLocation);
+    const float MovedDistance = MovementDelta.Size();
+
+    if (MovedDistance <= WakeMinDistanceEpsilon)
+    {
+        ResetWakeProgress(CurrentLocation);
+        return;
+    }
+
+    const float TeleportDistance = SpawnSpacing * WakeTeleportSpacingMultiplier;
+    if (DeltaTime > WakeMaxDeltaTime ||
+        !std::isfinite(MovedDistance) ||
+        (TeleportDistance > 0.0f && MovedDistance > TeleportDistance))
+    {
+        ResetWakeProgress(CurrentLocation);
         return;
     }
 
@@ -151,25 +193,7 @@ void UBoatWakeComponent::TickComponent(float DeltaTime)
     FVector BoatRight;
     if (!ResolveBoatAxes(BoatForward, BoatRight))
     {
-        return;
-    }
-
-    const FVector CurrentLocation = Owner->GetActorLocation();
-    const FVector MovementDelta = MakePlanarVector(CurrentLocation - LastOwnerLocation);
-    const float MovedDistance = MovementDelta.Size();
-
-    if (!bHasHistory)
-    {
-        LastOwnerLocation = CurrentLocation;
-        bHasHistory = true;
-        return;
-    }
-
-    if (MovedDistance <= WakeMinDistanceEpsilon)
-    {
-        DistanceAccumulator = 0.0f;
-        bWasMovingAboveSpawnSpeed = false;
-        LastOwnerLocation = CurrentLocation;
+        ResetWakeProgress(CurrentLocation);
         return;
     }
 
@@ -177,28 +201,38 @@ void UBoatWakeComponent::TickComponent(float DeltaTime)
     const float Speed = MovedDistance / DeltaTime;
     const float SpeedRange = (MaxWakeSpeed - MinSpawnSpeed) > 0.001f ? (MaxWakeSpeed - MinSpawnSpeed) : 0.001f;
     const float SpeedAlpha = Clamp01((Speed - MinSpawnSpeed) / SpeedRange);
-    const bool bMovingAboveSpawnSpeed = Speed >= MinSpawnSpeed;
+    const bool bMovingAboveSpawnSpeed = Speed >= MinSpawnSpeed || MovedDistance >= WakeMinFrameMovementForActive;
 
     if (bMovingAboveSpawnSpeed)
     {
-        if (!bWasMovingAboveSpawnSpeed && DistanceAccumulator < SpawnSpacing)
+        int32 SpawnedThisFrame = 0;
+        if (!bWasMovingAboveSpawnSpeed)
         {
-            DistanceAccumulator = SpawnSpacing;
+            DistanceAccumulator = 0.0f;
+            SpawnWakeSet(CurrentLocation, BoatForward, BoatRight, SpeedAlpha);
+            ++SpawnedThisFrame;
         }
 
         DistanceAccumulator += MovedDistance;
 
-        while (DistanceAccumulator >= SpawnSpacing)
+        while (DistanceAccumulator >= SpawnSpacing && SpawnedThisFrame < WakeMaxDecalsPerFrame)
         {
             const float Overshoot = DistanceAccumulator - SpawnSpacing;
             const FVector SampleLocation = CurrentLocation - MoveDir * Overshoot;
             SpawnWakeSet(SampleLocation, BoatForward, BoatRight, SpeedAlpha);
             DistanceAccumulator -= SpawnSpacing;
+            ++SpawnedThisFrame;
+        }
+
+        if (DistanceAccumulator >= SpawnSpacing)
+        {
+            DistanceAccumulator = 0.0f;
         }
     }
     else
     {
-        DistanceAccumulator = 0.0f;
+        ResetWakeProgress(CurrentLocation);
+        return;
     }
 
     bWasMovingAboveSpawnSpeed = bMovingAboveSpawnSpeed;
@@ -249,6 +283,14 @@ bool UBoatWakeComponent::ResolveBoatAxes(FVector& OutForward, FVector& OutRight)
     }
 
     return OutRight.SizeSquared() > WakeMinAxisEpsilon;
+}
+
+void UBoatWakeComponent::ResetWakeProgress(const FVector& CurrentLocation)
+{
+    DistanceAccumulator = 0.0f;
+    bWasMovingAboveSpawnSpeed = false;
+    LastOwnerLocation = CurrentLocation;
+    bHasHistory = true;
 }
 
 void UBoatWakeComponent::SpawnWakeSet(
@@ -344,6 +386,43 @@ void UBoatWakeComponent::SpawnWakeDecal(
     }
 }
 
+ADecalActor* UBoatWakeComponent::CreateWakeDecalActor(UWorld* World) const
+{
+    if (World == nullptr)
+    {
+        return nullptr;
+    }
+
+    ADecalActor* NewDecalActor = World->SpawnActor<ADecalActor>();
+    if (NewDecalActor == nullptr)
+    {
+        return nullptr;
+    }
+
+    for (UActorComponent* Component : NewDecalActor->GetComponents())
+    {
+        UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(Component);
+        if (BillboardComponent == nullptr)
+        {
+            continue;
+        }
+
+        BillboardComponent->SetEditorOnly(true);
+        BillboardComponent->SetVisibility(false);
+        BillboardComponent->SetActive(false);
+    }
+
+    UDecalComponent* DecalComponent = ResolveWakeDecalComponent(NewDecalActor);
+    if (DecalComponent == nullptr)
+    {
+        NewDecalActor->Destroy();
+        return nullptr;
+    }
+
+    DeactivateWakeDecal(NewDecalActor);
+    return NewDecalActor;
+}
+
 ADecalActor* UBoatWakeComponent::AcquireWakeDecalActor(UWorld* World)
 {
     const int32 PoolBudget = SanitizeWakeDecalBudget(MaxActiveWakeDecals);
@@ -351,38 +430,6 @@ ADecalActor* UBoatWakeComponent::AcquireWakeDecalActor(UWorld* World)
     {
         return nullptr;
     }
-
-    auto CreateWakeDecalActor = [this, World]() -> ADecalActor*
-    {
-        ADecalActor* NewDecalActor = World->SpawnActor<ADecalActor>();
-        if (NewDecalActor == nullptr)
-        {
-            return nullptr;
-        }
-
-        for (UActorComponent* Component : NewDecalActor->GetComponents())
-        {
-            UBillboardComponent* BillboardComponent = Cast<UBillboardComponent>(Component);
-            if (BillboardComponent == nullptr)
-            {
-                continue;
-            }
-
-            BillboardComponent->SetEditorOnly(true);
-            BillboardComponent->SetVisibility(false);
-            BillboardComponent->SetActive(false);
-        }
-
-        UDecalComponent* DecalComponent = ResolveWakeDecalComponent(NewDecalActor);
-        if (DecalComponent == nullptr)
-        {
-            NewDecalActor->Destroy();
-            return nullptr;
-        }
-
-        DeactivateWakeDecal(NewDecalActor);
-        return NewDecalActor;
-    };
 
     for (ADecalActor*& PooledDecalActor : WakeDecalPool)
     {
@@ -410,7 +457,7 @@ ADecalActor* UBoatWakeComponent::AcquireWakeDecalActor(UWorld* World)
 
     if (static_cast<int32>(WakeDecalPool.size()) < PoolBudget)
     {
-        ADecalActor* NewDecalActor = CreateWakeDecalActor();
+        ADecalActor* NewDecalActor = CreateWakeDecalActor(World);
         if (NewDecalActor != nullptr)
         {
             WakeDecalPool.push_back(NewDecalActor);
@@ -434,7 +481,7 @@ ADecalActor* UBoatWakeComponent::AcquireWakeDecalActor(UWorld* World)
 
     if (WakeDecalPool[ReuseIndex] == nullptr)
     {
-        WakeDecalPool[ReuseIndex] = CreateWakeDecalActor();
+        WakeDecalPool[ReuseIndex] = CreateWakeDecalActor(World);
     }
 
     return WakeDecalPool[ReuseIndex];
