@@ -170,7 +170,7 @@ FExplosionSystem::FPendingExplosion* FExplosionSystem::FindPendingExplosion(AAct
 {
     for (FPendingExplosion& E : Pending)
     {
-        if (E.SourceHazard == Hazard)
+        if (E.SourceHazard.Get() == Hazard)
         {
             return &E;
         }
@@ -182,7 +182,7 @@ const FExplosionSystem::FPendingExplosion* FExplosionSystem::FindPendingExplosio
 {
     for (const FPendingExplosion& E : Pending)
     {
-        if (E.SourceHazard == Hazard)
+        if (E.SourceHazard.Get() == Hazard)
         {
             return &E;
         }
@@ -285,6 +285,69 @@ void FExplosionSystem::TriggerExplosion(UWorld* World, AActor* SourceHazard, con
     TriggerImmediate(World, SourceHazard, Center);
 }
 
+void FExplosionSystem::CancelHazardCollectionInterference(AActor* Hazard)
+{
+    if (!Hazard)
+    {
+        return;
+    }
+
+    for (size_t i = 0; i < Pending.size();)
+    {
+        AActor* Source = Pending[i].SourceHazard.Get();
+        if (!Source || Source == Hazard)
+        {
+            Pending.erase(Pending.begin() + i);
+            continue;
+        }
+
+        ++i;
+    }
+
+    for (size_t i = 0; i < HazardSubUVEffects.size();)
+    {
+        FHazardSubUVEffect& Effect = HazardSubUVEffects[i];
+        AActor* EffectActor = Effect.Actor.Get();
+        if (!EffectActor || EffectActor == Hazard)
+        {
+            for (USubUVComponent* SubUV : Effect.SubUVs)
+            {
+                if (!SubUV)
+                {
+                    continue;
+                }
+
+                SubUV->SetFrameIndex(0);
+                SubUV->SetVisibility(false);
+                SubUV->SetActive(false);
+            }
+
+            HazardSubUVEffects.erase(HazardSubUVEffects.begin() + i);
+            continue;
+        }
+
+        ++i;
+    }
+
+    for (UActorComponent* Component : Hazard->GetComponents())
+    {
+        if (USubUVComponent* SubUV = Cast<USubUVComponent>(Component))
+        {
+            SubUV->SetFrameIndex(0);
+            SubUV->SetVisibility(false);
+            SubUV->SetActive(false);
+            continue;
+        }
+
+        UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component);
+        if (Primitive)
+        {
+            Primitive->SetVisibility(true);
+            Primitive->SetActive(true);
+        }
+    }
+}
+
 void FExplosionSystem::BindDefaultExplosionEvents()
 {
     OnExplosion.RemoveAll();
@@ -316,7 +379,7 @@ bool FExplosionSystem::IsHazardSubUVEffectActive(const AActor* Actor) const
 
     for (const FHazardSubUVEffect& Effect : HazardSubUVEffects)
     {
-        if (Effect.Actor == Actor)
+        if (Effect.Actor.Get() == Actor)
         {
             return true;
         }
@@ -337,7 +400,7 @@ void FExplosionSystem::StartHazardSubUVEffect(UWorld* World, AActor* SourceHazar
     }
 
     FHazardSubUVEffect Effect;
-    Effect.Actor = SourceHazard;
+    Effect.Actor = TWeakObjectPtr<AActor>(SourceHazard);
     Effect.Age = 0.0f;
     Effect.MaxLifetime = 0.2f;
 
@@ -408,6 +471,13 @@ void FExplosionSystem::TickHazardSubUVEffects(float DeltaTime)
         FHazardSubUVEffect& Effect = HazardSubUVEffects[i];
         Effect.Age += DeltaTime;
 
+        AActor* Actor = Effect.Actor.Get();
+        if (!ActorAlive(Actor))
+        {
+            HazardSubUVEffects.erase(HazardSubUVEffects.begin() + i);
+            continue;
+        }
+
         bool bAllAnimationsFinished = !Effect.SubUVs.empty();
         for (USubUVComponent* SubUV : Effect.SubUVs)
         {
@@ -419,12 +489,9 @@ void FExplosionSystem::TickHazardSubUVEffects(float DeltaTime)
         }
 
         const bool bExpiredByTime = Effect.Age >= Effect.MaxLifetime;
-        if (!ActorAlive(Effect.Actor) || bAllAnimationsFinished || bExpiredByTime)
+        if (bAllAnimationsFinished || bExpiredByTime)
         {
-            if (ActorAlive(Effect.Actor))
-            {
-                Effect.Actor->Destroy();
-            }
+            Actor->Destroy();
             HazardSubUVEffects.erase(HazardSubUVEffects.begin() + i);
             continue;
         }
@@ -540,7 +607,7 @@ void FExplosionSystem::EnqueueChainExplosions(UWorld* World, AActor* SourceHazar
         }
 
         FPendingExplosion Pend;
-        Pend.SourceHazard = Actor;
+        Pend.SourceHazard = TWeakObjectPtr<AActor>(Actor);
         Pend.Center = ActorPos;
         Pend.TimeRemaining = Delay;
         Pending.push_back(Pend);
@@ -691,12 +758,15 @@ void FExplosionSystem::Tick(UWorld* World, float DeltaTime)
         Pending[i].TimeRemaining -= DeltaTime;
         if (Pending[i].TimeRemaining <= 0.0f)
         {
-            AActor* Source = Pending[i].SourceHazard;
+            AActor* Source = Pending[i].SourceHazard.Get();
             const FVector Center = Pending[i].Center;
             Pending.erase(Pending.begin() + i);
 
             // 그 위치에서 다시 폭발 (반경 내 collectible push + 또 다른 Hazard 예약).
-            TriggerImmediate(World, Source, Center);
+            if (ActorAlive(Source))
+            {
+                TriggerImmediate(World, Source, Center);
+            }
             // 새 Pending이 추가되었을 수 있으므로 인덱스 재시작.
             i = 0;
             continue;

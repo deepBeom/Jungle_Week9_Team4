@@ -3,6 +3,7 @@
 #include "Core/Containers/Array.h"
 #include "Core/Delegate/MulticastDelegate.h"
 #include "Math/Vector.h"
+#include "Object/WeakObjectPtr.h"
 
 class UWorld;
 class AActor;
@@ -23,6 +24,7 @@ public:
     // 같은 반경의 다른 Hazard는 거리에 비례한 딜레이로 연쇄 폭발 예약된다.
     void TriggerExplosion(UWorld* World, const FVector& Center);
     void TriggerExplosion(UWorld* World, AActor* SourceHazard, const FVector& Center);
+    void CancelHazardCollectionInterference(AActor* Hazard);
 
     // 임의의 actor에 push 속도를 부여한다 (Boat 충돌 등에서 사용).
     // 이미 떠밀리는 중이면 속도가 누적된다.
@@ -50,7 +52,7 @@ private:
 
     struct FPendingExplosion
     {
-        AActor* SourceHazard = nullptr; // 시간이 만료되면 이 actor가 폭발/destroy 된다.
+        TWeakObjectPtr<AActor> SourceHazard; // 시간이 만료되면 이 actor가 폭발/destroy 된다.
         FVector Center = FVector::ZeroVector;
         float   TimeRemaining = 0.0f;
     };
@@ -64,7 +66,7 @@ private:
 
     struct FHazardSubUVEffect
     {
-        AActor* Actor = nullptr;
+        TWeakObjectPtr<AActor> Actor;
         TArray<USubUVComponent*> SubUVs;
         float Age = 0.0f;
         float MaxLifetime = 2.0f;
