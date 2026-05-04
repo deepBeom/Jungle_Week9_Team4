@@ -3,9 +3,6 @@
 local ShowHud
 local MakeHoverLabel
 
-local NUMBER_COLS = 5
-local NUMBER_ROWS = 2
-local NUMBER_SHEET = "Asset/Texture/UI/Number.png"
 local HUD_BG_SHEET = "Asset/Texture/UI/BG.png"
 local SCORE_BG_PATH = "Asset/Texture/UI/ScoreBoardBG.png"
 local ENDING_SHEET = "Asset/Texture/UI/Ending.png"
@@ -163,15 +160,6 @@ local function LoadScoreManager()
         end,
     }
     return ScoreManager
-end
-
-local function DigitUV(d)
-    local digit = math.max(0, math.min(9, math.floor(d)))
-    local col = digit % NUMBER_COLS
-    local row = math.floor(digit / NUMBER_COLS)
-
-    return col / NUMBER_COLS, row / NUMBER_ROWS,
-           (col + 1) / NUMBER_COLS, (row + 1) / NUMBER_ROWS
 end
 
 local function HeartUV(index)
@@ -788,48 +776,32 @@ local function HideGameOver()
     end
 end
 
-local function DrawScoreDigits(parent, score, centerX, centerY, digitW, digitH, spacing)
-    local digitList = {}
-    local n = math.max(0, math.floor(score or 0))
-    if n == 0 then
-        digitList = { 0 }
-    else
-        while n > 0 do
-            table.insert(digitList, 1, n % 10)
-            n = math.floor(n / 10)
-        end
-    end
-
-    local startX = centerX - ((#digitList - 1) * spacing) * 0.5
-
-    for i, digit in ipairs(digitList) do
-        local x = startX + (i - 1) * spacing
-        local img = UIManager.CreateImage(parent, x, centerY, digitW, digitH, NUMBER_SHEET, "ParentRelative")
-        img:SetUV(DigitUV(digit))
-    end
+local function CreateCenteredText(parent, x, y, text, fontSize)
+    local value = tostring(text or "")
+    local size = fontSize or 16.0
+    return UIManager.CreateText(parent, x, y, math.max(size, #value * size), size, value, size, "Centered")
 end
 
 local function ShowScoreboard(records)
     if ScorePanel then return end
 
-    ScorePanel = UIManager.CreateImage(nil, 0.5, 0.5, 0.6, 0.5, SCORE_BG_PATH, "FullRelative")
+    ScorePanel = UIManager.CreateImage(nil, 0.5, 0.5, 448, 558, SCORE_BG_PATH, "RelativePos")
     ScorePanel:SetColor(1.0, 1.0, 1.0, 1.0)
 
-    local title = UIManager.CreateText(ScorePanel, -0.005, -0.195, 200, 50, "RECORD", 32.0, "RelativePos")
+    local title = CreateCenteredText(ScorePanel, 0, -186, "RECORD", 36.0)
     title:SetColor(0.0, 0.0, 0.0, 1.0)
 
     if type(records) ~= "table" then
         records = LoadScoreManager().GetRecords()
     end
 
-    local rowY = { -0.085, 0.025, 0.135 }
+    local rowY = { -100, -5, 90 }
     for rank = 1, 3 do
-        local rankLabel = UIManager.CreateText(ScorePanel, -0.215, rowY[rank], 64, 36, tostring(rank), 32.0, "RelativePos")
-        rankLabel:SetColor(0.0, 0.0, 0.0, 1.0)
-        DrawScoreDigits(ScorePanel, records[rank] or 0, 0.045, rowY[rank], 0.052, 0.15, 0.055)
+        local scoreText = CreateCenteredText(ScorePanel, 20, rowY[rank], records[rank] or 0, 60.0)
+        scoreText:SetColor(0.0, 0.0, 0.0, 1.0)
     end
 
-    local closeBtn = UIManager.CreateText(ScorePanel, 0.0, 0.215, 120, 28, "CLOSE", 28.0, "RelativePos")
+    local closeBtn = CreateCenteredText(ScorePanel, 0, 226, "CLOSE", 30.0)
     closeBtn:SetColor(0, 0, 0, 1.0)
     closeBtn:SetInteractable(true)
     closeBtn:OnHoverEnter(function() closeBtn:SetColor(1.0, 1.0, 0.0, 1.0) end)
