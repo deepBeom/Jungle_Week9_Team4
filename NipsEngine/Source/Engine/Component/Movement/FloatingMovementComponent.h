@@ -32,5 +32,6 @@ private:
     bool bHasCachedBaseTransform = false;
     FVector BaseLocation = FVector::ZeroVector;
     FVector BaseRotation = FVector::ZeroVector;
+    FVector LastAppliedTiltOffset = FVector::ZeroVector;
     float ElapsedTime = 0.0f;
 };

@@ -25,6 +25,7 @@ void UFloatingMovementComponent::Serialize(FArchive& Ar)
     {
         bHasCachedBaseTransform = false;
         ElapsedTime = 0.0f;
+        LastAppliedTiltOffset = FVector::ZeroVector;
     }
 }
 
@@ -68,11 +69,16 @@ void UFloatingMovementComponent::TickComponent(float DeltaTime)
     FVector NewLocation = UpdatedComponent->GetWorldLocation();
     UpdatedComponent->SetWorldLocation(NewLocation);
 
-    FVector NewRotation = BaseRotation;
-    NewRotation.X += TiltWave * TiltAmplitude.X;
-    NewRotation.Y += std::cos(ElapsedTime * TiltFrequency * TwoPi + PhaseRadians) * TiltAmplitude.Y;
-    NewRotation.Z += TiltWave * TiltAmplitude.Z;
-    UpdatedComponent->SetRelativeRotation(NewRotation);
+    const FVector CurrentRotation = UpdatedComponent->GetRelativeRotation();
+    const FVector ExternalRotation = CurrentRotation - LastAppliedTiltOffset;
+
+    FVector NewTiltOffset = FVector::ZeroVector;
+    NewTiltOffset.X = TiltWave * TiltAmplitude.X;
+    NewTiltOffset.Y = std::cos(ElapsedTime * TiltFrequency * TwoPi + PhaseRadians) * TiltAmplitude.Y;
+    NewTiltOffset.Z = TiltWave * TiltAmplitude.Z;
+
+    UpdatedComponent->SetRelativeRotation(ExternalRotation + NewTiltOffset);
+    LastAppliedTiltOffset = NewTiltOffset;
 }
 
 void UFloatingMovementComponent::CacheBaseTransformIfNeeded()
@@ -84,6 +90,7 @@ void UFloatingMovementComponent::CacheBaseTransformIfNeeded()
 
     BaseLocation = UpdatedComponent->GetWorldLocation();
     BaseRotation = UpdatedComponent->GetRelativeRotation();
+    LastAppliedTiltOffset = FVector::ZeroVector;
 
     if (bUseDeterministicPhase)
     {
