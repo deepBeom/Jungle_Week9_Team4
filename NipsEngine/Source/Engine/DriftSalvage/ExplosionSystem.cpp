@@ -5,8 +5,10 @@
 
 #include "Component/PrimitiveComponent.h"
 #include "Component/ShapeComponent.h"
+#include "Component/SubUVComponent.h"
 #include "Core/ActorTags.h"
 #include "Core/Logging/Log.h"
+#include "Core/SoundManager.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 
@@ -128,7 +130,9 @@ void FExplosionSystem::Reset()
     Pushed.clear();
     Pending.clear();
     PendingPushes.clear();
+    HazardSubUVEffects.clear();
     DebugRings.clear();
+    BindDefaultExplosionEvents();
 }
 
 bool FExplosionSystem::IsCollectibleTag(const AActor* Actor) const
@@ -166,7 +170,7 @@ FExplosionSystem::FPendingExplosion* FExplosionSystem::FindPendingExplosion(AAct
 {
     for (FPendingExplosion& E : Pending)
     {
-        if (E.SourceHazard == Hazard)
+        if (E.SourceHazard.Get() == Hazard)
         {
             return &E;
         }
@@ -178,7 +182,7 @@ const FExplosionSystem::FPendingExplosion* FExplosionSystem::FindPendingExplosio
 {
     for (const FPendingExplosion& E : Pending)
     {
-        if (E.SourceHazard == Hazard)
+        if (E.SourceHazard.Get() == Hazard)
         {
             return &E;
         }
@@ -269,17 +273,239 @@ bool FExplosionSystem::IsActorInsideRadius(const AActor* Actor, const FVector& C
 
 void FExplosionSystem::TriggerExplosion(UWorld* World, const FVector& Center)
 {
+    TriggerExplosion(World, nullptr, Center);
+}
+
+void FExplosionSystem::TriggerExplosion(UWorld* World, AActor* SourceHazard, const FVector& Center)
+{
     if (!World)
     {
         return;
     }
-    TriggerImmediate(World, Center);
+    TriggerImmediate(World, SourceHazard, Center);
 }
 
-void FExplosionSystem::TriggerImmediate(UWorld* World, const FVector& Center)
+void FExplosionSystem::CancelHazardCollectionInterference(AActor* Hazard)
+{
+    if (!Hazard)
+    {
+        return;
+    }
+
+    for (size_t i = 0; i < Pending.size();)
+    {
+        AActor* Source = Pending[i].SourceHazard.Get();
+        if (!Source || Source == Hazard)
+        {
+            Pending.erase(Pending.begin() + i);
+            continue;
+        }
+
+        ++i;
+    }
+
+    for (size_t i = 0; i < HazardSubUVEffects.size();)
+    {
+        FHazardSubUVEffect& Effect = HazardSubUVEffects[i];
+        AActor* EffectActor = Effect.Actor.Get();
+        if (!EffectActor || EffectActor == Hazard)
+        {
+            for (USubUVComponent* SubUV : Effect.SubUVs)
+            {
+                if (!SubUV)
+                {
+                    continue;
+                }
+
+                SubUV->SetFrameIndex(0);
+                SubUV->SetVisibility(false);
+                SubUV->SetActive(false);
+            }
+
+            HazardSubUVEffects.erase(HazardSubUVEffects.begin() + i);
+            continue;
+        }
+
+        ++i;
+    }
+
+    for (UActorComponent* Component : Hazard->GetComponents())
+    {
+        if (USubUVComponent* SubUV = Cast<USubUVComponent>(Component))
+        {
+            SubUV->SetFrameIndex(0);
+            SubUV->SetVisibility(false);
+            SubUV->SetActive(false);
+            continue;
+        }
+
+        UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component);
+        if (Primitive)
+        {
+            Primitive->SetVisibility(true);
+            Primitive->SetActive(true);
+        }
+    }
+}
+
+void FExplosionSystem::BindDefaultExplosionEvents()
+{
+    OnExplosion.RemoveAll();
+    OnExplosion.Add([this](UWorld* World, AActor* SourceHazard, const FVector& Center)
+    {
+        PlayExplosionSound(World, SourceHazard, Center);
+    });
+    OnExplosion.Add([this](UWorld* World, AActor* SourceHazard, const FVector& Center)
+    {
+        StartHazardSubUVEffect(World, SourceHazard, Center);
+    });
+}
+
+void FExplosionSystem::PlayExplosionSound(UWorld* World, AActor* SourceHazard, const FVector& Center)
+{
+    (void)World;
+    (void)SourceHazard;
+    (void)Center;
+
+    FSoundManager::Get().PlaySFX("Boom.mp3", 2.f);
+}
+
+bool FExplosionSystem::IsHazardSubUVEffectActive(const AActor* Actor) const
+{
+    if (!Actor)
+    {
+        return false;
+    }
+
+    for (const FHazardSubUVEffect& Effect : HazardSubUVEffects)
+    {
+        if (Effect.Actor.Get() == Actor)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void FExplosionSystem::StartHazardSubUVEffect(UWorld* World, AActor* SourceHazard, const FVector& Center)
+{
+    if (!World || !SourceHazard)
+    {
+        return;
+    }
+
+    if (IsHazardSubUVEffectActive(SourceHazard))
+    {
+        return;
+    }
+
+    FHazardSubUVEffect Effect;
+    Effect.Actor = TWeakObjectPtr<AActor>(SourceHazard);
+    Effect.Age = 0.0f;
+    Effect.MaxLifetime = 0.2f;
+
+    for (UActorComponent* Component : SourceHazard->GetComponents())
+    {
+        UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Component);
+        if (!Primitive)
+        {
+            continue;
+        }
+
+        USubUVComponent* SubUV = Cast<USubUVComponent>(Primitive);
+        if (!SubUV)
+        {
+            Primitive->SetVisibility(false);
+            if (UShapeComponent* Shape = Cast<UShapeComponent>(Primitive))
+            {
+                Shape->ClearOverlapInfos();
+                Shape->SetActive(false);
+            }
+            continue;
+        }
+
+        if (!SubUV->GetParticle() && SubUV->GetParticleName().IsValid())
+        {
+            SubUV->SetParticle(SubUV->GetParticleName());
+        }
+
+        if (!SubUV->GetParticle())
+        {
+            SubUV->SetVisibility(false);
+            continue;
+        }
+
+        const float FrameRate = std::max(1.0f, SubUV->GetFrameRate());
+        const FParticleResource* Particle = SubUV->GetParticle();
+        const float TotalFrames = static_cast<float>(std::max(1u, Particle->Columns * Particle->Rows));
+
+        SubUV->SetActive(true);
+        SubUV->SetVisibility(true);
+        SubUV->SetEnableCull(false);
+        SubUV->SetLoop(false);
+        SubUV->Play();
+
+        Effect.SubUVs.push_back(SubUV);
+        Effect.MaxLifetime = std::max(Effect.MaxLifetime, (TotalFrames / FrameRate) + 0.2f);
+    }
+
+    if (Effect.SubUVs.empty())
+    {
+        SourceHazard->Destroy();
+        return;
+    }
+
+    HazardSubUVEffects.push_back(Effect);
+
+    UE_LOG("[ExplosionSubUV] source=%s center=(%.2f, %.2f, %.2f)",
+           *SourceHazard->GetName(),
+           Center.X,
+           Center.Y,
+           Center.Z);
+}
+
+void FExplosionSystem::TickHazardSubUVEffects(float DeltaTime)
+{
+    for (size_t i = 0; i < HazardSubUVEffects.size();)
+    {
+        FHazardSubUVEffect& Effect = HazardSubUVEffects[i];
+        Effect.Age += DeltaTime;
+
+        AActor* Actor = Effect.Actor.Get();
+        if (!ActorAlive(Actor))
+        {
+            HazardSubUVEffects.erase(HazardSubUVEffects.begin() + i);
+            continue;
+        }
+
+        bool bAllAnimationsFinished = !Effect.SubUVs.empty();
+        for (USubUVComponent* SubUV : Effect.SubUVs)
+        {
+            if (SubUV && !SubUV->IsFinished())
+            {
+                bAllAnimationsFinished = false;
+                break;
+            }
+        }
+
+        const bool bExpiredByTime = Effect.Age >= Effect.MaxLifetime;
+        if (bAllAnimationsFinished || bExpiredByTime)
+        {
+            Actor->Destroy();
+            HazardSubUVEffects.erase(HazardSubUVEffects.begin() + i);
+            continue;
+        }
+
+        ++i;
+    }
+}
+
+void FExplosionSystem::TriggerImmediate(UWorld* World, AActor* SourceHazard, const FVector& Center)
 {
     UE_LOG("[Explosion] center=(%.2f, %.2f, %.2f) radius=%.2f",
            Center.X, Center.Y, Center.Z, Radius);
+
+    OnExplosion.Broadcast(World, SourceHazard, Center);
 
     // 디버그 ring 추가 — 한 번 폭발할 때마다 시각화.
     FDebugRing Ring;
@@ -290,7 +516,7 @@ void FExplosionSystem::TriggerImmediate(UWorld* World, const FVector& Center)
     DebugRings.push_back(Ring);
 
     EnqueuePushToCollectibles(World, Center);
-    EnqueueChainExplosions(World, Center);
+    EnqueueChainExplosions(World, SourceHazard, Center);
 }
 
 void FExplosionSystem::EnqueuePushToCollectibles(UWorld* World, const FVector& Center)
@@ -345,13 +571,18 @@ void FExplosionSystem::EnqueuePushToCollectibles(UWorld* World, const FVector& C
     }
 }
 
-void FExplosionSystem::EnqueueChainExplosions(UWorld* World, const FVector& Center)
+void FExplosionSystem::EnqueueChainExplosions(UWorld* World, AActor* SourceHazard, const FVector& Center)
 {
     const float SafeSpeed = std::max(0.01f, ChainShockwaveSpeed);
 
     for (AActor* Actor : World->GetActors())
     {
         if (!ActorAlive(Actor) || !IsHazardTag(Actor))
+        {
+            continue;
+        }
+
+        if (Actor == SourceHazard)
         {
             continue;
         }
@@ -376,7 +607,7 @@ void FExplosionSystem::EnqueueChainExplosions(UWorld* World, const FVector& Cent
         }
 
         FPendingExplosion Pend;
-        Pend.SourceHazard = Actor;
+        Pend.SourceHazard = TWeakObjectPtr<AActor>(Actor);
         Pend.Center = ActorPos;
         Pend.TimeRemaining = Delay;
         Pending.push_back(Pend);
@@ -519,22 +750,23 @@ void FExplosionSystem::Tick(UWorld* World, float DeltaTime)
         ++i;
     }
 
+    TickHazardSubUVEffects(DeltaTime);
+
     // 2) 연쇄 폭발 타이머 처리. 시간이 다 된 항목은 폭발 + Hazard destroy.
     for (size_t i = 0; i < Pending.size();)
     {
         Pending[i].TimeRemaining -= DeltaTime;
         if (Pending[i].TimeRemaining <= 0.0f)
         {
-            AActor* Source = Pending[i].SourceHazard;
+            AActor* Source = Pending[i].SourceHazard.Get();
             const FVector Center = Pending[i].Center;
             Pending.erase(Pending.begin() + i);
 
+            // 그 위치에서 다시 폭발 (반경 내 collectible push + 또 다른 Hazard 예약).
             if (ActorAlive(Source))
             {
-                Source->Destroy();
+                TriggerImmediate(World, Source, Center);
             }
-            // 그 위치에서 다시 폭발 (반경 내 collectible push + 또 다른 Hazard 예약).
-            TriggerImmediate(World, Center);
             // 새 Pending이 추가되었을 수 있으므로 인덱스 재시작.
             i = 0;
             continue;

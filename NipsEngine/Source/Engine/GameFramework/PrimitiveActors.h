@@ -6,6 +6,7 @@
 
 class UTextRenderComponent;
 class UDecalComponent;
+class USubUVComponent;
 class UMaterialInterface;
 class UStaticMesh;
 class UStaticMeshComponent;
@@ -91,6 +92,10 @@ public:
     ASubUVActor() = default;
 
     void InitDefaultComponents();
+    USubUVComponent* GetSubUVComponent() const { return SubUVComponent; }
+
+private:
+    USubUVComponent* SubUVComponent = nullptr;
 };
 
 class ATextRenderActor : public AActor

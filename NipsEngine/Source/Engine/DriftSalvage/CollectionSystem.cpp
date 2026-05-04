@@ -6,6 +6,7 @@
 #include <Windows.h>
 
 #include "Component/PrimitiveComponent.h"
+#include "Component/ShapeComponent.h"
 #include "Core/ActorTags.h"
 #include "Core/Logging/Log.h"
 #include "Engine/Input/InputSystem.h"
@@ -32,6 +33,31 @@ namespace
     float PointAABBDistanceSq(const FVector& Point, const FAABB& Box)
     {
         return FVector::DistSquared(Point, ClosestPointOnAABB(Point, Box));
+    }
+
+    void PrepareHazardForCollection(UWorld* World, AActor* Actor)
+    {
+        if (!Actor || !Actor->CompareTag(ActorTags::Hazard))
+        {
+            return;
+        }
+
+        if (World)
+        {
+            World->GetExplosionSystem().CancelHazardCollectionInterference(Actor);
+        }
+
+        for (UActorComponent* Component : Actor->GetComponents())
+        {
+            UShapeComponent* Shape = Cast<UShapeComponent>(Component);
+            if (!Shape)
+            {
+                continue;
+            }
+
+            Shape->ClearOverlapInfos();
+            Shape->SetActive(false);
+        }
     }
 }
 
@@ -156,6 +182,7 @@ void FCollectionSystem::Release(UWorld* World)
                                    Distance / std::max(FlightSpeed, 0.0001f));
         Flight.Elapsed = 0.0f;
 
+        PrepareHazardForCollection(World, Actor);
         Flights.push_back(Flight);
     }
 

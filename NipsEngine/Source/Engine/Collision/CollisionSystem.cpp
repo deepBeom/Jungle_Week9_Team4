@@ -99,6 +99,19 @@ namespace
                (ActorA->CompareTag(ActorTags::Hazard) && ActorB->CompareTag(ActorTags::Boat));
     }
 
+    bool IsBoatLighthousePair(const UShapeComponent* A, const UShapeComponent* B)
+    {
+        const AActor* ActorA = A ? A->GetOwner() : nullptr;
+        const AActor* ActorB = B ? B->GetOwner() : nullptr;
+        if (!ActorA || !ActorB)
+        {
+            return false;
+        }
+
+        return (ActorA->CompareTag(ActorTags::Boat) && ActorB->CompareTag(ActorTags::Lighthouse)) ||
+               (ActorA->CompareTag(ActorTags::Lighthouse) && ActorB->CompareTag(ActorTags::Boat));
+    }
+
     bool IsCollectibleActor(const AActor* Actor)
     {
         return Actor &&
@@ -229,12 +242,10 @@ namespace
             Knockback = (BoatShape->GetWorldLocation() - HazardShape->GetWorldLocation()).GetSafeNormal2D();
         }
 
-        // 2) Hazard 자체는 사라짐. (Trigger보다 먼저 Destroy해서 자기 자신이 연쇄 큐에 다시 들어가지 않게.)
+        // 2) Hazard가 사라지기 전에 폭발 이벤트를 보낸다. SourceHazard를 넘겨 자기 자신은 연쇄 큐에서 제외한다.
         const FVector ExplosionCenter = HazardActor->GetActorLocation();
         UWorld* World = HazardActor->GetFocusedWorld();
         LuaBinder::ApplyDriftSalvageDamage(2);
-        FSoundManager::Get().PlaySFX("Boom.mp3", 2.f);
-        HazardActor->Destroy();
 
         if (World)
         {
@@ -244,8 +255,19 @@ namespace
                 World->GetExplosionSystem().ApplyKnockback(BoatActor, Knockback * BoatHazardKnockbackSpeed);
             }
             // 3) 폭발 트리거: 반경 안의 Trash/Resource/Recyclable/Premium에 push, 다른 Hazard는 거리 비례 딜레이로 연쇄.
-            World->GetExplosionSystem().TriggerExplosion(World, ExplosionCenter);
+            World->GetExplosionSystem().TriggerExplosion(World, HazardActor, ExplosionCenter);
         }
+    }
+
+    void TriggerBoatLighthouseGameOver(UShapeComponent* A, UShapeComponent* B)
+    {
+        // Lighthouse에 Boat가 닿는 순간 현재 플레이를 종료
+        if (!IsBoatLighthousePair(A, B))
+        {
+            return;
+        }
+
+        LuaBinder::RequestDriftSalvageGameOver();
     }
 
     void CollectBoatOverlapTarget(UShapeComponent* A, UShapeComponent* B)
@@ -784,7 +806,7 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
             FCollisionPair Pair(A, B);
             CurrentOverlaps.insert(Pair);
 
-            if (PreviousOverlaps.find(Pair) == PreviousOverlaps.end())
+            if (bHasInitializedOverlaps && PreviousOverlaps.find(Pair) == PreviousOverlaps.end())
             {
                 HandleBeginOverlap(A, B);
 
@@ -837,10 +859,13 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
             PreviousOverlaps.insert(Pair);
         }
     }
+
+    bHasInitializedOverlaps = true;
 }
 
 void FCollisionSystem::Reset()
 {
+    bHasInitializedOverlaps = false;
     PreviousOverlaps.clear();
     DebugContacts.clear();
     DebugLines.clear();
@@ -889,7 +914,7 @@ bool FCollisionSystem::ShouldTestPair(const UShapeComponent* A, const UShapeComp
 
     return A->GetGenerateOverlapEvents() || B->GetGenerateOverlapEvents() ||
            A->GetBlockComponent() || B->GetBlockComponent() ||
-           IsBoatRockPair(A, B) || IsBoatCollectiblePair(A, B);
+           IsBoatRockPair(A, B) || IsBoatCollectiblePair(A, B) || IsBoatLighthousePair(A, B);
 }
 
 bool FCollisionSystem::AreOverlapping(UShapeComponent* A, UShapeComponent* B) const
@@ -1067,6 +1092,7 @@ void FCollisionSystem::HandleBeginOverlap(UShapeComponent* A, UShapeComponent* B
 
     ApplyBoatRockKnockback(A, B);
     ApplyBoatHazardExplosion(A, B);
+    TriggerBoatLighthouseGameOver(A, B);
     CollectBoatOverlapTarget(A, B);
 
     if (A->GetGenerateOverlapEvents())

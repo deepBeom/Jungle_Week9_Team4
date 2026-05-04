@@ -2494,9 +2494,24 @@ FParticleResource* FResourceManager::FindParticle(const FName& ParticleName)
     {
         return nullptr;
     }
-    
+
     auto It = ParticleResources.find(ParticleName.ToString());
-    return (It != ParticleResources.end()) ? &It->second : &ParticleResources.begin()->second;
+    if (It != ParticleResources.end())
+    {
+        return &It->second;
+    }
+
+    const FString NormalizedName = FPaths::Normalize(ParticleName.ToString());
+    for (auto& [Key, Resource] : ParticleResources)
+    {
+        if (FPaths::Normalize(Key) == NormalizedName ||
+            FPaths::Normalize(Resource.Path) == NormalizedName)
+        {
+            return &Resource;
+        }
+    }
+
+    return &ParticleResources.begin()->second;
 }
 
 const FParticleResource* FResourceManager::FindParticle(const FName& ParticleName) const
@@ -2505,9 +2520,24 @@ const FParticleResource* FResourceManager::FindParticle(const FName& ParticleNam
     {
         return nullptr;
     }
-    
+
     auto It = ParticleResources.find(ParticleName.ToString());
-    return (It != ParticleResources.end()) ? &It->second : &ParticleResources.begin()->second;
+    if (It != ParticleResources.end())
+    {
+        return &It->second;
+    }
+
+    const FString NormalizedName = FPaths::Normalize(ParticleName.ToString());
+    for (const auto& [Key, Resource] : ParticleResources)
+    {
+        if (FPaths::Normalize(Key) == NormalizedName ||
+            FPaths::Normalize(Resource.Path) == NormalizedName)
+        {
+            return &Resource;
+        }
+    }
+
+    return &ParticleResources.begin()->second;
 }
 
 void FResourceManager::RegisterParticle(const FName& ParticleName, const FString& InPath, uint32 Columns, uint32 Rows)
