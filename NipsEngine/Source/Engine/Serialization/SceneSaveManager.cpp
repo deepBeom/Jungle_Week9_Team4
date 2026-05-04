@@ -572,7 +572,7 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
             }
 
             NewActor->SetWorld(World);
-            NewActor->InitDefaultComponents();
+            NewActor->EnsureDefaultComponentsInitialized();
             if (ULevel* Level = World->GetPersistentLevel())
                 Level->AddActor(NewActor);
 
@@ -757,7 +757,7 @@ void FSceneSaveManager::DeserializePrimitivesToWorld(json::JSON& PrimitivesNode,
             AActor* NewActor = Cast<AActor>(Obj);
             if (!NewActor) return;
 
-            NewActor->InitDefaultComponents();
+            NewActor->EnsureDefaultComponentsInitialized();
             NewActor->SetWorld(World);
             if (ULevel* Level = World->GetPersistentLevel())
                 Level->AddActor(NewActor);

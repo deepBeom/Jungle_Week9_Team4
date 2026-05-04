@@ -21,6 +21,7 @@ public:
     virtual void Serialize(FArchive& Ar) override;
 
     virtual void InitDefaultComponents() {}
+    void EnsureDefaultComponentsInitialized();
 
     // 컴포넌트 생성 + Owner 설정을 수행합니다. 월드에 붙어 있으면 즉시 등록됩니다.
     template<typename T>
