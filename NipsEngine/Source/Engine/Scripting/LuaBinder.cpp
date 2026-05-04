@@ -42,6 +42,7 @@ namespace
     constexpr int32 DriftSalvageMaxHealth = 3;
     constexpr float DriftSalvageWeightCapacity = 30.0f;
     FDriftSalvageStats DriftSalvageStats;
+    bool bDriftSalvageGameOverRequested = false;
 
     bool TryGetDriftSalvageCargoValue(const FString& ActorTag, FDriftSalvageCargoValue& OutValue)
     {
@@ -720,6 +721,22 @@ void LuaBinder::ResetDriftSalvageStats()
     DriftSalvageStats.Health = DriftSalvageMaxHealth;
     DriftSalvageStats.Money = 0;
     DriftSalvageStats.Weight = 0.0f;
+    bDriftSalvageGameOverRequested = false;
+}
+
+void LuaBinder::RequestDriftSalvageGameOver()
+{
+    // 기존 HUD의 체력 기반 Game Over 조건과 즉시 전환 요청을 함께 맞춘다
+    DriftSalvageStats.Health = 0;
+    bDriftSalvageGameOverRequested = true;
+}
+
+bool LuaBinder::ConsumeDriftSalvageGameOverRequest()
+{
+    // HUD가 한 번만 반응하도록 요청을 읽은 뒤 바로 비운다
+    const bool bRequested = bDriftSalvageGameOverRequested;
+    bDriftSalvageGameOverRequested = false;
+    return bRequested;
 }
 
 void LuaBinder::ApplyDriftSalvageDamage(int32 Damage)
@@ -906,6 +923,11 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
     Lua.set_function("ResetDriftSalvageStats", []()
     {
         LuaBinder::ResetDriftSalvageStats();
+    });
+
+    Lua.set_function("ConsumeDriftSalvageGameOverRequest", []()
+    {
+        return LuaBinder::ConsumeDriftSalvageGameOverRequest();
     });
 
     Lua.set_function("GetDriftSalvageHealth", []()

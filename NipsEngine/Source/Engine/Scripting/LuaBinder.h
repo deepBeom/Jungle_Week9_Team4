@@ -17,6 +17,8 @@ namespace LuaBinder
     void SetUIMode(bool bEnabled);
     bool IsUIMode();
     void ResetDriftSalvageStats();
+    void RequestDriftSalvageGameOver();
+    bool ConsumeDriftSalvageGameOverRequest();
     void ApplyDriftSalvageDamage(int32 Damage);
     void ApplyDriftSalvagePickup(const FString& ActorTag);
     int32 GetDriftSalvageHealth();

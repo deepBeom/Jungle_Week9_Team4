@@ -99,6 +99,19 @@ namespace
                (ActorA->CompareTag(ActorTags::Hazard) && ActorB->CompareTag(ActorTags::Boat));
     }
 
+    bool IsBoatLighthousePair(const UShapeComponent* A, const UShapeComponent* B)
+    {
+        const AActor* ActorA = A ? A->GetOwner() : nullptr;
+        const AActor* ActorB = B ? B->GetOwner() : nullptr;
+        if (!ActorA || !ActorB)
+        {
+            return false;
+        }
+
+        return (ActorA->CompareTag(ActorTags::Boat) && ActorB->CompareTag(ActorTags::Lighthouse)) ||
+               (ActorA->CompareTag(ActorTags::Lighthouse) && ActorB->CompareTag(ActorTags::Boat));
+    }
+
     bool IsCollectibleActor(const AActor* Actor)
     {
         return Actor &&
@@ -246,6 +259,17 @@ namespace
             // 3) 폭발 트리거: 반경 안의 Trash/Resource/Recyclable/Premium에 push, 다른 Hazard는 거리 비례 딜레이로 연쇄.
             World->GetExplosionSystem().TriggerExplosion(World, ExplosionCenter);
         }
+    }
+
+    void TriggerBoatLighthouseGameOver(UShapeComponent* A, UShapeComponent* B)
+    {
+        // Lighthouse에 Boat가 닿는 순간 현재 플레이를 종료
+        if (!IsBoatLighthousePair(A, B))
+        {
+            return;
+        }
+
+        LuaBinder::RequestDriftSalvageGameOver();
     }
 
     void CollectBoatOverlapTarget(UShapeComponent* A, UShapeComponent* B)
@@ -889,7 +913,7 @@ bool FCollisionSystem::ShouldTestPair(const UShapeComponent* A, const UShapeComp
 
     return A->GetGenerateOverlapEvents() || B->GetGenerateOverlapEvents() ||
            A->GetBlockComponent() || B->GetBlockComponent() ||
-           IsBoatRockPair(A, B) || IsBoatCollectiblePair(A, B);
+           IsBoatRockPair(A, B) || IsBoatCollectiblePair(A, B) || IsBoatLighthousePair(A, B);
 }
 
 bool FCollisionSystem::AreOverlapping(UShapeComponent* A, UShapeComponent* B) const
@@ -1067,6 +1091,7 @@ void FCollisionSystem::HandleBeginOverlap(UShapeComponent* A, UShapeComponent* B
 
     ApplyBoatRockKnockback(A, B);
     ApplyBoatHazardExplosion(A, B);
+    TriggerBoatLighthouseGameOver(A, B);
     CollectBoatOverlapTarget(A, B);
 
     if (A->GetGenerateOverlapEvents())
