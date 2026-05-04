@@ -1,7 +1,8 @@
-﻿#include "UIManager.h"
+#include "UIManager.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Render/UIBatcher.h"
 #include "Engine/Render/FontBatcher.h"
+#include "Engine/Scripting/LuaBinder.h"
 #include "Core/ResourceManager.h"
 
 void FUIManager::Initialize(ID3D11Device* InDevice)
@@ -112,7 +113,17 @@ void FUIManager::Update(float ViewportW, float ViewportH)
     FontBatcher->Clear();
     FontBatcher->ClearUI();
 
-    TickHoverEvents();
+    if (LuaBinder::IsUIMode())
+    {
+        TickHoverEvents();
+    }
+    else
+    {
+        for (FUIElement* Element : AllElements)
+        {
+            Element->bIsHovered = false;
+        }
+    }
 
     std::sort(RootElements.begin(), RootElements.end(),
         [](const FUIElement* A, const FUIElement* B)

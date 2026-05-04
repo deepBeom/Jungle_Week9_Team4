@@ -1,20 +1,43 @@
-local move_speed = 1.0
-local look_speed = 1.0
+local move_speed = 0.5
+local turn_speed = 1.0
+local look_speed = 0.01
+local min_pitch = -1.4
+local max_pitch = 1.4
 
-function OnKeyDown(key)
-    if not IsGameplayInputEnabled() then return end
+local function get_components()
+    if Pawn == nil then
+        return nil, nil, nil
+    end
 
-    if key == "W" then MoveForward(move_speed) end
-    if key == "S" then MoveForward(-move_speed) end
-    if key == "D" then MoveRight(move_speed) end
-    if key == "A" then MoveRight(-move_speed) end
-    if key == "E" then MoveUp(move_speed) end
-    if key == "Q" then MoveUp(-move_speed) end
+    return Pawn:GetRootComponent(), Pawn:GetCharacterComponent(), Pawn:GetCameraComponent()
 end
 
-function OnMouseMove(delta_x, delta_y)
-    if IsGameplayInputEnabled() and IsMouseLocked() then
-        AddYaw(delta_x * look_speed)
-        AddPitch(-delta_y * look_speed)
+function OnKeyDown(key)
+    local root, mesh, camera = get_components()
+    if root == nil or mesh == nil then
+        return
     end
+
+    local forward = mesh:GetForwardVector()
+
+    if key == "W" then root:AddWorldOffset(forward.X * move_speed, forward.Y * move_speed, forward.Z * move_speed) end
+    if key == "S" then root:AddWorldOffset(-forward.X * move_speed, -forward.Y * move_speed, -forward.Z * move_speed) end
+    if key == "A" then mesh:Rotate(-turn_speed, 0.0) end
+    if key == "D" then mesh:Rotate(turn_speed, 0.0) end
+end
+
+function OnKeyUp(key)
+end
+
+function OnMouseMove(delta_x, delta_y, mouse_x, mouse_y)
+
+    local root, mesh, camera = get_components()
+    if root == nil or camera == nil then
+        return
+    end
+
+    -- TODO: 카메라의 Orbit 회전 추가
+end
+
+function OnMouseClick(button, is_pressed, mouse_x, mouse_y)
 end

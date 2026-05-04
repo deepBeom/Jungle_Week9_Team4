@@ -38,8 +38,7 @@ void FEditorViewportClient::StartPIE(UWorld* InWorld)
     InputRouter.GetGameInputController().SetWorld(InWorld);
     InputRouter.GetGameInputController().SetCamera(&Camera);
     InputRouter.GetPIEController().Reset();
-    InputRouter.GetGameInputController().SetCursorHidden(true);
-    InputRouter.GetGameInputController().SetMouseLocked(true);
+    InputRouter.GetGameInputController().SetUIMode(false);
     InputRouter.SetMode(EViewportInputMode::PIE);
 }
 

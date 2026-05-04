@@ -3,12 +3,10 @@
 local ShowHud
 local MakeHoverLabel
 
-local NUMBER_COLS = 5
-local NUMBER_ROWS = 2
-local NUMBER_SHEET = "Asset/Texture/UI/Number.png"
 local HUD_BG_SHEET = "Asset/Texture/UI/BG.png"
 local SCORE_BG_PATH = "Asset/Texture/UI/ScoreBoardBG.png"
 local ENDING_SHEET = "Asset/Texture/UI/Ending.png"
+local SCORE_MANAGER_PATH = "Asset/Scripts/ScoreManager.lua"
 
 local MONEY_SHEET = "Asset/Texture/UI/Money.png"
 local MONEY_ICON_SIZE = 96
@@ -78,17 +76,6 @@ local PROGRESS_GAP_TOP = 10
 local PROGRESS_GAP_BOTTOM = 8
 local PROGRESS_ANIM_DURATION = 0.35
 local DEFAULT_WEIGHT_CAPACITY = 30.0
-local INTRO_DURATION = 5
-local INTRO_START_OFFSET_X = -45.0
-local INTRO_START_OFFSET_Y = 0.0
-local INTRO_START_OFFSET_Z = -8.0
-
-local MENU_CAMERA_X = -55.763822
-local MENU_CAMERA_Y = 0.0
-local MENU_CAMERA_Z = 20.132818
-local MENU_CAMERA_ROT_X = 0.0
-local MENU_CAMERA_ROT_Y = 33.690063
-local MENU_CAMERA_ROT_Z = 0.0
 local MONEY_Y = HEART_DRAW_H + PROGRESS_GAP_TOP
 local PROGRESS_Y = MONEY_Y + MONEY_ICON_SIZE + PROGRESS_GAP_BOTTOM
 local INGAME_HUD_W = math.max(HEART_ROW_W, PROGRESS_W, MONEY_ROW_W)
@@ -119,19 +106,47 @@ local HeartAnimIndex = 0
 local HeartAnimTime = 0.0
 local HeartAnimFrame = 0
 local HeartHealth = HEART_COUNT
+local HeartTargetHealth = HEART_COUNT
 local BoatActor = nil
 local BoatHomePosition = nil
 local BoatHomeRotation = nil
-local bIntroPlaying = false
-local IntroTime = 0.0
+local ScoreManager = nil
 
-local function DigitUV(d)
-    local digit = math.max(0, math.min(9, math.floor(d)))
-    local col = digit % NUMBER_COLS
-    local row = math.floor(digit / NUMBER_COLS)
+local function LoadScoreManager()
+    if ScoreManager then
+        return ScoreManager
+    end
 
-    return col / NUMBER_COLS, row / NUMBER_ROWS,
-           (col + 1) / NUMBER_COLS, (row + 1) / NUMBER_ROWS
+    local paths = {
+        SCORE_MANAGER_PATH,
+        "NipsEngine/" .. SCORE_MANAGER_PATH,
+    }
+
+    local lastError = nil
+    for _, path in ipairs(paths) do
+        local ok, managerOrError = pcall(dofile, path)
+        if ok and managerOrError then
+            ScoreManager = managerOrError
+            return ScoreManager
+        end
+        lastError = managerOrError
+    end
+
+    if Log then
+        Log("ScoreManager load failed: " .. tostring(lastError))
+    end
+
+    ScoreManager = {
+        GetRecords = function()
+            return { 0, 0, 0 }
+        end,
+        RecordScore = function(score)
+            local records = { 0, math.max(0, math.floor(score or 0)), 0 }
+            table.sort(records, function(a, b) return a > b end)
+            return records
+        end,
+    }
+    return ScoreManager
 end
 
 local function HeartUV(index)
@@ -141,6 +156,18 @@ end
 
 local function Clamp01(value)
     return math.max(0.0, math.min(1.0, value or 0.0))
+end
+
+local function EnterUIMode()
+    if SetUIMode then
+        SetUIMode(true)
+    end
+end
+
+local function EnterGameplayMode()
+    if SetUIMode then
+        SetUIMode(false)
+    end
 end
 
 local function GetHudHealth()
@@ -236,22 +263,6 @@ local function GetActorYawDegrees(actor)
     return rot.Z or rot.Y or 0.0
 end
 
-local function SetMenuCamera()
-    if SetGameplayCameraFollowEnabled then
-        SetGameplayCameraFollowEnabled(false)
-    end
-
-    if SetGameplayCameraTransformValues then
-        SetGameplayCameraTransformValues(
-            MENU_CAMERA_X,
-            MENU_CAMERA_Y,
-            MENU_CAMERA_Z,
-            MENU_CAMERA_ROT_X,
-            MENU_CAMERA_ROT_Y,
-            MENU_CAMERA_ROT_Z)
-    end
-end
-
 local function SetBoatAtHome()
     local boat = ResolveBoatActor()
     if not boat then return end
@@ -265,36 +276,9 @@ local function SetBoatAtHome()
     end
 end
 
-local function GetBoatIntroStartPosition()
-    if not BoatHomePosition then
-        return nil, nil, nil
-    end
-
-    return
-        BoatHomePosition.X + INTRO_START_OFFSET_X,
-        BoatHomePosition.Y + INTRO_START_OFFSET_Y,
-        BoatHomePosition.Z + INTRO_START_OFFSET_Z
-end
-
-local function SetBoatAtIntroStart()
-    local boat = ResolveBoatActor()
-    local startX, startY, startZ = GetBoatIntroStartPosition()
-    if not boat or not startX then return end
-
-    boat:SetPosition(startX, startY, startZ)
-
-    if BoatHomeRotation then
-        boat:SetRotation(BoatHomeRotation.X, BoatHomeRotation.Y, BoatHomeRotation.Z)
-    end
-end
-
 local function PrepareMenuPresentation()
-    SetGameplayInputEnabled(false)
-    SetMenuCamera()
-    bIntroPlaying = false
-    IntroTime = 0.0
+    EnterUIMode()
     SetBoatAtHome()
-    SetBoatAtIntroStart()
 end
 
 local function GetHeartAnimFrame(time, direction)
@@ -320,11 +304,33 @@ end
 local function ApplyHeartHealth(health)
     local clamped = math.max(0, math.min(HEART_COUNT, math.floor((health or 0) + 0.5)))
     HeartHealth = clamped
+    HeartTargetHealth = clamped
     bHeartAnimPlaying = false
     HeartAnimIndex = 0
 
     for i = 1, HEART_COUNT do
         ApplyHeartFrame(i, i <= clamped and 0 or HEART_COLS - 1)
+    end
+end
+
+local function StartHeartAnimStep()
+    if HeartTargetHealth == HeartHealth then
+        return
+    end
+
+    HeartAnimDir = HeartTargetHealth < HeartHealth and 1 or -1
+    HeartAnimIndex = HeartAnimDir > 0 and HeartHealth or HeartHealth + 1
+    HeartAnimTime = 0.0
+    HeartAnimFrame = HeartAnimDir > 0 and 0 or HEART_COLS - 1
+    bHeartAnimPlaying = true
+    ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
+end
+
+local function SetHeartTargetHealth(health)
+    HeartTargetHealth = math.max(0, math.min(HEART_COUNT, math.floor((health or 0) + 0.5)))
+
+    if not bHeartAnimPlaying and HeartTargetHealth ~= HeartHealth then
+        StartHeartAnimStep()
     end
 end
 
@@ -366,14 +372,13 @@ local function SyncGameplayHud()
     end
 
     local health = GetHudHealth()
-    if health ~= HeartHealth then
-        ApplyHeartHealth(health)
+    if health ~= HeartTargetHealth then
+        SetHeartTargetHealth(health)
     end
 end
 
 local function UpdateShipWheel(deltaTime)
     if not ShipWheel or not Input then return end
-    if IsGameplayInputEnabled and not IsGameplayInputEnabled() then return end
 
     local dt = deltaTime or 0.0
     local dir = 0
@@ -566,7 +571,7 @@ local function ShowMinimap()
 end
 
 local function HideInGameHud()
-    SetGameplayInputEnabled(false)
+    EnterUIMode()
 
     if InGamePanel then
         UIManager.DestroyElement(InGamePanel)
@@ -586,6 +591,7 @@ local function HideInGameHud()
         HeartAnimTime = 0.0
         HeartAnimFrame = 0
         HeartHealth = HEART_COUNT
+        HeartTargetHealth = HEART_COUNT
     end
 
     if ShipWheel then
@@ -597,67 +603,6 @@ local function HideInGameHud()
     end
 
     HideMinimap()
-end
-
-local function BeginBoatIntro()
-    SetGameplayInputEnabled(false)
-    SetMenuCamera()
-
-    if ResetDriftSalvageStats then
-        ResetDriftSalvageStats()
-    end
-
-    local boat = ResolveBoatActor()
-    if boat and BoatHomePosition then
-        local startX, startY, startZ = GetBoatIntroStartPosition()
-        if startX then
-            boat:SetPosition(startX, startY, startZ)
-        end
-
-        if BoatHomeRotation then
-            boat:SetRotation(BoatHomeRotation.X, BoatHomeRotation.Y, BoatHomeRotation.Z)
-        end
-    end
-
-    bIntroPlaying = true
-    IntroTime = 0.0
-end
-
-local function UpdateBoatIntro(deltaTime)
-    if not bIntroPlaying then return end
-
-    local boat = ResolveBoatActor()
-    if not boat or not BoatHomePosition then
-        bIntroPlaying = false
-        if SetGameplayCameraFollowEnabled then
-            SetGameplayCameraFollowEnabled(true)
-        end
-        SetGameplayInputEnabled(true)
-        return
-    end
-
-    IntroTime = math.min(INTRO_DURATION, IntroTime + (deltaTime or 0.0))
-    local ratio = EaseSmoothStep(IntroTime / INTRO_DURATION)
-    local startX, startY, startZ = GetBoatIntroStartPosition()
-    if not startX then
-        bIntroPlaying = false
-        return
-    end
-
-    boat:SetPosition(
-        Lerp(startX, BoatHomePosition.X, ratio),
-        Lerp(startY, BoatHomePosition.Y, ratio),
-        Lerp(startZ, BoatHomePosition.Z, ratio))
-    SetMenuCamera()
-
-    if IntroTime >= INTRO_DURATION then
-        bIntroPlaying = false
-        SetBoatAtHome()
-        if SetGameplayCameraFollowEnabled then
-            SetGameplayCameraFollowEnabled(true)
-        end
-        SetGameplayInputEnabled(true)
-    end
 end
 
 local function ShowInGameHud()
@@ -711,6 +656,7 @@ local function ShowInGameHud()
     HeartAnimIndex = 0
     HeartAnimTime = 0.0
     HeartAnimFrame = 0
+    HeartTargetHealth = GetHudHealth()
     ApplyHeartHealth(GetHudHealth())
     SyncGameplayHud()
     
@@ -732,38 +678,32 @@ local function HideGameOver()
     end
 end
 
-local function ShowScoreboard(bestScore)
+local function CreateCenteredText(parent, x, y, text, fontSize)
+    local value = tostring(text or "")
+    local size = fontSize or 16.0
+    return UIManager.CreateText(parent, x, y, math.max(size, #value * size), size, value, size, "Centered")
+end
+
+local function ShowScoreboard(records)
     if ScorePanel then return end
 
-    ScorePanel = UIManager.CreateImage(nil, 0.5, 0.5, 0.6, 0.5, SCORE_BG_PATH, "FullRelative")
+    ScorePanel = UIManager.CreateImage(nil, 0.5, 0.5, 448, 558, SCORE_BG_PATH, "RelativePos")
     ScorePanel:SetColor(1.0, 1.0, 1.0, 1.0)
 
-    local title = UIManager.CreateText(ScorePanel, -0.005, -0.195, 300, 50, "BEST SCORE", 32.0, "RelativePos")
+    local title = CreateCenteredText(ScorePanel, 0, -186, "RECORD", 36.0)
     title:SetColor(0.0, 0.0, 0.0, 1.0)
 
-    local digitList = {}
-    local n = math.max(0, math.floor(bestScore or 0))
-    if n == 0 then
-        digitList = { 0 }
-    else
-        while n > 0 do
-            table.insert(digitList, 1, n % 10)
-            n = math.floor(n / 10)
-        end
+    if type(records) ~= "table" then
+        records = LoadScoreManager().GetRecords()
     end
 
-    local digitW = 0.08
-    local digitH = 0.25
-    local spacing = 0.085
-    local startX = -((#digitList - 1) * spacing) * 0.5
-
-    for i, digit in ipairs(digitList) do
-        local x = startX + (i - 1) * spacing
-        local img = UIManager.CreateImage(ScorePanel, x, 0.0, digitW, digitH, NUMBER_SHEET, "ParentRelative")
-        img:SetUV(DigitUV(digit))
+    local rowY = { -100, -5, 90 }
+    for rank = 1, 3 do
+        local scoreText = CreateCenteredText(ScorePanel, 20, rowY[rank], records[rank] or 0, 60.0)
+        scoreText:SetColor(0.0, 0.0, 0.0, 1.0)
     end
 
-    local closeBtn = UIManager.CreateText(ScorePanel, 0.0, 0.17, 120, 28, "CLOSE", 28.0, "RelativePos")
+    local closeBtn = CreateCenteredText(ScorePanel, 0, 226, "CLOSE", 30.0)
     closeBtn:SetColor(0, 0, 0, 1.0)
     closeBtn:SetInteractable(true)
     closeBtn:OnHoverEnter(function() closeBtn:SetColor(1.0, 1.0, 0.0, 1.0) end)
@@ -777,8 +717,9 @@ end
 local function ShowGameOver()
     if GameOverPanel then return end
 
-    SetGameplayInputEnabled(false)
+    EnterUIMode()
     local finalScore = GetHudMoney()
+    LoadScoreManager().RecordScore(finalScore)
     HideInGameHud()
 
     GameOverPanel = UIManager.CreateImage(nil, 0.5, 0.5, 0.55, 0.55, nil, "FullRelative")
@@ -799,6 +740,7 @@ local function ShowGameOver()
     restartLabel:OnHoverEnter(function() restartLabel:SetColor(1.0, 1.0, 0.0, 1.0) end)
     restartLabel:OnHoverExit(function() restartLabel:SetColor(0.0, 0.0, 0.0, 1.0) end)
     restartLabel:OnClick(function()
+        _G.LogoHudNextStartMode = "Gameplay"
         RequestGameRestart()
     end)
 
@@ -808,6 +750,7 @@ local function ShowGameOver()
     titleLabel:OnHoverEnter(function() titleLabel:SetColor(1.0, 1.0, 0.0, 1.0) end)
     titleLabel:OnHoverExit(function() titleLabel:SetColor(0.0, 0.0, 0.0, 1.0) end)
     titleLabel:OnClick(function()
+        _G.LogoHudNextStartMode = "Title"
         RequestGameRestart()
     end)
 end
@@ -827,6 +770,16 @@ local function HideHud()
     end
 end
 
+local function StartGameplay()
+    HideHud()
+    ShowInGameHud()
+    if ResetDriftSalvageStats then
+        ResetDriftSalvageStats()
+    end
+    SetBoatAtHome()
+    EnterGameplayMode()
+end
+
 ShowHud = function()
     if MenuPanel then return end
 
@@ -844,15 +797,7 @@ ShowHud = function()
 
     local StartLabel = MakeHoverLabel(MenuPanel, 0.025, 0.03, 256, 28, "START", 48.0, "RelativePos")
     StartLabel:OnClick(function()
-        HideHud()
-        ShowInGameHud()
-        local ok, err = pcall(BeginBoatIntro)
-        if not ok then
-            if Log then
-                Log("BeginBoatIntro failed: " .. tostring(err))
-            end
-            SetGameplayInputEnabled(true)
-        end
+        StartGameplay()
     end)
 
     UIManager.CreateImage(MenuPanel, -0.25, 0.4, 0.15, 0.25, "Asset/Texture/UI/Icon_book.png", "ParentRelative")
@@ -860,7 +805,7 @@ ShowHud = function()
     local RecordLabel = MakeHoverLabel(MenuPanel, 0.025, 0.18, 256, 28, "RECORD", 48.0, "RelativePos")
     RecordLabel:OnClick(function()
         HideHud()
-        ShowScoreboard(1557)
+        ShowScoreboard(LoadScoreManager().GetRecords())
     end)
 
     local ok, err = pcall(PrepareMenuPresentation)
@@ -870,6 +815,14 @@ ShowHud = function()
 end
 
 function OnStart(self)
+    local nextStartMode = _G.LogoHudNextStartMode
+    _G.LogoHudNextStartMode = nil
+
+    if nextStartMode == "Gameplay" then
+        StartGameplay()
+        return
+    end
+
     ShowHud()
 end
 
@@ -879,7 +832,6 @@ function OnUpdate(self, deltaTime)
         return
     end
 
-    UpdateBoatIntro(deltaTime)
     SyncGameplayHud()
     UpdateProgressBar(deltaTime)
     UpdateShipWheel(deltaTime)
@@ -903,20 +855,20 @@ function OnUpdate(self, deltaTime)
 
             ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
             HeartAnimIndex = 0
+            StartHeartAnimStep()
         elseif nextFrame ~= HeartAnimFrame then
             HeartAnimFrame = nextFrame
             ApplyHeartFrame(HeartAnimIndex, HeartAnimFrame)
         end
     end
 
-    if InGamePanel and not bIntroPlaying and GetHudHealth() <= 0 then
+    if InGamePanel and GetHudHealth() <= 0 and not bHeartAnimPlaying then
         ShowGameOver()
     end
 end
 
 function OnDestroy(self)
-    SetGameplayInputEnabled(false)
-    SetGameplayCameraFollowEnabled(false)
+    EnterUIMode()
     HideHud()
     HideScoreboard()
     HideGameOver()
