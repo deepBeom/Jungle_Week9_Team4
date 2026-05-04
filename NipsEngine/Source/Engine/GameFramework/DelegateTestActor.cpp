@@ -7,8 +7,8 @@ DEFINE_CLASS(ADelegateTestActor, AActor)
 void ADelegateTestActor::BeginPlay()
 {
     AActor::BeginPlay();
-    TestSinglecastDelegate();
-    TestMulticastDelegate();
+    // TestSinglecastDelegate();
+    // TestMulticastDelegate();
 }
 
 void ADelegateTestActor::Tick(float DeltaTime)
