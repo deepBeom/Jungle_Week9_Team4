@@ -1,13 +1,13 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 1969,
+  "NextUUID" : 2058,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
-    "Location" : [21.954185, 6.169722, 13.425189],
+    "Location" : [-42.507618, -0.183664, 18.286911],
     "NearClip" : 0.100000,
-    "Rotation" : [52.357555, -24.906647, -107.994812]
+    "Rotation" : [0.086514, 20.062609, -0.252197]
   },
   "Primitives" : {
     "1052" : {
@@ -701,17 +701,6 @@
       "UpdatedComponentUUID" : 139,
       "Velocity" : [-1.000000, 0.000000, 1.000000]
     },
-    "259" : {
-      "ActorClass" : "APawn",
-      "ActorTag" : "Boat",
-      "EditorOnly" : false,
-      "EnableTick" : true,
-      "HiddenInEditor" : false,
-      "Location" : [-15.763822, 0.000000, 0.132818],
-      "Rotation" : [0.000000, 0.000000, 0.000000],
-      "Scale" : [1.000000, 1.000000, 1.000000],
-      "Type" : "USceneComponent"
-    },
     "1968" : {
       "EditorOnly" : false,
       "EnableTick" : true,
@@ -722,13 +711,59 @@
       "Scale" : [1.000000, 1.000000, 1.000000],
       "Type" : "USceneComponent"
     },
+    "2055" : {
+      "ActorClass" : "AHeightFogActor",
+      "ActorTag" : "Untagged",
+      "EditorOnly" : false,
+      "Enable Cull" : true,
+      "EnableTick" : true,
+      "FogCutoffDistance" : 10000.000000,
+      "FogDensity" : 0.112500,
+      "FogHeight" : 0.000000,
+      "FogInscatteringColor" : [0.475600, 0.590000, 0.715600, 1.000000],
+      "FogMaxOpacity" : 0.900000,
+      "FogStartDistance" : 0.000000,
+      "HeightFalloff" : 0.000000,
+      "HiddenInEditor" : false,
+      "Location" : [0.000000, 0.000000, 0.000000],
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "UHeightFogComponent",
+      "Visible" : true
+    },
+    "2056" : {
+      "EditorOnly" : true,
+      "Enable Cull" : true,
+      "EnableTick" : true,
+      "Height" : 1.000000,
+      "HiddenInEditor" : true,
+      "Location" : [0.000000, 0.000000, 0.000000],
+      "ParentUUID" : 2055,
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Texture Path" : "Asset/Texture/Icons/S_ExpoHeightFog.PNG",
+      "Type" : "UBillboardComponent",
+      "Visible" : true,
+      "Width" : 1.000000
+    },
+    "259" : {
+      "ActorClass" : "APawn",
+      "ActorTag" : "Boat",
+      "EditorOnly" : false,
+      "EnableTick" : true,
+      "HiddenInEditor" : false,
+      "Location" : [-30.763823, 0.000000, 0.132818],
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "USceneComponent"
+    },
     "260" : {
       "EditorOnly" : false,
       "EnableTick" : true,
       "FOV" : 1.047198,
       "FarClip" : 1000.000000,
       "HiddenInEditor" : false,
-      "Location" : [-40.000000, 0.000000, 20.000000],
+      "Location" : [-25.000000, 0.000000, 20.000000],
       "NearClip" : 0.100000,
       "ParentUUID" : 259,
       "Rotation" : [0.000000, 33.690063, 0.000000],
