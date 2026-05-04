@@ -246,7 +246,6 @@ namespace
         const FVector ExplosionCenter = HazardActor->GetActorLocation();
         UWorld* World = HazardActor->GetFocusedWorld();
         LuaBinder::ApplyDriftSalvageDamage(2);
-        FSoundManager::Get().PlaySFX("Boom.mp3", 2.f);
         HazardActor->Destroy();
 
         if (World)

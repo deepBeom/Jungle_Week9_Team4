@@ -7,6 +7,7 @@
 #include "Component/ShapeComponent.h"
 #include "Core/ActorTags.h"
 #include "Core/Logging/Log.h"
+#include "Core/SoundManager.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 
@@ -280,6 +281,9 @@ void FExplosionSystem::TriggerImmediate(UWorld* World, const FVector& Center)
 {
     UE_LOG("[Explosion] center=(%.2f, %.2f, %.2f) radius=%.2f",
            Center.X, Center.Y, Center.Z, Radius);
+
+    // 실제 폭발 처리는 모두 이 함수로 모이므로 첫 폭발과 연쇄 폭발 모두 같은 소리를 낸다.
+    FSoundManager::Get().PlaySFX("Boom.mp3", 2.f);
 
     // 디버그 ring 추가 — 한 번 폭발할 때마다 시각화.
     FDebugRing Ring;

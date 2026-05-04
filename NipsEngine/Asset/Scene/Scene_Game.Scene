@@ -1,13 +1,13 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 4021,
+  "NextUUID" : 4123,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
-    "Location" : [697.909058, 58.532890, 32.263500],
+    "Location" : [6.161964, -1.356774, 11.822250],
     "NearClip" : 0.100000,
-    "Rotation" : [10.154480, -0.412140, -92.299774]
+    "Rotation" : [-4.023376, 20.895966, 11.155716]
   },
   "Primitives" : {
     "1052" : {
@@ -708,10 +708,10 @@
       "Enable Cull" : true,
       "EnableTick" : true,
       "FogCutoffDistance" : 10000.000000,
-      "FogDensity" : 0.011263,
+      "FogDensity" : 0.008447,
       "FogHeight" : 0.000000,
       "FogInscatteringColor" : [0.594500, 0.737500, 0.894500, 1.000000],
-      "FogMaxOpacity" : 0.387420,
+      "FogMaxOpacity" : 0.348678,
       "FogStartDistance" : 0.000000,
       "HeightFalloff" : 0.000000,
       "HiddenInEditor" : false,
@@ -1071,7 +1071,7 @@
       "Enable Cull" : true,
       "EnableTick" : true,
       "HiddenInEditor" : false,
-      "Location" : [26.809395, 1.149796, -2.217085],
+      "Location" : [30.972643, 4.266149, -2.217085],
       "Materials" : ["Asset/Mesh/Hazard/Hazard_Inst_1.matinst"],
       "NormalizeOnImport" : false,
       "ObjStaticMeshAsset" : "Asset/Mesh/Hazard/Hazard.obj",
