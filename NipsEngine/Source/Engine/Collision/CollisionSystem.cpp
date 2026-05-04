@@ -12,6 +12,7 @@
 #include "DriftSalvage/ExplosionSystem.h"
 #include "Engine/Scripting/LuaBinder.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/Pawn.h"
 #include "GameFramework/World.h"
 
 namespace
@@ -195,6 +196,10 @@ namespace
         constexpr float BoatRockKnockbackSpeed = 6.0f;
         if (UWorld* World = BoatActor->GetFocusedWorld())
         {
+            if (APawn* BoatPawn = Cast<APawn>(BoatActor))
+            {
+                BoatPawn->ResetBoatMovement();
+            }
             World->GetExplosionSystem().ApplyKnockback(BoatActor, Knockback * BoatRockKnockbackSpeed);
         }
 
@@ -252,6 +257,10 @@ namespace
             constexpr float BoatHazardKnockbackSpeed = 14.0f;
             if (!Knockback.IsNearlyZero())
             {
+                if (APawn* BoatPawn = Cast<APawn>(BoatActor))
+                {
+                    BoatPawn->ResetBoatMovement();
+                }
                 World->GetExplosionSystem().ApplyKnockback(BoatActor, Knockback * BoatHazardKnockbackSpeed);
             }
             // 3) 폭발 트리거: 반경 안의 Trash/Resource/Recyclable/Premium에 push, 다른 Hazard는 거리 비례 딜레이로 연쇄.
@@ -295,11 +304,13 @@ namespace
             }
         }
 
-        UE_LOG("[CollectByBoatOverlap] name=%s tag=%s",
-               *Collectible->GetName(),
-               Collectible->GetTag().c_str());
-        LuaBinder::ApplyDriftSalvagePickup(Collectible->GetTag());
-        Collectible->Destroy();
+        if (LuaBinder::TryApplyDriftSalvagePickup(Collectible->GetTag()))
+        {
+            UE_LOG("[CollectByBoatOverlap] name=%s tag=%s",
+                   *Collectible->GetName(),
+                   Collectible->GetTag().c_str());
+            Collectible->Destroy();
+        }
     }
 
     void DispatchScriptOverlapBegin(const FCollisionEvent& Event)

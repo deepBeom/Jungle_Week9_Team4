@@ -21,6 +21,7 @@ public:
     FVector GetForwardVector() const;
     FVector GetRightVector() const;
     FVector GetUpVector() const;
+    void ResetBoatMovement();
     void UpdateBoatMovement(
         float DeltaTime,
         float ThrottleInput,

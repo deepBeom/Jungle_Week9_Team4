@@ -48,19 +48,19 @@ namespace
     {
         if (ActorTag == ActorTags::Trash)
         {
-            OutValue = { 1.0f, 1 };
+            OutValue = { 10.0f, 1 };
             return true;
         }
 
         if (ActorTag == ActorTags::Resource)
         {
-            OutValue = { 2.0f, 5 };
+            OutValue = { 10.0f, 5 };
             return true;
         }
 
         if (ActorTag == ActorTags::Recyclable)
         {
-            OutValue = { 1.5f, 8 };
+            OutValue = { 5.0f, 8 };
             return true;
         }
 
@@ -796,20 +796,53 @@ void LuaBinder::ApplyDriftSalvageDamage(int32 Damage)
 
 void LuaBinder::ApplyDriftSalvagePickup(const FString& ActorTag)
 {
+    TryApplyDriftSalvagePickup(ActorTag);
+}
+
+bool LuaBinder::TryApplyDriftSalvagePickup(const FString& ActorTag)
+{
     if (ActorTag == ActorTags::Hazard)
     {
         ApplyDriftSalvageDamage(2);
-        return;
+        return true;
     }
 
     FDriftSalvageCargoValue CargoValue;
     if (!TryGetDriftSalvageCargoValue(ActorTag, CargoValue))
     {
-        return;
+        return false;
+    }
+
+    if (DriftSalvageStats.Weight + CargoValue.Weight > DriftSalvageWeightCapacity)
+    {
+        return false;
     }
 
     DriftSalvageStats.Weight += CargoValue.Weight;
     DriftSalvageStats.Money += CargoValue.Money;
+    return true;
+}
+
+float LuaBinder::GetDriftSalvagePickupWeight(const FString& ActorTag)
+{
+    FDriftSalvageCargoValue CargoValue;
+    return TryGetDriftSalvageCargoValue(ActorTag, CargoValue) ? CargoValue.Weight : 0.0f;
+}
+
+bool LuaBinder::CanApplyDriftSalvagePickup(const FString& ActorTag, float ReservedWeight)
+{
+    if (ActorTag == ActorTags::Hazard)
+    {
+        return true;
+    }
+
+    FDriftSalvageCargoValue CargoValue;
+    if (!TryGetDriftSalvageCargoValue(ActorTag, CargoValue))
+    {
+        return false;
+    }
+
+    return DriftSalvageStats.Weight + std::max(0.0f, ReservedWeight) + CargoValue.Weight <= DriftSalvageWeightCapacity;
 }
 
 int32 LuaBinder::GetDriftSalvageHealth()

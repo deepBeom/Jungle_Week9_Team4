@@ -38,6 +38,7 @@ private:
         FVector Control = FVector::ZeroVector;
         float Elapsed = 0.0f;
         float Duration = 0.0f;
+        float CargoWeight = 0.0f;
     };
 
     bool bSpaceHeld = false;
