@@ -58,6 +58,11 @@ cbuffer WaterMaterial : register(b2)
     float WorldUVScaleX;
     float WorldUVScaleY;
     float WorldUVBlendFactor;
+
+    float HorizonFadeStart;
+    float HorizonFadeEnd;
+    float NdotLFadeWidth;
+    float _WaterDirectionalFadePad0;
 }
 
 // t0/t1: optional water normal or noise textures.
@@ -241,6 +246,26 @@ float ComputeWaterDistanceAttenuation(float Distance, float Radius)
     return Attenuation * Attenuation;
 }
 
+float ComputeDirectionalSpecularFade(float3 NormalWS, float3 LightDirWS)
+{
+    const float FadeWidth = max(NdotLFadeWidth, 1.0e-4f);
+    const float NdotL = dot(NormalWS, LightDirWS);
+    const float NormalFacingFade = smoothstep(-FadeWidth, FadeWidth, NdotL);
+
+    float HorizonFade = 1.0f;
+    const float HorizonRange = HorizonFadeEnd - HorizonFadeStart;
+    if (abs(HorizonRange) > 1.0e-4f)
+    {
+        HorizonFade = smoothstep(HorizonFadeStart, HorizonFadeEnd, LightDirWS.z);
+    }
+    else
+    {
+        HorizonFade = (LightDirWS.z >= HorizonFadeEnd) ? 1.0f : 0.0f;
+    }
+
+    return NormalFacingFade * HorizonFade;
+}
+
 float3 ComputeDirectionalWaterSpecular(float3 NormalWS, float3 ViewDirWS)
 {
     float3 SpecularAccum = 0.0f.xxx;
@@ -255,7 +280,8 @@ float3 ComputeDirectionalWaterSpecular(float3 NormalWS, float3 ViewDirWS)
 
         const float3 LightDirWS = normalize(Light.Direction);
         const float Spec = ComputeWaterSpecular(NormalWS, ViewDirWS, LightDirWS, WaterSpecularPower);
-        SpecularAccum += Light.Color * (Light.Intensity * Spec);
+        const float DirectionalFade = ComputeDirectionalSpecularFade(NormalWS, LightDirWS);
+        SpecularAccum += Light.Color * (Light.Intensity * Spec * DirectionalFade);
     }
     return SpecularAccum;
 }

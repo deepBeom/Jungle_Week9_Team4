@@ -30,6 +30,9 @@ struct FWaterSurfaceProfile
     float WaterFresnelPower = 5.0f;
     float WaterFresnelIntensity = 0.45f;
     float WaterLightContributionScale = 1.0f;
+    float HorizonFadeStart = -0.08f;
+    float HorizonFadeEnd = 0.06f;
+    float NdotLFadeWidth = 0.08f;
     bool bEnableWaterSpecular = true;
 };
 

@@ -226,6 +226,9 @@ void AGlobalOceanActor::GetEditableProperties(TArray<FPropertyDescriptor>& OutPr
     OutProps.push_back({ "Ocean.WaterFresnelPower", EPropertyType::Float, &GlobalWaterProfile.WaterFresnelPower, 1.0f, 16.0f, 0.1f });
     OutProps.push_back({ "Ocean.WaterFresnelIntensity", EPropertyType::Float, &GlobalWaterProfile.WaterFresnelIntensity, 0.0f, 10.0f, 0.01f });
     OutProps.push_back({ "Ocean.WaterLightContributionScale", EPropertyType::Float, &GlobalWaterProfile.WaterLightContributionScale, 0.0f, 10.0f, 0.01f });
+    OutProps.push_back({ "Ocean.HorizonFadeStart", EPropertyType::Float, &GlobalWaterProfile.HorizonFadeStart, -1.0f, 1.0f, 0.01f });
+    OutProps.push_back({ "Ocean.HorizonFadeEnd", EPropertyType::Float, &GlobalWaterProfile.HorizonFadeEnd, -1.0f, 1.0f, 0.01f });
+    OutProps.push_back({ "Ocean.NdotLFadeWidth", EPropertyType::Float, &GlobalWaterProfile.NdotLFadeWidth, 0.001f, 1.0f, 0.005f });
     OutProps.push_back({ "Ocean.EnableWaterSpecular", EPropertyType::Bool, &GlobalWaterProfile.bEnableWaterSpecular });
 }
 

@@ -33,6 +33,9 @@ void UWaterComponent::Serialize(FArchive& Ar)
     Ar << "WaterFresnelPower" << SurfaceProfile.WaterFresnelPower;
     Ar << "WaterFresnelIntensity" << SurfaceProfile.WaterFresnelIntensity;
     Ar << "WaterLightContributionScale" << SurfaceProfile.WaterLightContributionScale;
+    Ar << "HorizonFadeStart" << SurfaceProfile.HorizonFadeStart;
+    Ar << "HorizonFadeEnd" << SurfaceProfile.HorizonFadeEnd;
+    Ar << "NdotLFadeWidth" << SurfaceProfile.NdotLFadeWidth;
     Ar << "EnableWaterSpecular" << SurfaceProfile.bEnableWaterSpecular;
 }
 
@@ -63,6 +66,9 @@ void UWaterComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProp
     OutProps.push_back({ "WaterFresnelPower", EPropertyType::Float, &SurfaceProfile.WaterFresnelPower, 1.0f, 16.0f, 0.1f });
     OutProps.push_back({ "WaterFresnelIntensity", EPropertyType::Float, &SurfaceProfile.WaterFresnelIntensity, 0.0f, 10.0f, 0.01f });
     OutProps.push_back({ "WaterLightContributionScale", EPropertyType::Float, &SurfaceProfile.WaterLightContributionScale, 0.0f, 10.0f, 0.01f });
+    OutProps.push_back({ "HorizonFadeStart", EPropertyType::Float, &SurfaceProfile.HorizonFadeStart, -1.0f, 1.0f, 0.01f });
+    OutProps.push_back({ "HorizonFadeEnd", EPropertyType::Float, &SurfaceProfile.HorizonFadeEnd, -1.0f, 1.0f, 0.01f });
+    OutProps.push_back({ "NdotLFadeWidth", EPropertyType::Float, &SurfaceProfile.NdotLFadeWidth, 0.001f, 1.0f, 0.005f });
     OutProps.push_back({ "EnableWaterSpecular", EPropertyType::Bool, &SurfaceProfile.bEnableWaterSpecular });
 }
 
@@ -93,6 +99,9 @@ void UWaterComponent::FillWaterUniformData(FWaterUniformData& OutData, float Tim
     OutData.WaterFresnelPower = SurfaceProfile.WaterFresnelPower;
     OutData.WaterFresnelIntensity = SurfaceProfile.WaterFresnelIntensity;
     OutData.WaterLightContributionScale = SurfaceProfile.WaterLightContributionScale;
+    OutData.HorizonFadeStart = SurfaceProfile.HorizonFadeStart;
+    OutData.HorizonFadeEnd = SurfaceProfile.HorizonFadeEnd;
+    OutData.NdotLFadeWidth = SurfaceProfile.NdotLFadeWidth;
     OutData.bEnableWaterSpecular = SurfaceProfile.bEnableWaterSpecular ? 1u : 0u;
     OutData.WaterLocalLightCount = LocalLightCount;
 }
