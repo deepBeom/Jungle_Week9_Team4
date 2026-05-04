@@ -806,7 +806,7 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
             FCollisionPair Pair(A, B);
             CurrentOverlaps.insert(Pair);
 
-            if (PreviousOverlaps.find(Pair) == PreviousOverlaps.end())
+            if (bHasInitializedOverlaps && PreviousOverlaps.find(Pair) == PreviousOverlaps.end())
             {
                 HandleBeginOverlap(A, B);
 
@@ -859,10 +859,13 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
             PreviousOverlaps.insert(Pair);
         }
     }
+
+    bHasInitializedOverlaps = true;
 }
 
 void FCollisionSystem::Reset()
 {
+    bHasInitializedOverlaps = false;
     PreviousOverlaps.clear();
     DebugContacts.clear();
     DebugLines.clear();
