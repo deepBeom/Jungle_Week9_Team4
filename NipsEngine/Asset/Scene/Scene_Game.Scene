@@ -1145,7 +1145,7 @@
       "Enable Cull" : true,
       "EnableTick" : true,
       "HiddenInEditor" : false,
-      "Location" : [0.000000, 0.000000, 7.500000],
+      "Location" : [0.000000, 0.000000, 0.00000],
       "Materials" : ["Asset/Mesh/Boat/Boat_Inst_0.matinst", "Asset/Mesh/Boat/Boat_Inst_1.matinst", "Asset/Mesh/Boat/Boat_Inst_2.matinst"],
       "NormalizeOnImport" : false,
       "ObjStaticMeshAsset" : "Asset/Mesh/Boat/Boat.obj",

@@ -1,4 +1,4 @@
-#include "FloatingMovementComponent.h"
+﻿#include "FloatingMovementComponent.h"
 
 #include <cmath>
 
@@ -65,8 +65,7 @@ void UFloatingMovementComponent::TickComponent(float DeltaTime)
     // Drift를 증분으로 적용해 외부 이동 시스템(BoatInputSystem 등)과 공존.
     // XY는 현재 위치 기준으로 유지하고, Z만 BaseLocation.Z 기준으로 Floating 효과 적용.
     const FVector DriftDelta = DriftDirection.GetSafeNormal2D() * (DriftSpeed * DeltaTime);
-    FVector NewLocation = UpdatedComponent->GetWorldLocation() + DriftDelta;
-    NewLocation.Z = BaseLocation.Z + BobWave * BobAmplitude;
+    FVector NewLocation = UpdatedComponent->GetWorldLocation();
     UpdatedComponent->SetWorldLocation(NewLocation);
 
     FVector NewRotation = BaseRotation;
