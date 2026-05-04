@@ -4,12 +4,12 @@ local look_speed = 0.001
 local min_pitch = -1.4
 local max_pitch = 1.4
 
-local boat_forward_accel = 120.0
+local boat_forward_accel = 200.0
 local boat_reverse_accel = 70.0
 local boat_brake_accel = 150.0
-local boat_linear_drag = 45.0
-local boat_turn_accel = 220.0
-local boat_turn_drag = 260.0
+local boat_linear_drag = 20.0
+local boat_turn_accel = 500.0
+local boat_turn_drag = 100.0
 local boat_max_forward_speed = 120.0
 local boat_max_reverse_speed = 45.0
 local boat_max_yaw_speed = 110.0
