@@ -1,15 +1,29 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 898,
+  "NextUUID" : 1309,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
-    "Location" : [3.979011, 19.522879, 7.128294],
+    "Location" : [904.282104, 169.530304, 157.830414],
     "NearClip" : 0.100000,
-    "Rotation" : [-39.748840, -18.640045, -68.977264]
+    "Rotation" : [37.050640, -4.771179, -96.287292]
   },
   "Primitives" : {
+    "1062" : {
+      "ConstrainToPlane" : false,
+      "EditorOnly" : false,
+      "EnableTick" : true,
+      "HiddenInEditor" : false,
+      "OwnerRootUUID" : 978,
+      "PivotTranslation" : [0.000000, 0.000000, 0.000000],
+      "RotationInLocalSpace" : true,
+      "RotationRate" : [0.000000, 0.000000, 45.000000],
+      "Type" : "URotatingMovementComponent",
+      "UpdateOnlyIfRendered" : false,
+      "UpdatedComponentUUID" : 978,
+      "Velocity" : [-1.000000, 0.000000, 1.000000]
+    },
     "107" : {
       "ActorClass" : "ASceneActor",
       "ActorTag" : "Untagged",
@@ -968,6 +982,65 @@
       "ShapeColor" : [0.000000, 1.000000, 0.000000, 1.000000],
       "Type" : "UBoxComponent",
       "Visible" : true
+    },
+    "975" : {
+      "ActorClass" : "AStaticMeshActor",
+      "ActorTag" : "Untagged",
+      "EditorOnly" : false,
+      "Enable Cull" : true,
+      "EnableTick" : true,
+      "HiddenInEditor" : false,
+      "Location" : [1000.000000, 0.000000, 46.457211],
+      "Materials" : ["Material.004"],
+      "NormalizeOnImport" : false,
+      "ObjStaticMeshAsset" : "Asset/Mesh/LightHouse/Meshy_AI_Highly_detailed_reali_0504004639_texture.obj",
+      "Rotation" : [90.000000, 0.000000, 0.000000],
+      "Scale" : [50.000000, 50.000000, 50.000000],
+      "Scroll U" : 0.000000,
+      "Scroll V" : 0.000000,
+      "Type" : "UStaticMeshComponent",
+      "Visible" : true
+    },
+    "978" : {
+      "ActorClass" : "ASpotLightActor",
+      "ActorTag" : "Untagged",
+      "AttenuationRadius" : 482.000000,
+      "CastShadows" : false,
+      "DebugLine" : true,
+      "EditorOnly" : false,
+      "EnableTick" : true,
+      "HiddenInEditor" : false,
+      "InnerConeAngle" : 18.700001,
+      "Intensity" : 19.299999,
+      "LightColor" : [1.000000, 1.000000, 1.000000, 1.000000],
+      "LightFalloffExponent" : 1.250000,
+      "LightType" : 2,
+      "Location" : [1000.601074, 4.471292, 79.255394],
+      "OuterConeAngle" : 26.000000,
+      "Rotation" : [-0.000000, 61.996307, -0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "ShadowBias" : 0.012000,
+      "ShadowResolutionScale" : 4.000000,
+      "ShadowSharpen" : 0.500000,
+      "ShadowSlopeBias" : 1.000000,
+      "Type" : "USpotLightComponent",
+      "Visible" : true,
+      "bShadowTexelSnapped" : true
+    },
+    "979" : {
+      "EditorOnly" : true,
+      "Enable Cull" : true,
+      "EnableTick" : true,
+      "Height" : 1.000000,
+      "HiddenInEditor" : true,
+      "Location" : [0.000000, 0.000000, 0.000000],
+      "ParentUUID" : 978,
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Texture Path" : "Asset/Texture/Icons/S_LightSpot.PNG",
+      "Type" : "UBillboardComponent",
+      "Visible" : true,
+      "Width" : 1.000000
     }
   },
   "Version" : 4
