@@ -700,6 +700,21 @@ namespace
             "GetUpVector", [](APawn* Pawn)
             {
                 return Pawn ? Pawn->GetUpVector() : FVector(0.0f, 0.0f, 1.0f);
+            },
+            "UpdateBoatMovement", [](APawn* Pawn, float DeltaTime, float ThrottleInput, float SteerInput, float Mass)
+            {
+                if (Pawn)
+                {
+                    Pawn->UpdateBoatMovement(DeltaTime, ThrottleInput, SteerInput, Mass);
+                }
+            },
+            "GetBoatForwardSpeed", [](APawn* Pawn)
+            {
+                return Pawn ? Pawn->GetBoatForwardSpeed() : 0.0f;
+            },
+            "GetBoatYawSpeed", [](APawn* Pawn)
+            {
+                return Pawn ? Pawn->GetBoatYawSpeed() : 0.0f;
             });
     }
 }

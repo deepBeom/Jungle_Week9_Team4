@@ -21,7 +21,12 @@ public:
     FVector GetForwardVector() const;
     FVector GetRightVector() const;
     FVector GetUpVector() const;
+    void UpdateBoatMovement(float DeltaTime, float ThrottleInput, float SteerInput, float Mass);
+    float GetBoatForwardSpeed() const { return BoatForwardSpeed; }
+    float GetBoatYawSpeed() const { return BoatYawSpeed; }
 
 private:
     FString ControllerScriptPath = "Asset/Scripts/PlayerController.lua";
+    float BoatForwardSpeed = 0.0f;
+    float BoatYawSpeed = 0.0f;
 };

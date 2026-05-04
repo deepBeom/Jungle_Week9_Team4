@@ -1,11 +1,35 @@
-local move_speed = 0.5
-local turn_speed = 1.0
+local base_mass = 1.0                    -- 배의 최소 질량입니다. 실제 질량은 base_mass + cargo weight 입니다.
+
 local look_speed = 0.001
 local min_pitch = -1.4
 local max_pitch = 1.4
 local orbit_yaw = nil
 local orbit_pitch = nil
 local orbit_radius = nil
+
+local function clamp(value, min_value, max_value)
+    if value < min_value then
+        return min_value
+    end
+
+    if value > max_value then
+        return max_value
+    end
+
+    return value
+end
+
+local function get_cargo_weight()
+    if GetDriftSalvageWeight then
+        return math.max(0.0, GetDriftSalvageWeight())
+    end
+
+    return 0.0
+end
+
+local function get_effective_mass()
+    return math.max(1.0, base_mass + get_cargo_weight())
+end
 
 local function get_components()
     if Pawn == nil then
@@ -15,34 +39,38 @@ local function get_components()
     return Pawn:GetRootComponent(), Pawn:GetCharacterComponent(), Pawn:GetCameraComponent()
 end
 
-function OnKeyDown(key)
+local function get_input_axis(negative_key, positive_key)
+    local value = 0.0
+    if Input.GetKey(negative_key) then
+        value = value - 1.0
+    end
+    if Input.GetKey(positive_key) then
+        value = value + 1.0
+    end
+    return value
+end
+
+function OnUpdate(delta_time)
     local root, mesh, camera = get_components()
-    if root == nil or mesh == nil then
+    if root == nil or mesh == nil or Pawn == nil then
         return
     end
 
-    local forward = mesh:GetForwardVector()
-    forward.Z = 0.0
+    local dt = clamp(delta_time or 0.0, 0.0001, 0.05)
+    local throttle_input = get_input_axis("S", "W")
+    local steer_input = get_input_axis("A", "D")
+    local mass = get_effective_mass()
 
-    local forwardLength = math.sqrt(forward.X * forward.X + forward.Y * forward.Y)
-    if forwardLength <= 0.0001 then
-        return
-    end
+    Pawn:UpdateBoatMovement(dt, throttle_input, steer_input, mass)
+end
 
-    forward.X = forward.X / forwardLength
-    forward.Y = forward.Y / forwardLength
-
-    if key == "W" then root:AddWorldOffset(forward.X * move_speed, forward.Y * move_speed, forward.Z * move_speed) end
-    if key == "S" then root:AddWorldOffset(-forward.X * move_speed, -forward.Y * move_speed, -forward.Z * move_speed) end
-    if key == "A" then mesh:Rotate(-turn_speed, 0.0) end
-    if key == "D" then mesh:Rotate(turn_speed, 0.0) end
+function OnKeyDown(key)
 end
 
 function OnKeyUp(key)
 end
 
 function OnMouseMove(delta_x, delta_y, mouse_x, mouse_y)
-
     local root, mesh, camera = get_components()
     if root == nil or camera == nil then
         return
