@@ -323,7 +323,8 @@ namespace
             ParamName == "DiffuseMap" ||
             ParamName == "NormalMap" ||
             ParamName == "bHasNormalMap" ||
-            ParamName == "EmissiveColor";
+            ParamName == "EmissiveColor" ||
+            ParamName == "DecalLightFloor";
     }
 
     bool ShouldProcessMaterialParam(EMaterialDomain MaterialDomain, const FString& ParamName)
@@ -364,6 +365,11 @@ namespace
             if (!Material->GetParam("EmissiveColor", ExistingParamValue))
             {
                 Material->SetParam("EmissiveColor", FMaterialParamValue(FVector::ZeroVector));
+            }
+
+            if (!Material->GetParam("DecalLightFloor", ExistingParamValue))
+            {
+                Material->SetParam("DecalLightFloor", FMaterialParamValue(0.0f));
             }
 
             if (!Material->GetParam("DiffuseMap", ExistingParamValue))

@@ -1,6 +1,7 @@
 ﻿#include "EditorComponentFactory.h"
 
 #include "Component/BillboardComponent.h"
+#include "Component/BoatWakeComponent.h"
 #include "Component/HeightFogComponent.h"
 #include "Component/Light/AmbientLightComponent.h"
 #include "Component/Light/DirectionalLightComponent.h"
@@ -161,6 +162,7 @@ namespace
         { "SubUV Component", "Common", &RegisterSubUVComponent },
         { "TextRender Component", "Common", &RegisterTextRenderComponent },
         { "Billboard Component", "Common", &RegisterBillboardComponent },
+        { "BoatWake Component", "Common", &RegisterSimple<UBoatWakeComponent> },
         { "Water Component", "Common", &RegisterSimple<UWaterComponent> },
         { "HeightFog Component", "Common", &RegisterHeightFogComponent },
         { "SkyAtmosphere Component", "Common", &RegisterSimple<USkyAtmosphereComponent> },

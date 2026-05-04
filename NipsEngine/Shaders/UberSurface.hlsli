@@ -36,6 +36,9 @@ cbuffer UberMaterial : register(b2)
 
     float3 EmissiveColor;
     uint bHasNormalMap;
+
+    float DecalLightFloor;
+    float3 _UberMaterialPad0;
 }
 
 Texture2D DiffuseMap : register(t0);

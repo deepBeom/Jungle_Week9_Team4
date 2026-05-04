@@ -1004,6 +1004,8 @@ FUberDecalPSOutput mainPS(FUberPSInput Input)
     {
         const FLightingResult Lighting = EvaluateLightingFromWorld(Surface.WorldPos, Surface.WorldNormal, Input.ClipPos.xy);
         FinalColor = ApplyLighting(Surface, Lighting);
+        // Keep wake decals from collapsing to black when directional lighting misses the water plane at night.
+        FinalColor = max(FinalColor, Surface.Albedo * DecalLightFloor);
     }
 
     if (Surface.bIsEmissive != 0u)
