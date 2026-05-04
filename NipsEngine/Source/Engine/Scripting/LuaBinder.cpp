@@ -754,6 +754,29 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 
         return nullptr;
     });
+    
+    Lua.set_function("FindActorsByTag", [](sol::this_state ts, const FString& Tag) -> sol::table
+    {
+        sol::state_view L(ts);
+        sol::table Result = L.create_table();
+
+        UWorld* World = GEngine ? GEngine->GetWorld() : nullptr;
+        if (!World)
+        {
+            return Result;
+        }
+
+        int32 Index = 1;
+        for (AActor* Actor : World->GetActors())
+        {
+            if (IsUsableActor(Actor) && Actor->CompareTag(Tag))
+            {
+                Result[Index++] = Actor;
+            }
+        }
+
+        return Result;
+    });
 
     Lua.set_function("RequestGameRestart", []()
     {
