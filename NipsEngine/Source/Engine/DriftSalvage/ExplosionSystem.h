@@ -82,10 +82,10 @@ private:
     TArray<FDebugRing> DebugRings;
 
     // 폭발 파라미터
-    float Radius              = 100.0f;
-    float InitialSpeed        = 2.0f;
-    float Damping             = 2.0f;   // exponential decay rate /s
-    float MinSpeed            = 0.05f;
-    float ChainShockwaveSpeed = 2.0f;   // delay = distance / this
-    float DebugRingLifetime   = 0.4f;
+    float Radius              = 20.0f; // 폭발 영햠 범위
+    float InitialSpeed        = 5.5f; // 주변 Collectible이 처음 받는 밀림 속도
+    float Damping             = 1.2f; // 밀리는 물체의 감속
+    float MinSpeed            = 0.05f; // 밀림 종료
+    float ChainShockwaveSpeed = 40.0f; // 거리 기반 딜레이
+    float DebugRingLifetime   = 2.0f;
 };
