@@ -40,7 +40,7 @@ namespace
     };
 
     constexpr int32 DriftSalvageMaxHealth = 3;
-    constexpr float DriftSalvageWeightCapacity = 30.0f;
+    constexpr float DriftSalvageWeightCapacity = 150.0f;
     FDriftSalvageStats DriftSalvageStats;
     bool bDriftSalvageGameOverRequested = false;
 
@@ -60,13 +60,13 @@ namespace
 
         if (ActorTag == ActorTags::Recyclable)
         {
-            OutValue = { 5.0f, 8 };
+            OutValue = { 5.0f, 5 };
             return true;
         }
 
         if (ActorTag == ActorTags::Premium)
         {
-            OutValue = { 1.0f, 20 };
+            OutValue = { 3.0f, 20 };
             return true;
         }
 
