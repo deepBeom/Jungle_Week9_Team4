@@ -1,4 +1,4 @@
-#include "Game/GameViewportClient.h"
+﻿#include "Game/GameViewportClient.h"
 
 #include "Engine/GameFramework/World.h"
 #include "Engine/Runtime/SceneView.h"
@@ -8,6 +8,18 @@ void FGameViewportClient::Initialize(FWindowsWindow* InWindow)
     FViewportClient::Initialize(InWindow);
 
     Camera = FViewportCamera();
+    Camera.SetLocation(FVector(-55.763822f, 0.0f, 20.132818f));
+    Camera.SetRotation(FQuat::MakeFromEuler(FVector(0.0f, 33.690063f, 0.0f)));
+    Camera.SetFOV(1.047198f);
+    Camera.SetNearPlane(0.1f);
+    Camera.SetFarPlane(1000.0f);
+    
+    if (InWindow)
+    {
+        FViewportClient::SetViewportSize(
+            static_cast<float>(InWindow->GetWidth()),
+            static_cast<float>(InWindow->GetHeight()));
+    }
     Camera.OnResize(static_cast<uint32>(WindowWidth), static_cast<uint32>(WindowHeight));
 
     InputRouter.SetMode(EViewportInputMode::Standalone);
@@ -56,6 +68,19 @@ void FGameViewportClient::SetWorld(UWorld* InWorld)
     {
         World->SetActiveCamera(&Camera);
     }
+}
+
+void FGameViewportClient::ResetInputState()
+{
+    InputRouter.GetGameInputController().Reset();
+    InputRouter.GetGameInputController().SetCamera(&Camera);
+    InputRouter.GetGameInputController().SetViewportRect(0.0f, 0.0f, WindowWidth, WindowHeight);
+    InputRouter.GetGameInputController().SetWorld(World);
+}
+
+void FGameViewportClient::SyncFollowCameraIfEnabled()
+{
+    InputRouter.GetGameInputController().SyncFollowCameraIfEnabled();
 }
 
 void FGameViewportClient::TickInput(float DeltaTime)

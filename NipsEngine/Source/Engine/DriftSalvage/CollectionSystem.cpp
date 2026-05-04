@@ -42,6 +42,14 @@ void FCollectionSystem::Tick(UWorld* World, float DeltaTime)
         return;
     }
 
+    if (!LuaBinder::IsGameplayInputEnabled())
+    {
+        bSpaceHeld = false;
+        bPrevSpace = false;
+        CurrentRadius = 0.0f;
+        return;
+    }
+
     InputSystem& Input = InputSystem::Get();
     const bool bSpaceNow = Input.GetKey(VK_SPACE);
 

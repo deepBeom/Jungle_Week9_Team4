@@ -189,14 +189,45 @@ float InputSystem::GetRightDragDistance() const
 // --- Mouse lock ------------------------------------------------
 void InputSystem::LockMouse(bool bLock, float x, float y, float w, float h)
 {
-    bIsMouseLocked = bLock;
-    if (bIsMouseLocked)
+    if (!bLock)
     {
-        auto WarpX = x + w * 0.5f;
-        auto WarpY = y + h * 0.5f;
-        LockedCenterScreen = {static_cast<LONG>(WarpX), static_cast<LONG>(WarpY)};
-        SetCursorPos(LockedCenterScreen.x, LockedCenterScreen.y);
+        if (bIsMouseLocked)
+        {
+            GetCursorPos(&MousePos);
+            PrevMousePos = MousePos;
+        }
+        bIsMouseLocked = false;
+        return;
     }
+
+    const auto WarpX = x + w * 0.5f;
+    const auto WarpY = y + h * 0.5f;
+    const POINT NewLockedCenterScreen = {static_cast<LONG>(WarpX), static_cast<LONG>(WarpY)};
+    const bool bLockJustEnabled =
+        !bIsMouseLocked ||
+        LockedCenterScreen.x != NewLockedCenterScreen.x ||
+        LockedCenterScreen.y != NewLockedCenterScreen.y;
+
+    bIsMouseLocked = true;
+    LockedCenterScreen = NewLockedCenterScreen;
+    SetCursorPos(LockedCenterScreen.x, LockedCenterScreen.y);
+
+    if (bLockJustEnabled)
+    {
+        CenterMouseInLockedRegion();
+    }
+}
+
+void InputSystem::CenterMouseInLockedRegion()
+{
+    if (!bIsMouseLocked)
+    {
+        return;
+    }
+
+    SetCursorPos(LockedCenterScreen.x, LockedCenterScreen.y);
+    MousePos = LockedCenterScreen;
+    PrevMousePos = LockedCenterScreen;
 }
 
 void InputSystem::SetCursorVisibility(bool bVisible)

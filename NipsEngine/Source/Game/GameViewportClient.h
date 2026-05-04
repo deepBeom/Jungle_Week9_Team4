@@ -21,6 +21,8 @@ public:
     UWorld* GetWorld() const { return World; }
 
     FViewportCamera& GetCamera() { return Camera; }
+    void ResetInputState();
+    void SyncFollowCameraIfEnabled();
 
 private:
     void TickInput(float DeltaTime);

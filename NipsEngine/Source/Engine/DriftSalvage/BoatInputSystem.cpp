@@ -1,7 +1,10 @@
 ﻿#include "DriftSalvage/BoatInputSystem.h"
 
+#include <Windows.h>
+
 #include "Core/ActorTags.h"
 #include "Engine/Input/InputSystem.h"
+#include "Engine/Scripting/LuaBinder.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/World.h"
 
@@ -31,6 +34,11 @@ void FBoatInputSystem::Tick(UWorld* World, float DeltaTime)
         return;
     }
 
+    if (!LuaBinder::IsGameplayInputEnabled())
+    {
+        return;
+    }
+
     AActor* Boat = FindBoat(World);
     if (!Boat)
     {
@@ -40,10 +48,10 @@ void FBoatInputSystem::Tick(UWorld* World, float DeltaTime)
     InputSystem& Input = InputSystem::Get();
 
     FVector Delta = FVector::ZeroVector;
-    if (Input.GetKey('W')) { Delta.X += 1.0f; }
-    if (Input.GetKey('S')) { Delta.X -= 1.0f; }
-    if (Input.GetKey('D')) { Delta.Y += 1.0f; }
-    if (Input.GetKey('A')) { Delta.Y -= 1.0f; }
+    if (Input.GetKey('W') || Input.GetKey(VK_UP)) { Delta.X += 1.0f; }
+    if (Input.GetKey('S') || Input.GetKey(VK_DOWN)) { Delta.X -= 1.0f; }
+    if (Input.GetKey('D') || Input.GetKey(VK_RIGHT)) { Delta.Y += 1.0f; }
+    if (Input.GetKey('A') || Input.GetKey(VK_LEFT)) { Delta.Y -= 1.0f; }
 
     if (Delta.IsNearlyZero())
     {
