@@ -36,7 +36,7 @@ function OnMouseMove(delta_x, delta_y, mouse_x, mouse_y)
         return
     end
 
-    // TODO: 카메라의 Orbit 회전 추가
+    -- TODO: 카메라의 Orbit 회전 추가
 end
 
 function OnMouseClick(button, is_pressed, mouse_x, mouse_y)
