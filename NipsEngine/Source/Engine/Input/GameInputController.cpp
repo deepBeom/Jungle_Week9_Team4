@@ -35,13 +35,31 @@ void FGameInputController::SetViewportRect(float InX, float InY, float InWidth, 
     ViewportHeight = InHeight;
 }
 
-void FGameInputController::SetScriptPath(const FString& InScriptPath)
+void FGameInputController::SetDefaultControllerScriptPath(const FString& InScriptPath)
 {
-    ScriptPath = InScriptPath;
+    DefaultControllerScriptPath = InScriptPath;
     bScriptLoadAttempted = false;
     bScriptLoaded = false;
+    ActiveControllerScriptPath.clear();
     LoadedScriptPath.clear();
     ScriptEnvironment = sol::environment();
+}
+
+void FGameInputController::SetUIMode(bool bInUIMode)
+{
+    if (bUIMode == bInUIMode)
+    {
+        return;
+    }
+
+    bUIMode = bInUIMode;
+    LuaBinder::SetUIMode(bUIMode);
+    MouseInputWarmupFrames = 0;
+    if (!bUIMode)
+    {
+        BeginGameplayInputWarmup();
+    }
+    ApplyUIModeState();
 }
 
 void FGameInputController::Tick(float DeltaTime)
@@ -58,13 +76,22 @@ void FGameInputController::Tick(float DeltaTime)
         return;
     }
 
-    EnsureScriptLoaded();
-
     InputSystem& Input = InputSystem::Get();
+    const bool bRequestedUIMode = LuaBinder::IsUIMode();
+    if (bUIMode != bRequestedUIMode)
+    {
+        bUIMode = bRequestedUIMode;
+        MouseInputWarmupFrames = 0;
+        if (!bUIMode)
+        {
+            BeginGameplayInputWarmup();
+        }
+    }
+
+    RefreshControlledPawn();
 
     if (LuaBinder::IsGameplayCameraFollowEnabled())
     {
-        RefreshControlledPawn();
         SyncViewportCameraFromPawn();
     }
     else
@@ -87,37 +114,17 @@ void FGameInputController::Tick(float DeltaTime)
         }
     }
 
-    const bool bGameplayInputEnabled = LuaBinder::IsGameplayInputEnabled();
-    const bool bGameplayInputJustEnabled = bGameplayInputEnabled && !bWasGameplayInputEnabled;
-
-    if (!bGameplayInputEnabled)
+    ApplyUIModeState();
+    if (bUIMode)
     {
-        bWasGameplayInputEnabled = false;
-        MouseInputWarmupFrames = 0;
-        SetCursorHidden(false);
-        SetMouseLocked(false);
         return;
     }
 
-    SetCursorHidden(true);
-    SetMouseLocked(true);
+    ActiveControllerScriptPath = ResolveActiveControllerScriptPath();
+    EnsureScriptLoaded();
 
-    if (bGameplayInputJustEnabled)
+    if (TickGameplayInputWarmup(Input))
     {
-        ResetControlledPawnViewToStartup();
-        SyncViewportCameraFromPawn();
-        MouseInputWarmupFrames = GameplayMouseInputWarmupFrameCount;
-        Input.CenterMouseInLockedRegion();
-        bWasGameplayInputEnabled = true;
-        return;
-    }
-
-    bWasGameplayInputEnabled = true;
-
-    if (MouseInputWarmupFrames > 0)
-    {
-        --MouseInputWarmupFrames;
-        Input.CenterMouseInLockedRegion();
         return;
     }
 
@@ -130,14 +137,7 @@ void FGameInputController::Tick(float DeltaTime)
     CachedLocalMouseX = static_cast<float>(MousePoint.x) - ViewportX;
     CachedLocalMouseY = static_cast<float>(MousePoint.y) - ViewportY;
 
-    if (bScriptLoaded)
-    {
-        TickLuaInput(Input);
-    }
-    else
-    {
-        TickFallbackInput(Input);
-    }
+    TickLuaInput(Input);
 
     ApplyPendingMovement(DeltaTime);
     if (LuaBinder::IsGameplayCameraFollowEnabled())
@@ -184,38 +184,6 @@ void FGameInputController::TickLuaInput(InputSystem& Input)
     }
 }
 
-void FGameInputController::TickFallbackInput(InputSystem& Input)
-{
-    for (int32 KeyCode : WatchedKeys)
-    {
-        if (Input.GetKey(KeyCode))
-        {
-            ApplyFallbackKeyDown(KeyCode);
-        }
-    }
-
-    if (Input.MouseMoved())
-    {
-        const float DeltaX = static_cast<float>(Input.MouseDeltaX());
-        const float DeltaY = static_cast<float>(Input.MouseDeltaY());
-        ApplyFallbackMouseMove(DeltaX, DeltaY);
-    }
-
-    for (int32 MouseButton : WatchedMouseButtons)
-    {
-        const char* ButtonName = GetMouseButtonName(MouseButton);
-        if (Input.GetKeyDown(MouseButton))
-        {
-            ApplyFallbackMouseClick(ButtonName, true);
-        }
-
-        if (Input.GetKeyUp(MouseButton))
-        {
-            ApplyFallbackMouseClick(ButtonName, false);
-        }
-    }
-}
-
 void FGameInputController::Reset()
 {
     PendingForward = 0.0f;
@@ -223,18 +191,18 @@ void FGameInputController::Reset()
     PendingUp = 0.0f;
     PendingYaw = 0.0f;
     PendingPitch = 0.0f;
-    bRequestsCursorHidden = false;
-    bRequestsMouseLock = false;
-    bAllowsCursorHidden = true;
-    bAllowsMouseLock = true;
-    bWasGameplayInputEnabled = false;
+    bUIMode = false;
     MouseInputWarmupFrames = 0;
-    ApplyCursorVisibilityState();
-    ApplyMouseLockState();
+    LuaBinder::SetUIMode(false);
+    BeginGameplayInputWarmup();
+    ApplyUIModeState();
     ControlledPawn = nullptr;
     ControlledCameraComponent = nullptr;
-    StartupViewPawn = nullptr;
-    bHasStartupViewRotation = false;
+    bScriptLoadAttempted = false;
+    bScriptLoaded = false;
+    ActiveControllerScriptPath.clear();
+    LoadedScriptPath.clear();
+    ScriptEnvironment = sol::environment();
     SyncAnglesFromCamera();
 }
 
@@ -247,30 +215,6 @@ void FGameInputController::SyncFollowCameraIfEnabled()
 
     RefreshControlledPawn();
     SyncViewportCameraFromPawn();
-}
-
-void FGameInputController::SetCursorHidden(bool bHidden)
-{
-    bRequestsCursorHidden = bHidden;
-    ApplyCursorVisibilityState();
-}
-
-void FGameInputController::SetMouseLocked(bool bLocked)
-{
-    bRequestsMouseLock = bLocked;
-    ApplyMouseLockState();
-}
-
-void FGameInputController::SetCursorHiddenAllowed(bool bAllowed)
-{
-    bAllowsCursorHidden = bAllowed;
-    ApplyCursorVisibilityState();
-}
-
-void FGameInputController::SetMouseLockAllowed(bool bAllowed)
-{
-    bAllowsMouseLock = bAllowed;
-    ApplyMouseLockState();
 }
 
 void FGameInputController::RefreshControlledPawn()
@@ -328,13 +272,11 @@ void FGameInputController::CaptureStartupViewIfNeeded(bool bForceCapture)
         return;
     }
 
-    if (!bForceCapture && bHasStartupViewRotation && StartupViewPawn == ControlledPawn)
+    if (!bForceCapture)
     {
         return;
     }
 
-    StartupViewPawn = ControlledPawn;
-    bHasStartupViewRotation = true;
     StartupPawnRotation = ControlledPawn->GetActorRotation();
     StartupCameraRelativeRotation = ControlledCameraComponent->GetRelativeRotation();
 }
@@ -343,7 +285,7 @@ void FGameInputController::ResetControlledPawnViewToStartup()
 {
     RefreshControlledPawn();
 
-    if (!ControlledPawn || !ControlledCameraComponent || !bHasStartupViewRotation)
+    if (!ControlledPawn || !ControlledCameraComponent)
     {
         return;
     }
@@ -381,22 +323,16 @@ void FGameInputController::SyncViewportCameraFromPawn()
     }
 }
 
-void FGameInputController::ApplyCursorVisibilityState()
+void FGameInputController::ApplyUIModeState()
 {
-    const bool bShouldHideCursor = bRequestsCursorHidden && bAllowsCursorHidden;
-    bCursorHidden = bShouldHideCursor;
+    const bool bGameplayInputActive = !bUIMode;
+    bCursorHidden = bGameplayInputActive;
+    bMouseLocked = bGameplayInputActive;
 
     InputSystem& Input = InputSystem::Get();
-    Input.SetCursorVisibility(!bShouldHideCursor);
-}
+    Input.SetCursorVisibility(!bCursorHidden);
 
-void FGameInputController::ApplyMouseLockState()
-{
-    const bool bShouldLockMouse = bRequestsMouseLock && bAllowsMouseLock;
-    bMouseLocked = bShouldLockMouse;
-
-    InputSystem& Input = InputSystem::Get();
-    if (!bShouldLockMouse)
+    if (!bMouseLocked)
     {
         Input.LockMouse(false);
         return;
@@ -416,8 +352,40 @@ void FGameInputController::ApplyMouseLockState()
                     ViewportHeight);
 }
 
+void FGameInputController::BeginGameplayInputWarmup()
+{
+    ResetControlledPawnViewToStartup();
+    SyncViewportCameraFromPawn();
+    MouseInputWarmupFrames = GameplayMouseInputWarmupFrameCount;
+}
+
+bool FGameInputController::TickGameplayInputWarmup(InputSystem& Input)
+{
+    if (MouseInputWarmupFrames <= 0)
+    {
+        return false;
+    }
+
+    --MouseInputWarmupFrames;
+    Input.CenterMouseInLockedRegion();
+    return true;
+}
+
 void FGameInputController::EnsureScriptLoaded()
 {
+    if (ActiveControllerScriptPath.empty())
+    {
+        return;
+    }
+
+    if (LoadedScriptPath != ActiveControllerScriptPath)
+    {
+        bScriptLoadAttempted = false;
+        bScriptLoaded = false;
+        LoadedScriptPath.clear();
+        ScriptEnvironment = sol::environment();
+    }
+
     if (bScriptLoadAttempted)
     {
         return;
@@ -438,7 +406,7 @@ bool FGameInputController::LoadScript()
     ScriptEnvironment = sol::environment(Lua, sol::create, Lua.globals());
     InstallBindings();
 
-    LoadedScriptPath = ResolveScriptPath();
+    LoadedScriptPath = ResolveScriptPath(ActiveControllerScriptPath);
     sol::load_result LoadedScript = Lua.load_file(LoadedScriptPath);
     if (!LoadedScript.valid())
     {
@@ -488,19 +456,9 @@ void FGameInputController::InstallBindings()
         PendingPitch += Value;
     };
 
-    ScriptEnvironment["SetCursorHidden"] = [this](bool bHidden)
-    {
-        SetCursorHidden(bHidden);
-    };
-
     ScriptEnvironment["IsCursorHidden"] = [this]()
     {
         return bCursorHidden;
-    };
-
-    ScriptEnvironment["SetMouseLocked"] = [this](bool bLocked)
-    {
-        SetMouseLocked(bLocked);
     };
 
     ScriptEnvironment["IsMouseLocked"] = [this]()
@@ -529,56 +487,23 @@ void FGameInputController::InstallBindings()
     };
 }
 
-FString FGameInputController::ResolveScriptPath() const
+FString FGameInputController::ResolveScriptPath(const FString& InScriptPath) const
 {
-    return FPaths::ToAbsoluteString(FPaths::ToWide(FPaths::Normalize(ScriptPath)));
+    return FPaths::ToAbsoluteString(FPaths::ToWide(FPaths::Normalize(InScriptPath)));
 }
 
-void FGameInputController::ApplyFallbackKeyDown(int32 KeyCode)
+FString FGameInputController::ResolveActiveControllerScriptPath()
 {
-    switch (KeyCode)
+    if (ControlledPawn)
     {
-    case 'W':
-        PendingForward += 1.0f;
-        break;
-    case 'S':
-        PendingForward -= 1.0f;
-        break;
-    case 'D':
-        PendingRight += 1.0f;
-        break;
-    case 'A':
-        PendingRight -= 1.0f;
-        break;
-    case 'E':
-        PendingUp += 1.0f;
-        break;
-    case 'Q':
-        PendingUp -= 1.0f;
-        break;
-    default:
-        break;
-    }
-}
-
-void FGameInputController::ApplyFallbackMouseMove(float DeltaX, float DeltaY)
-{
-    if (!bMouseLocked)
-    {
-        return;
+        const FString& PawnScriptPath = ControlledPawn->GetControllerScriptPath();
+        if (!PawnScriptPath.empty())
+        {
+            return PawnScriptPath;
+        }
     }
 
-    PendingYaw += DeltaX;
-    PendingPitch -= DeltaY;
-}
-
-void FGameInputController::ApplyFallbackMouseClick(const char* ButtonName, bool bPressed)
-{
-    if (std::string_view(ButtonName) == "RightMouseButton")
-    {
-        SetCursorHidden(bPressed);
-        SetMouseLocked(bPressed);
-    }
+    return DefaultControllerScriptPath;
 }
 
 void FGameInputController::ApplyPendingMovement(float DeltaTime)

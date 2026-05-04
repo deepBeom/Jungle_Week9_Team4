@@ -1,4 +1,4 @@
-﻿#include "GameFramework/Pawn.h"
+#include "GameFramework/Pawn.h"
 
 #include "Component/CameraComponent.h"
 #include "Component/SceneComponent.h"
@@ -9,6 +9,8 @@ REGISTER_FACTORY(APawn)
 
 void APawn::InitDefaultComponents()
 {
+    ControllerScriptPath = "Asset/Scripts/PlayerController.lua";
+
     USceneComponent* RootComponent = AddComponent<USceneComponent>();
     SetRootComponent(RootComponent);
 

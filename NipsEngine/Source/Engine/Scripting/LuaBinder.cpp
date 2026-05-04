@@ -1,4 +1,4 @@
-﻿#include "Core/EnginePCH.h"
+#include "Core/EnginePCH.h"
 #include "Engine/Scripting/LuaBinder.h"
 
 #include "Engine/Component/ActorComponent.h"
@@ -16,7 +16,7 @@
 
 namespace
 {
-    bool bGameplayInputEnabled = false;
+    bool bUIMode = false;
     bool bGameplayCameraFollowEnabled = false;
     bool bHasGameplayCameraLookAt = false;
     bool bHasGameplayCameraTransform = false;
@@ -505,14 +505,14 @@ namespace
     }
 }
 
-void LuaBinder::SetGameplayInputEnabled(bool bEnabled)
+void LuaBinder::SetUIMode(bool bEnabled)
 {
-    bGameplayInputEnabled = bEnabled;
+    bUIMode = bEnabled;
 }
 
-bool LuaBinder::IsGameplayInputEnabled()
+bool LuaBinder::IsUIMode()
 {
-    return bGameplayInputEnabled;
+    return bUIMode;
 }
 
 void LuaBinder::SetGameplayCameraFollowEnabled(bool bEnabled)
@@ -704,14 +704,14 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 
     Lua["Input"] = InputTable;
 
-    Lua.set_function("SetGameplayInputEnabled", [](bool bEnabled)
+    Lua.set_function("SetUIMode", [](bool bEnabled)
     {
-        LuaBinder::SetGameplayInputEnabled(bEnabled);
+        LuaBinder::SetUIMode(bEnabled);
     });
 
-    Lua.set_function("IsGameplayInputEnabled", []()
+    Lua.set_function("IsUIMode", []()
     {
-        return LuaBinder::IsGameplayInputEnabled();
+        return LuaBinder::IsUIMode();
     });
 
     Lua.set_function("SetGameplayCameraFollowEnabled", [](bool bEnabled)

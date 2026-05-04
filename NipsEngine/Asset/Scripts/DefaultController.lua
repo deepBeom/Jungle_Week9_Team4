@@ -6,11 +6,13 @@ function OnKeyDown(key)
     if key == "S" then MoveForward(-move_speed) end
     if key == "D" then MoveRight(move_speed) end
     if key == "A" then MoveRight(-move_speed) end
-    -- if key == "E" then MoveUp(move_speed) end
-    -- if key == "Q" then MoveUp(-move_speed) end
+    if key == "E" then MoveUp(move_speed) end
+    if key == "Q" then MoveUp(-move_speed) end
 end
 
 function OnMouseMove(delta_x, delta_y)
-    AddYaw(delta_x * look_speed)
-    AddPitch(-delta_y * look_speed)
+    if IsMouseLocked and IsMouseLocked() then
+        AddYaw(delta_x * look_speed)
+        AddPitch(-delta_y * look_speed)
+    end
 end

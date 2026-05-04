@@ -143,6 +143,18 @@ local function Clamp01(value)
     return math.max(0.0, math.min(1.0, value or 0.0))
 end
 
+local function EnterUIMode()
+    if SetUIMode then
+        SetUIMode(true)
+    end
+end
+
+local function EnterGameplayMode()
+    if SetUIMode then
+        SetUIMode(false)
+    end
+end
+
 local function GetHudHealth()
     if GetDriftSalvageHealth then
         return GetDriftSalvageHealth()
@@ -282,7 +294,7 @@ local function SetBoatAtIntroStart()
 end
 
 local function PrepareMenuPresentation()
-    SetGameplayInputEnabled(false)
+    EnterUIMode()
     SetMenuCamera()
     bIntroPlaying = false
     IntroTime = 0.0
@@ -366,7 +378,6 @@ end
 
 local function UpdateShipWheel(deltaTime)
     if not ShipWheel or not Input then return end
-    if IsGameplayInputEnabled and not IsGameplayInputEnabled() then return end
 
     local dt = deltaTime or 0.0
     local dir = 0
@@ -558,7 +569,7 @@ local function ShowMinimap()
 end
 
 local function HideInGameHud()
-    SetGameplayInputEnabled(false)
+    EnterUIMode()
 
     if InGamePanel then
         UIManager.DestroyElement(InGamePanel)
@@ -592,7 +603,7 @@ local function HideInGameHud()
 end
 
 local function BeginBoatIntro()
-    SetGameplayInputEnabled(false)
+    EnterUIMode()
     SetMenuCamera()
 
     if ResetDriftSalvageStats then
@@ -624,7 +635,7 @@ local function UpdateBoatIntro(deltaTime)
         if SetGameplayCameraFollowEnabled then
             SetGameplayCameraFollowEnabled(true)
         end
-        SetGameplayInputEnabled(true)
+        EnterGameplayMode()
         return
     end
 
@@ -648,7 +659,7 @@ local function UpdateBoatIntro(deltaTime)
         if SetGameplayCameraFollowEnabled then
             SetGameplayCameraFollowEnabled(true)
         end
-        SetGameplayInputEnabled(true)
+        EnterGameplayMode()
     end
 end
 
@@ -769,7 +780,7 @@ end
 local function ShowGameOver()
     if GameOverPanel then return end
 
-    SetGameplayInputEnabled(false)
+    EnterUIMode()
     local finalScore = GetHudMoney()
     HideInGameHud()
 
@@ -843,7 +854,7 @@ ShowHud = function()
             if Log then
                 Log("BeginBoatIntro failed: " .. tostring(err))
             end
-            SetGameplayInputEnabled(true)
+            EnterGameplayMode()
         end
     end)
 
@@ -907,7 +918,7 @@ function OnUpdate(self, deltaTime)
 end
 
 function OnDestroy(self)
-    SetGameplayInputEnabled(false)
+    EnterUIMode()
     SetGameplayCameraFollowEnabled(false)
     HideHud()
     HideScoreboard()

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Core/Containers/String.h"
 #include "Math/Vector.h"
@@ -14,8 +14,8 @@
  */
 namespace LuaBinder
 {
-    void SetGameplayInputEnabled(bool bEnabled);
-    bool IsGameplayInputEnabled();
+    void SetUIMode(bool bEnabled);
+    bool IsUIMode();
     void SetGameplayCameraFollowEnabled(bool bEnabled);
     bool IsGameplayCameraFollowEnabled();
     void SetGameplayCameraLookAt(const FVector& Location, const FVector& Target);
