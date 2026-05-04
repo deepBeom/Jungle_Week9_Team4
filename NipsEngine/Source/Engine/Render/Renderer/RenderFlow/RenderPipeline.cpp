@@ -136,7 +136,7 @@ bool FRenderPipeline::Initialize()
      * 마지막 패스가 남긴 OutSRV/OutRTV 가 RenderTargets.FinalSRV/FinalRTV 가 된다.
      */
     RenderPasses.push_back(ShadowPass);
-    RenderPasses.push_back(BlurPass);
+    //RenderPasses.push_back(BlurPass);
     RenderPasses.push_back(DepthPrepassRenderPass);
     RenderPasses.push_back(LightCullingPass);
     RenderPasses.push_back(SkyRenderPass);
