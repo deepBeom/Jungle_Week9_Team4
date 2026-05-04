@@ -331,12 +331,10 @@ void USkyAtmosphereComponent::DriveHeightFog(const FSkyState& State)
 
             const FFogDriveBaseline& Baseline = BaselineIt->second;
             const FColor DrivenFogColor = FColor::Lerp(Baseline.FogColor, State.FogColor, 0.8f);
-            const float BaseDensity = (Baseline.FogDensity > 0.001f) ? Baseline.FogDensity : 0.15f;
-            const float MaxOpacityScale = 0.9f + State.SunsetWeight * 0.1f + State.NightWeight * 0.05f;
 
             HeightFog->SetFogInscatteringColor(DrivenFogColor.ToVector4());
-            HeightFog->SetFogDensity(BaseDensity * State.FogDensityScale);
-            HeightFog->SetFogMaxOpacity(MathUtil::Clamp(Baseline.FogMaxOpacity * MaxOpacityScale, 0.0f, 1.0f));
+            // HeightFog->SetFogDensity(BaseDensity * State.FogDensityScale);
+            // HeightFog->SetFogMaxOpacity(MathUtil::Clamp(Baseline.FogMaxOpacity * MaxOpacityScale, 0.0f, 1.0f));
         }
     }
 }
