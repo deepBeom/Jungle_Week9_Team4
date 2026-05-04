@@ -7,6 +7,7 @@
 #include "Engine/Core/Logging/Timer.h"
 #include "Engine/Core/ResourceManager.h"
 #include "Engine/GameFramework/Actor.h"
+#include "Engine/GameFramework/Pawn.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Runtime/Engine.h"
 #include "Engine/UI/UIElement.h"
@@ -457,6 +458,11 @@ namespace
             },
             "GetForwardVector", [](AActor* Actor)
             {
+                if (APawn* Pawn = Cast<APawn>(Actor))
+                {
+                    return Pawn->GetForwardVector();
+                }
+
                 return IsUsableActor(Actor)
                     ? Actor->GetActorForward()
                     : FVector(0.0f, 0.0f, 1.0f);
