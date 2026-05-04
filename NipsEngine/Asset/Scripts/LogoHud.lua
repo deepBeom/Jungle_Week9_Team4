@@ -827,6 +827,12 @@ function OnStart(self)
 end
 
 function OnUpdate(self, deltaTime)
+    -- 충돌 코드는 하트가 끝나기 전에도 즉시 Game Over를 요청 (Boat-LightHouse 용)
+    if InGamePanel and ConsumeDriftSalvageGameOverRequest and ConsumeDriftSalvageGameOverRequest() then
+        ShowGameOver()
+        return
+    end
+
     if InGamePanel and Input and Input.GetKeyDown("E") then
         ShowGameOver()
         return

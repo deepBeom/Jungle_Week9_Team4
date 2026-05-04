@@ -12,6 +12,7 @@
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/WaterComponent.h"
+#include "Core/ActorTags.h"
 #include "Core/ResourceManager.h"
 #include "Engine/Viewport/ViewportCamera.h"
 #include "Engine/Core/SoundManager.h"
@@ -408,6 +409,22 @@ void AStaticMeshActor::BeginPlay()
 {
     AActor::BeginPlay();
 
+    if (CompareTag(ActorTags::Hazard))
+    {
+        for (UActorComponent* Comp : GetComponents())
+        {
+            USubUVComponent* SubUVComp = Cast<USubUVComponent>(Comp);
+            if (!SubUVComp)
+            {
+                continue;
+            }
+
+            SubUVComp->SetLoop(false);
+            SubUVComp->SetFrameIndex(0);
+            SubUVComp->SetVisibility(false);
+        }
+    }
+
     for (UActorComponent* Comp : GetComponents())
     {
         UShapeComponent* ShapeComp = Cast<UShapeComponent>(Comp);
@@ -428,11 +445,11 @@ void ASubUVActor::InitDefaultComponents()
 {
     SetTickInEditor(true); // Editor Tick을 받도록 변경
 
-    auto* SubUV = AddComponent<USubUVComponent>();
-    SetRootComponent(SubUV);
-    SubUV->SetParticle(FName("Explosion"));
-    SubUV->SetSpriteSize(2.0f, 2.0f);
-    SubUV->SetFrameRate(30.f);
+    SubUVComponent = AddComponent<USubUVComponent>();
+    SetRootComponent(SubUVComponent);
+    SubUVComponent->SetParticle(FName("Explosion"));
+    SubUVComponent->SetSpriteSize(2.0f, 2.0f);
+    SubUVComponent->SetFrameRate(30.f);
 }
 
 void ATextRenderActor::InitDefaultComponents()

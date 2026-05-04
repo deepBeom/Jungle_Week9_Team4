@@ -30,6 +30,7 @@ public:
 
     // Playback controls.
     void SetFrameRate(float InFPS) { PlayRate = InFPS; }
+    float GetFrameRate() const { return PlayRate; }
     void SetLoop(bool bInLoop) { bLoop = bInLoop; }
     bool IsLoop() const { return bLoop; }
     bool IsFinished() const { return !bLoop && bIsExecute; }
