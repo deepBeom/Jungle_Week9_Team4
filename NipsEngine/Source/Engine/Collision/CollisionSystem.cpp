@@ -8,6 +8,7 @@
 #include "Component/Script/ScriptComponent.h"
 #include "Core/ActorTags.h"
 #include "Core/Logging/Log.h"
+#include "Core/SoundManager.h"
 #include "DriftSalvage/ExplosionSystem.h"
 #include "Engine/Scripting/LuaBinder.h"
 #include "GameFramework/Actor.h"
@@ -161,6 +162,7 @@ namespace
         }
 
         LuaBinder::ApplyDriftSalvageDamage(1);
+        FSoundManager::Get().PlaySFX("RockCollision.mp3" ,2.f);
 
         FVector PushForA = ComputeAABBDepenetration(A->GetWorldAABB(), B->GetWorldAABB());
         FVector Knockback = (BoatShape == A) ? PushForA : (PushForA * -1.0f);
@@ -231,6 +233,7 @@ namespace
         const FVector ExplosionCenter = HazardActor->GetActorLocation();
         UWorld* World = HazardActor->GetFocusedWorld();
         LuaBinder::ApplyDriftSalvageDamage(2);
+        FSoundManager::Get().PlaySFX("Boom.mp3", 2.f);
         HazardActor->Destroy();
 
         if (World)
