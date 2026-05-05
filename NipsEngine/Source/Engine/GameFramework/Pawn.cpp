@@ -23,6 +23,15 @@ namespace
 
         return Target;
     }
+
+    float EvaluateSteerAuthority(float SpeedRatio, float MinSteerAuthority)
+    {
+        const float ClampedSpeedRatio = MathUtil::Clamp(SpeedRatio, 0.0f, 1.0f);
+        const float CurvedSpeedRatio =
+            ClampedSpeedRatio * ClampedSpeedRatio * (3.0f - 2.0f * ClampedSpeedRatio);
+
+        return ClampedSpeedRatio * MinSteerAuthority + CurvedSpeedRatio * (1.0f - MinSteerAuthority);
+    }
 }
 
 void APawn::InitDefaultComponents()
@@ -136,15 +145,15 @@ void APawn::UpdateBoatMovement(
     const float SafeDeltaTime = MathUtil::Clamp(DeltaTime, 0.0001f, 0.05f);
     const float SafeMass = std::max(1.0f, Mass);
     const float AccelScale = 1.0f / SafeMass;
-    const float SpeedScale = 1.0f / std::sqrt(SafeMass);
-
     const float ForwardAccelPerTick = ForwardAccel * AccelScale;
     const float ReverseAccelPerTick = ReverseAccel * AccelScale;
     const float BrakeAccelPerTick = BrakeAccel * AccelScale;
+    const float LinearDragPerTick = LinearDrag * AccelScale;
     const float TurnAccelPerTick = TurnAccel * AccelScale;
-    const float MaxForwardSpeedForMass = MaxForwardSpeed * SpeedScale;
-    const float MaxReverseSpeedForMass = MaxReverseSpeed * SpeedScale;
-    const float MaxYawSpeedForMass = MaxYawSpeed * AccelScale;
+    const float TurnDragPerTick = TurnDrag * AccelScale;
+    const float MaxForwardSpeedForMass = MaxForwardSpeed;
+    const float MaxReverseSpeedForMass = MaxReverseSpeed;
+    const float MaxYawSpeedForMass = MaxYawSpeed;
 
     if (ThrottleInput > 0.0f)
     {
@@ -163,7 +172,7 @@ void APawn::UpdateBoatMovement(
     }
     else
     {
-        BoatForwardSpeed = MoveToward(BoatForwardSpeed, 0.0f, LinearDrag * SafeDeltaTime);
+        BoatForwardSpeed = MoveToward(BoatForwardSpeed, 0.0f, LinearDragPerTick * SafeDeltaTime);
     }
 
     BoatForwardSpeed = MathUtil::Clamp(BoatForwardSpeed, -MaxReverseSpeedForMass, MaxForwardSpeedForMass);
@@ -173,15 +182,14 @@ void APawn::UpdateBoatMovement(
     }
 
     const float SpeedRatio = MathUtil::Clamp(MathUtil::Abs(BoatForwardSpeed) / std::max(MaxForwardSpeedForMass, 0.001f), 0.0f, 1.0f);
-    const float SteerAuthority = MinSteerAuthority + (1.0f - MinSteerAuthority) * SpeedRatio;
-
+    const float SteerAuthority = EvaluateSteerAuthority(SpeedRatio, MinSteerAuthority);
     if (SteerInput != 0.0f)
     {
         BoatYawSpeed += SteerInput * TurnAccelPerTick * SteerAuthority * SafeDeltaTime;
     }
     else
     {
-        BoatYawSpeed = MoveToward(BoatYawSpeed, 0.0f, TurnDrag * SafeDeltaTime);
+        BoatYawSpeed = MoveToward(BoatYawSpeed, 0.0f, TurnDragPerTick * SafeDeltaTime);
     }
 
     BoatYawSpeed = MathUtil::Clamp(BoatYawSpeed, -MaxYawSpeedForMass, MaxYawSpeedForMass);
