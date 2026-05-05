@@ -7,6 +7,7 @@
 #include "Component/Movement/MovementComponent.h"
 #include "Component/Script/ScriptComponent.h"
 #include "Core/ActorTags.h"
+#include "Core/Logging/Stats.h"
 #include "Core/Logging/Log.h"
 #include "Core/SoundManager.h"
 #include "DriftSalvage/ExplosionSystem.h"
@@ -784,6 +785,7 @@ namespace
 
 void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
 {
+    SCOPE_STAT("CollisionSystem.Tick");
     (void)DeltaTime;
 
     DebugContacts.clear();
@@ -800,12 +802,26 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
         LiveShapes.insert(Shape);
     }
 
-    for (int32 i = 0; i < static_cast<int32>(Shapes.size()); ++i)
+    for (UShapeComponent* A : Shapes)
     {
-        for (int32 j = i + 1; j < static_cast<int32>(Shapes.size()); ++j)
+        const FAABB& ShapeBounds = A->GetWorldAABB();
+        const FVector QueryCenter = ShapeBounds.GetCenter();
+        const float QueryRadius = (ShapeBounds.Max - ShapeBounds.Min).Size() * 0.5f;
+
+        CollisionCandidatePrimitives.clear();
+        World->GetSpatialIndex().SphereQueryPrimitives(
+            QueryCenter,
+            QueryRadius,
+            CollisionCandidatePrimitives,
+            CollisionSphereQueryScratch);
+
+        for (UPrimitiveComponent* CandidatePrimitive : CollisionCandidatePrimitives)
         {
-            UShapeComponent* A = Shapes[i];
-            UShapeComponent* B = Shapes[j];
+            UShapeComponent* B = Cast<UShapeComponent>(CandidatePrimitive);
+            if (!B || A >= B || LiveShapes.find(B) == LiveShapes.end())
+            {
+                continue;
+            }
 
             if (!ShouldTestPair(A, B) || !AreOverlapping(A, B))
             {
@@ -880,6 +896,9 @@ void FCollisionSystem::Reset()
     PreviousOverlaps.clear();
     DebugContacts.clear();
     DebugLines.clear();
+    CollisionCandidatePrimitives.clear();
+    CollisionSphereQueryScratch.ObjectIndices.clear();
+    CollisionSphereQueryScratch.BVHScratch.TraversalStack.clear();
 }
 
 void FCollisionSystem::CollectShapeComponents(UWorld* World, TArray<UShapeComponent*>& OutShapes)

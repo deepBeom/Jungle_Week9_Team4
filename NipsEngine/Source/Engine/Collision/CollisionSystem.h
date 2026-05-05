@@ -2,6 +2,7 @@
 #include <unordered_set>
 
 #include "Component/ShapeComponent.h"
+#include "Spatial/WorldSpatialIndex.h"
 
 class UWorld;
 
@@ -131,4 +132,7 @@ private:
     TSet<FCollisionPair, FCollisionPairHash> PreviousOverlaps;
     TArray<FCollisionDebugContact> DebugContacts;
     TArray<FCollisionDebugLine>    DebugLines;  // 매 Tick 시작 시 클리어
+
+    TArray<UPrimitiveComponent*> CollisionCandidatePrimitives;
+    FWorldSpatialIndex::FPrimitiveSphereQueryScratch CollisionSphereQueryScratch;
 };

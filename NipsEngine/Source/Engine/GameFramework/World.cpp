@@ -105,6 +105,7 @@ void UWorld::Tick(float DeltaTime)
 
     if (WorldType == EWorldType::PIE || WorldType == EWorldType::Game)
     {
+        SyncSpatialIndex();
         CollisionSystem.Tick(this, DeltaTime);
         ExplosionSystem.Tick(this, DeltaTime);
         CollectionSystem.Tick(this, DeltaTime);
