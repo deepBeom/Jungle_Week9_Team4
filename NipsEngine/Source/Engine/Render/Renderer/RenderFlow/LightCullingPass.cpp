@@ -1,4 +1,4 @@
-#include "LightCullingPass.h"
+﻿#include "LightCullingPass.h"
 #include "Core/Paths.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Scene/RenderCommand.h"
@@ -451,7 +451,7 @@ bool FLightCullingPass::DrawCommand(const FRenderPassContext* Context)
     GLightCullingOutputs.PointLightCount = static_cast<uint32>(PointLights.size());
     GLightCullingOutputs.SpotLightCount = static_cast<uint32>(SpotLights.size());
 
-    EmitDebugStats(Context, TileCountX, TileCountY);
+    //EmitDebugStats(Context, TileCountX, TileCountY);
     return true;
 }
 
