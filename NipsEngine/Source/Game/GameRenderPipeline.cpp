@@ -75,8 +75,8 @@ bool FGameRenderPipeline::PrepareViewport(FRenderer& Renderer, FSceneView& OutSc
     Renderer.BeginViewportFrame(&RenderTargets);
 
     FShowFlags ShowFlags;
-    ShowFlags.bBVHBoundingVolume = true;
-    ShowFlags.bBoundingVolume = true;
+    ShowFlags.bBVHBoundingVolume = false;
+    ShowFlags.bBoundingVolume = false;
     ShowFlags.bEnableLOD = false;
 
     Bus.Clear();
