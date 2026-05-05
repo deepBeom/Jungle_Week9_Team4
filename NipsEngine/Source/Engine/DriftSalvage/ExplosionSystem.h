@@ -107,8 +107,8 @@ private:
     // 폭발 파라미터
     float Radius              = 20.0f; // 폭발 영햠 범위
     float InitialSpeed        = 5.5f; // 주변 Collectible이 처음 받는 밀림 속도
-    float Damping             = 1.2f; // 밀리는 물체의 감속
-    float MinSpeed            = 0.05f; // 밀림 종료
+    float Damping             = 4.0f; // 밀리는 물체의 감속
+    float MinSpeed            = 0.15f; // 밀림 종료
     float ChainShockwaveSpeed = 40.0f; // 거리 기반 딜레이
     float DebugRingLifetime   = 2.0f;
 };
