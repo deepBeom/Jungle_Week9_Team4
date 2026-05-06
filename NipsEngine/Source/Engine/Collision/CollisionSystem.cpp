@@ -263,13 +263,15 @@ namespace
 
     void TriggerBoatLighthouseGameOver(UShapeComponent* A, UShapeComponent* B)
     {
-        // Lighthouse에 Boat가 닿는 순간 현재 플레이를 종료
+        // Boat-Lighthouse overlap에서는 별도 엔딩 플래그만 세운다. HUD의 OnUpdate가 이를 소비해서
+        // 카메라 전환·GoalIn SFX·보트 자동 전진·GameOver UI까지 한 호흡으로 처리한다.
+        // 체력 0 침몰 시퀀스(StartHealthZeroGameOverSequence)는 의도적으로 우회한다.
         if (!IsBoatLighthousePair(A, B))
         {
             return;
         }
 
-        LuaBinder::RequestDriftSalvageGameOver();
+        LuaBinder::RequestLighthouseEnding();
     }
 
     void CollectBoatOverlapTarget(UShapeComponent* A, UShapeComponent* B)
@@ -836,7 +838,8 @@ void FCollisionSystem::Tick(UWorld* World, float DeltaTime)
                 }
             }
 
-            if ((A->GetBlockComponent() && B->GetBlockComponent()) || IsBoatRockPair(A, B))
+            if (!IsBoatLighthousePair(A, B) &&
+                ((A->GetBlockComponent() && B->GetBlockComponent()) || IsBoatRockPair(A, B)))
             {
                 ResolveBlockingOverlap(A, B);
             }

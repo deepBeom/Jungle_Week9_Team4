@@ -19,6 +19,8 @@ namespace LuaBinder
     void ResetDriftSalvageStats();
     void RequestDriftSalvageGameOver();
     bool ConsumeDriftSalvageGameOverRequest();
+    void RequestLighthouseEnding();
+    bool ConsumeLighthouseEndingRequest();
     void ApplyDriftSalvageDamage(int32 Damage);
     void ApplyDriftSalvagePickup(const FString& ActorTag);
     bool TryApplyDriftSalvagePickup(const FString& ActorTag);

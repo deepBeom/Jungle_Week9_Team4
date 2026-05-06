@@ -31,10 +31,26 @@ local LOW_HEALTH_VIGNETTE_RADIUS = 3.0
 local LOW_HEALTH_VIGNETTE_BLEND_TIME = 1.0
 local bGameOverSequencePlaying = false
 local bRestartFadeOutPending = false
+local bLighthouseEndingPlaying = false
 local BOAT_SINK_GAMEOVER_DELAY = 3.0
 local BOAT_SINK_DEPTH = 4.0
 local BOAT_SINK_ROLL_DEGREES = 12.0
 local BOAT_SINK_YAW_DEGREES = 24.0
+
+-- Lighthouse 도착 엔딩 연출 파라미터.
+-- 카메라가 CineCamera_Outro로 블렌딩되는 동안 보트는 선형 감속으로 정지한다.
+-- 진행 거리 = 0.5 * LIGHTHOUSE_COAST_INITIAL_SPEED * LIGHTHOUSE_COAST_DURATION.
+local LIGHTHOUSE_END_CAMERA_TAG    = "CineCamera_Outro"
+local LIGHTHOUSE_GOAL_SFX          = "GoalIn.mp3"
+local LIGHTHOUSE_GOAL_SFX_VOLUME   = 1.0
+local LIGHTHOUSE_CAMERA_BLEND_TIME = 3.0
+-- 보트가 "들어오는" 연출 시간. v0=18·t=3 → 약 27 unit 전진하며 3초간 감속해 정지.
+local LIGHTHOUSE_COAST_DISTANCE      = 40.0
+local LIGHTHOUSE_COAST_DURATION      = 3.0
+-- 보트가 정지한 뒤 GameOver UI를 띄우기까지 비워두는 여백 시간.
+local LIGHTHOUSE_POST_STOP_HOLD      = 1.2
+local LIGHTHOUSE_SLOMO_SCALE         = 0.4
+local LIGHTHOUSE_SLOMO_DURATION      = 1.5
 
 local function LoadScript(path)
     local paths = {
@@ -388,6 +404,7 @@ local function ShowGameOver()
 
     bGameplayInputReady = false
     bGameOverSequencePlaying = false
+    bLighthouseEndingPlaying = false
     StopBoatForwardLoopSfx()
     SetLowHealthVignette(false)
     EnterUIMode()
@@ -432,6 +449,7 @@ local function StartGameplay()
     bRestartFadeOutPending = false
     bGameplayInputReady = false
     bGameOverSequencePlaying = false
+    bLighthouseEndingPlaying = false
     StopBoatForwardLoopSfx()
     SetLowHealthVignette(false)
     FadeInGameplay()
@@ -457,6 +475,7 @@ ShowHud = function()
     bRestartFadeOutPending = false
     bGameplayInputReady = false
     bGameOverSequencePlaying = false
+    bLighthouseEndingPlaying = false
     StopBoatForwardLoopSfx()
     SetLowHealthVignette(false)
     if Sound and Sound.PlayBGM then
@@ -555,9 +574,91 @@ local function StartHealthZeroGameOverSequence()
     end)
 end
 
+-- Boat가 Lighthouse Sphere에 진입하면 C++ TriggerBoatLighthouseGameOver가
+-- LuaBinder::RequestLighthouseEnding()을 호출 → OnUpdate가 ConsumeLighthouseEndingRequest로
+-- 이 시퀀스를 발화한다. 침몰 시퀀스와 달리 보트는 전방으로 미끄러져 정지한다.
+local function StartLighthouseEndingSequence()
+    if bLighthouseEndingPlaying or bGameOverSequencePlaying or GameOverPanel then
+        return
+    end
+
+    bLighthouseEndingPlaying = true
+    bGameplayInputReady = false
+
+    if Input and Input.SetPlayerControlEnabled then
+        Input.SetPlayerControlEnabled(false)
+    end
+
+    StopBoatForwardLoopSfx()
+    EnterUIMode()
+
+    if Sound and Sound.PlaySFX then
+        Sound.PlaySFX(LIGHTHOUSE_GOAL_SFX, LIGHTHOUSE_GOAL_SFX_VOLUME, false)
+    end
+
+    if Camera and Camera.SetViewTargetWithBlend then
+        Camera.SetViewTargetWithBlend(LIGHTHOUSE_END_CAMERA_TAG, LIGHTHOUSE_CAMERA_BLEND_TIME)
+    end
+    if HitFeel and HitFeel.Slomo then
+        HitFeel.Slomo(LIGHTHOUSE_SLOMO_SCALE, LIGHTHOUSE_SLOMO_DURATION)
+    end
+
+    StartCoroutine(function()
+        local boat = ResolveBoatActor()
+        if boat and boat:IsValid() then
+            local elapsed = 0.0
+            local traveled = 0.0
+            while elapsed < LIGHTHOUSE_COAST_DURATION do
+                if not boat:IsValid() then
+                    break
+                end
+
+                local dt = 0.016
+                if TimeManager and TimeManager.GetUnscaledDeltaTime then
+                    dt = TimeManager.GetUnscaledDeltaTime()
+                elseif TimeManager and TimeManager.GetScaledDeltaTime then
+                    dt = TimeManager.GetScaledDeltaTime()
+                end
+                if dt < 0.0 then dt = 0.0 end
+
+                elapsed = elapsed + dt
+                local t = elapsed / LIGHTHOUSE_COAST_DURATION
+                if t > 1.0 then t = 1.0 end
+                local eased = 1.0 - (1.0 - t) * (1.0 - t)
+                local nextTraveled = LIGHTHOUSE_COAST_DISTANCE * eased
+                local step = nextTraveled - traveled
+                traveled = nextTraveled
+
+                boat:AddPosition(step, 0.0, 0.0)
+
+                Wait(0.0)
+            end
+        end
+
+        -- 보트가 완전히 멈춘 직후 곧바로 GameOver UI를 띄우면 정적이 너무 짧아 부자연스럽다.
+        -- 의도적으로 잠깐 비워둬 카메라/엔딩 컷 분위기를 살린 뒤 UI를 노출한다.
+        if LIGHTHOUSE_POST_STOP_HOLD > 0.0 then
+            Wait(LIGHTHOUSE_POST_STOP_HOLD)
+        end
+
+        ShowGameOver()
+    end)
+end
+
 function OnUpdate(self, deltaTime)
     local hud = GameplayHud
     if not hud then
+        return
+    end
+
+    -- Lighthouse 엔딩은 침몰 시퀀스를 우회하므로 가장 먼저 검사한다.
+    if hud:IsVisible() and ConsumeLighthouseEndingRequest and ConsumeLighthouseEndingRequest() then
+        StartLighthouseEndingSequence()
+        return
+    end
+
+    -- Lighthouse 엔딩이 진행 중이면 다른 GameOver 트리거(체력 0 등)는 무시한다.
+    if bLighthouseEndingPlaying then
         return
     end
 
@@ -585,6 +686,7 @@ end
 function OnDestroy(self)
     bGameplayInputReady = false
     bGameOverSequencePlaying = false
+    bLighthouseEndingPlaying = false
     StopBoatForwardLoopSfx()
     SetLowHealthVignette(false)
     EnterUIMode()

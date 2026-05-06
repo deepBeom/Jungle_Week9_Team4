@@ -45,6 +45,7 @@ namespace
     constexpr float DriftSalvageWeightCapacity = 150.0f;
     FDriftSalvageStats DriftSalvageStats;
     bool bDriftSalvageGameOverRequested = false;
+    bool bLighthouseEndingRequested = false;
 
     bool TryGetDriftSalvageCargoValue(const FString& ActorTag, FDriftSalvageCargoValue& OutValue)
     {
@@ -908,6 +909,7 @@ void LuaBinder::ResetDriftSalvageStats()
     DriftSalvageStats.Money = 0;
     DriftSalvageStats.Weight = 0.0f;
     bDriftSalvageGameOverRequested = false;
+    bLighthouseEndingRequested = false;
 }
 
 void LuaBinder::RequestDriftSalvageGameOver()
@@ -922,6 +924,20 @@ bool LuaBinder::ConsumeDriftSalvageGameOverRequest()
     // HUD가 한 번만 반응하도록 요청을 읽은 뒤 바로 비운다
     const bool bRequested = bDriftSalvageGameOverRequested;
     bDriftSalvageGameOverRequested = false;
+    return bRequested;
+}
+
+void LuaBinder::RequestLighthouseEnding()
+{
+    // Boat가 Lighthouse Sphere에 진입한 순간 발화. HUD 측 코루틴이 카메라 전환·자동 전진·GameOver
+    // UI 표출까지 도맡고, 침몰 시퀀스(체력 0 분기)는 우회한다.
+    bLighthouseEndingRequested = true;
+}
+
+bool LuaBinder::ConsumeLighthouseEndingRequest()
+{
+    const bool bRequested = bLighthouseEndingRequested;
+    bLighthouseEndingRequested = false;
     return bRequested;
 }
 
@@ -1413,6 +1429,11 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
     Lua.set_function("ConsumeDriftSalvageGameOverRequest", []()
     {
         return LuaBinder::ConsumeDriftSalvageGameOverRequest();
+    });
+
+    Lua.set_function("ConsumeLighthouseEndingRequest", []()
+    {
+        return LuaBinder::ConsumeLighthouseEndingRequest();
     });
 
     Lua.set_function("GetDriftSalvageHealth", []()

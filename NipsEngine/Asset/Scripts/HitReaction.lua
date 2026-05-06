@@ -13,6 +13,11 @@ local tire_reaction = {
         speed = 14.0,
         skip_if_target_pushed = true,
     },
+
+    sound = {
+        file = "Tire.mp3",
+        volume = 1.0,
+    },
 }
 
 local boat_rock_reaction = {
@@ -181,9 +186,40 @@ end
 
 local function play_hit_feedback()
     -- HitFeel.HitStop(1.0, 0.0)
-    HitFeel.Slomo(0.35, 0.25)
+    if HitFeel ~= nil and HitFeel.Slomo ~= nil then
+        HitFeel.Slomo(0.35, 0.25)
+    end
 
-    Camera.Shake(4.0, 20.0, 0.18)
+    if Camera ~= nil and Camera.Shake ~= nil then
+        Camera.Shake({
+            Type = "WaveOscillator",
+            Duration = 0.18,
+            LocationAmplitude = Vec3.new(0.0, 0.0, 0.0),
+            LocationFrequency = Vec3.new(0.0, 0.0, 0.0),
+            RotationAmplitude = Vec3.new(4.0, 4.0, 0.0),
+            RotationFrequency = Vec3.new(20.0, 20.0, 0.0),
+            FOVAmplitude = 0.0,
+            FOVFrequency = 0.0,
+        })
+    end
+end
+
+local function play_hit_sound(hit_profile)
+    local sound_profile = hit_profile and hit_profile.sound
+    if sound_profile == nil or sound_profile.file == nil then
+        return
+    end
+
+    if Sound == nil or Sound.PlaySFX == nil then
+        if Log then Log("[HitReaction] Sound API unavailable") end
+        return
+    end
+
+    -- 진단: 호출 도달 여부 확인. SoundManager가 엔진 Initialize 시점에만 SFX 폴더를 스캔하므로
+    -- 이 로그가 찍히는데도 소리가 안 들리면 엔진을 재시작해야 한다(파일이 맵에 없음).
+    if Log then Log("[HitReaction] PlaySFX " .. tostring(sound_profile.file) .. " vol=" .. tostring(sound_profile.volume or 0.5)) end
+
+    Sound.PlaySFX(sound_profile.file, sound_profile.volume or 0.5, false)
 end
 
 local function handle_reaction(self, other_actor)
@@ -203,6 +239,7 @@ local function handle_reaction(self, other_actor)
     start_scale_pulse(self, hit_profile)
     apply_knockback(self, other_actor, hit_profile)
     play_hit_feedback()
+    play_hit_sound(hit_profile)
 end
 
 function OnHit(self, other_actor)
