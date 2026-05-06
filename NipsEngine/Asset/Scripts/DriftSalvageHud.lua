@@ -50,6 +50,7 @@ local BOAT_SINK_DEPTH = 4.0
 local BOAT_SINK_ROLL_DEGREES = 12.0
 local BOAT_SINK_YAW_DEGREES = 24.0
 local DROWNING_SFX = "Drowning.wav"
+local WAVE_SFX = "Wave.mp3"
 
 local function LoadScript(path)
     local paths = {
@@ -629,6 +630,9 @@ ShowHud = function()
             SetIntroCamera(0.0)
             if Camera and Camera.SetLetterBox then
                 Camera.SetLetterBox(INTRO_LETTERBOX_HEIGHT, INTRO_LETTERBOX_BLEND_IN)
+            end
+            if Sound and Sound.PlaySFX then
+                Sound.PlaySFX(WAVE_SFX, 1.0)
             end
             Wait(INTRO_LETTERBOX_DURATION)
             ReturnToPlayerCamera(START_CAMERA_BLEND_TIME)
