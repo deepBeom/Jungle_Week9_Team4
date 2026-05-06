@@ -39,6 +39,7 @@ public:
     void SetViewTarget(AActor* NewTarget);
     // Time-blended target switch.
     void SetViewTargetWithBlend(AActor* NewTarget, float BlendTime);
+    void SetViewTargetWithBlend(AActor* NewTarget, float BlendTime, ECameraBlendFunction BlendFunction);
 
     AActor* GetViewTarget() const { return CurrentViewTarget.Target; }
     const FMinimalViewInfo& GetFinalPOV() const { return FinalPOV; }
@@ -84,7 +85,7 @@ private:
     void TickAnimatedScalar(FAnimatedScalar& InOutState, float UnscaledDeltaTime);
 
     // View-target blend state machine helpers.
-    void BeginViewTargetBlend(float BlendTime);
+    void BeginViewTargetBlend(float BlendTime, ECameraBlendFunction BlendFunction);
     void CancelViewTargetBlend();
     void FinalizeViewTargetBlend();
     float EvaluateViewTargetBlendAlpha() const;
@@ -105,6 +106,7 @@ private:
         bool bActive = false;
         float Duration = 0.0f;
         float Elapsed = 0.0f;
+        ECameraBlendFunction Function = ECameraBlendFunction::SmoothStep;
     };
 
     // Generic scalar timeline used by fade and letterbox interpolation.

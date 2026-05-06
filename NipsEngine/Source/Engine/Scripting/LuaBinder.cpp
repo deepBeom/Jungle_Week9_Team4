@@ -188,6 +188,28 @@ namespace
         return FindCameraComponentOnActor(Actor) != nullptr ? Actor : nullptr;
     }
 
+    ECameraBlendFunction ParseLuaBlendFunction(const FString& BlendFunction)
+    {
+        if (BlendFunction == "Linear")
+        {
+            return ECameraBlendFunction::Linear;
+        }
+        if (BlendFunction == "EaseIn")
+        {
+            return ECameraBlendFunction::EaseIn;
+        }
+        if (BlendFunction == "EaseOut")
+        {
+            return ECameraBlendFunction::EaseOut;
+        }
+        if (BlendFunction == "EaseInOut")
+        {
+            return ECameraBlendFunction::EaseInOut;
+        }
+
+        return ECameraBlendFunction::SmoothStep;
+    }
+
     int LuaWaitFunction(lua_State* ThreadState)
     {
         const float WaitSeconds = static_cast<float>(luaL_optnumber(ThreadState, 1, 0.0));
@@ -1080,6 +1102,26 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 
         // Forward request to unified camera façade.
         World->GetCameraInterface().SetViewTargetWithBlend(TargetActor, BlendTime);
+    });
+    CameraTable.set_function("SetViewTargetWithBlendEx", [](const FString& ActorIdentifier, float BlendTime, const FString& BlendFunction)
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World == nullptr)
+        {
+            return;
+        }
+
+        AActor* TargetActor = ResolveLuaCameraTarget(World, ActorIdentifier);
+        if (TargetActor == nullptr)
+        {
+            UE_LOG("[Lua Camera] Failed to resolve view target '%s'\n", ActorIdentifier.c_str());
+            return;
+        }
+
+        World->GetCameraInterface().SetViewTargetWithBlend(
+            TargetActor,
+            BlendTime,
+            ParseLuaBlendFunction(BlendFunction));
     });
     CameraTable.set_function("Shake", [](float Amplitude, float Frequency, float Duration)
     {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "GameFramework/Camera/CameraTypes.h"
+
 class AActor;
 class UWorld;
 
@@ -31,6 +33,7 @@ public:
     // Blended switch to target camera source.
     // Blend interpolation is implemented inside PlayerCameraManager.
     void SetViewTargetWithBlend(AActor* NewTarget, float BlendTime);
+    void SetViewTargetWithBlend(AActor* NewTarget, float BlendTime, ECameraBlendFunction BlendFunction);
 
     // Camera modifiers.
     // These spawn transient modifiers that affect only per-frame FinalPOV.

@@ -31,10 +31,15 @@ void FWorldCameraInterface::SetViewTarget(AActor* NewTarget)
 
 void FWorldCameraInterface::SetViewTargetWithBlend(AActor* NewTarget, float BlendTime)
 {
+    SetViewTargetWithBlend(NewTarget, BlendTime, ECameraBlendFunction::SmoothStep);
+}
+
+void FWorldCameraInterface::SetViewTargetWithBlend(AActor* NewTarget, float BlendTime, ECameraBlendFunction BlendFunction)
+{
     if (OwnerWorld)
     {
         // Blend algorithm (location/rotation/FOV) is owned by camera manager.
-        OwnerWorld->GetPlayerCameraManager().SetViewTargetWithBlend(NewTarget, BlendTime);
+        OwnerWorld->GetPlayerCameraManager().SetViewTargetWithBlend(NewTarget, BlendTime, BlendFunction);
     }
 }
 
