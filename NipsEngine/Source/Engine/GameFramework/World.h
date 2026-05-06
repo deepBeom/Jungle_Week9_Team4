@@ -7,6 +7,7 @@
 #include "Level.h"
 #include "Spatial/WorldSpatialIndex.h"
 #include "Collision/CollisionSystem.h"
+#include "Core/TimeManager.h"
 
 class UCameraComponent;
 class ULineBatchComponent;
@@ -93,9 +94,9 @@ public:
     FPlayerCameraManager& GetPlayerCameraManager() { return PlayerCameraManager; }
     const FPlayerCameraManager& GetPlayerCameraManager() const { return PlayerCameraManager; }
 
-    float GetUnscaledDeltaTime() const { return FrameUnscaledDeltaTime; }
-    float GetScaledDeltaTime() const { return FrameScaledDeltaTime; }
-    float GetGlobalTimeDilation() const { return ResolvedGlobalTimeDilation; }
+    float GetUnscaledDeltaTime() const { return TimeManager.GetUnscaledDeltaTime(); }
+    float GetScaledDeltaTime() const { return TimeManager.GetScaledDeltaTime(); }
+    float GetGlobalTimeDilation() const { return return TimeManager.GetGlobalTimeDilation(); }
     void SetBaseTimeDilation(float InTimeDilation);
     void StartHitStop(float Duration, float TimeScale = 0.05f);
     void StartSlomo(float TimeScale, float Duration);
@@ -138,12 +139,5 @@ private:
     bool bIsIteratingLevelActors = false;
     FPlayerCameraManager PlayerCameraManager;
 
-    float FrameUnscaledDeltaTime = 0.0f;
-    float FrameScaledDeltaTime = 0.0f;
-    float BaseTimeDilation = 1.0f;
-    float ResolvedGlobalTimeDilation = 1.0f;
-    float HitStopRemainingTime = 0.0f;
-    float HitStopTimeScale = 0.05f;
-    float SlomoRemainingTime = 0.0f;
-    float SlomoTimeScale = 1.0f;
+    FTimeManager TimeManager;
 };

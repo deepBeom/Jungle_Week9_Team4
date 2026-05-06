@@ -376,6 +376,7 @@
     </ClCompile>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\Engine\Core\SoundManager.cpp" />
+    <ClCompile Include="Source\Engine\Core\TimeManager.cpp" />
     <ClCompile Include="Source\Engine\DriftSalvage\CollectionSystem.cpp" />
     <ClCompile Include="Source\Engine\DriftSalvage\ExplosionSystem.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.cpp" />
@@ -771,6 +772,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Core\SoundManager.h" />
+    <ClInclude Include="Source\Engine\Core\TimeManager.h" />
     <ClInclude Include="Source\Engine\DriftSalvage\CollectionSystem.h" />
     <ClInclude Include="Source\Engine\DriftSalvage\ExplosionSystem.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.h" />

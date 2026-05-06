@@ -63,14 +63,7 @@ void UWorld::PostDuplicate(UObject* Original)
     WorldType      = OrigWorld->WorldType;
     ActiveCamera   = nullptr;
     bHasBegunPlay  = false; // 항상 미시작 상태로 시작
-    FrameUnscaledDeltaTime = 0.0f;
-    FrameScaledDeltaTime = 0.0f;
-    BaseTimeDilation = 1.0f;
-    ResolvedGlobalTimeDilation = 1.0f;
-    HitStopRemainingTime = 0.0f;
-    HitStopTimeScale = 0.05f;
-    SlomoRemainingTime = 0.0f;
-    SlomoTimeScale = 1.0f;
+    TimeManager.Reset();
     PlayerCameraManager.SetOwnerWorld(this);
     PlayerCameraManager.Reset();
 
@@ -91,14 +84,7 @@ void UWorld::PostDuplicate(UObject* Original)
 void UWorld::BeginPlay()
 {
     bHasBegunPlay = true;
-    FrameUnscaledDeltaTime = 0.0f;
-    FrameScaledDeltaTime = 0.0f;
-    BaseTimeDilation = 1.0f;
-    ResolvedGlobalTimeDilation = 1.0f;
-    HitStopRemainingTime = 0.0f;
-    HitStopTimeScale = 0.05f;
-    SlomoRemainingTime = 0.0f;
-    SlomoTimeScale = 1.0f;
+    TimeManager.Reset();
     PlayerCameraManager.SetOwnerWorld(this);
     PlayerCameraManager.Reset();
     CollisionSystem.Reset();
@@ -114,30 +100,8 @@ void UWorld::BeginPlay()
 }
 
 void UWorld::PrepareFrame(float UnscaledDeltaTime)
-{
-    FrameUnscaledDeltaTime = std::max(0.0f, UnscaledDeltaTime);
-
-    HitStopRemainingTime = std::max(0.0f, HitStopRemainingTime - FrameUnscaledDeltaTime);
-    SlomoRemainingTime = std::max(0.0f, SlomoRemainingTime - FrameUnscaledDeltaTime);
-
-    const float ClampedBaseDilation = MathUtil::Clamp(BaseTimeDilation, 0.0f, 8.0f);
-    const bool bHitStopActive = HitStopRemainingTime > 0.0f;
-    const bool bSlomoActive = SlomoRemainingTime > 0.0f;
-
-    if (bHitStopActive)
-    {
-        ResolvedGlobalTimeDilation = ClampedBaseDilation * MathUtil::Clamp(HitStopTimeScale, 0.0f, 1.0f);
-    }
-    else if (bSlomoActive)
-    {
-        ResolvedGlobalTimeDilation = ClampedBaseDilation * MathUtil::Clamp(SlomoTimeScale, 0.0f, 1.0f);
-    }
-    else
-    {
-        ResolvedGlobalTimeDilation = ClampedBaseDilation;
-    }
-
-    FrameScaledDeltaTime = FrameUnscaledDeltaTime * ResolvedGlobalTimeDilation;
+{   
+    TimeManager.PrepareFrame(UnscaledDeltaTime);
 }
 
 void UWorld::Tick(float DeltaTime)
@@ -179,14 +143,7 @@ void UWorld::EndPlay(EEndPlayReason::Type EndPlayReason)
     CollectionSystem.Reset();
     ExplosionSystem.Reset();
     PlayerCameraManager.Reset();
-    FrameUnscaledDeltaTime = 0.0f;
-    FrameScaledDeltaTime = 0.0f;
-    BaseTimeDilation = 1.0f;
-    ResolvedGlobalTimeDilation = 1.0f;
-    HitStopRemainingTime = 0.0f;
-    HitStopTimeScale = 0.05f;
-    SlomoRemainingTime = 0.0f;
-    SlomoTimeScale = 1.0f;
+    TimeManager.Reset();
 }
 
 void UWorld::RebuildSpatialIndex()
@@ -306,17 +263,15 @@ void UWorld::UnregisterLight(ULightComponentBase* Comp)
 
 void UWorld::SetBaseTimeDilation(float InTimeDilation)
 {
-    BaseTimeDilation = MathUtil::Clamp(InTimeDilation, 0.0f, 8.0f);
+    TimeManager.SetBaseTimeDilation(InTimeDilation);
 }
 
 void UWorld::StartHitStop(float Duration, float TimeScale)
 {
-    HitStopRemainingTime = std::max(HitStopRemainingTime, MathUtil::Clamp(Duration, 0.0f, 5.0f));
-    HitStopTimeScale = MathUtil::Clamp(TimeScale, 0.0f, 1.0f);
+    TimeManager.StartHitStop(Duration, TimeScale);
 }
 
 void UWorld::StartSlomo(float TimeScale, float Duration)
 {
-    SlomoRemainingTime = std::max(SlomoRemainingTime, MathUtil::Clamp(Duration, 0.0f, 10.0f));
-    SlomoTimeScale = MathUtil::Clamp(TimeScale, 0.0f, 1.0f);
+    TimeManager.StartSlomo(TimeScale, Duration);
 }
