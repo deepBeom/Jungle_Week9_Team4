@@ -1122,7 +1122,51 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         }
     });
     Lua["HitFeel"] = HitFeelTable;
-
+    
+    sol::table TimeManagerTable = Lua.create_table();
+    TimeManagerTable.set_function("StartSlomo", [](float TimeScale, float Duration)
+    {
+       UWorld* World = GetActiveGameWorld();
+        if (World)
+        {
+            World->StartSlomo(TimeScale, Duration);
+        }
+    });
+    TimeManagerTable.set_function("StopSlomo", []()
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World)
+        {
+            World->StopSlomo();
+        }
+    });
+    TimeManagerTable.set_function("StartHitStop", [](float Duration, sol::object TimeScaleObject)
+    {
+        UWorld* World = GetActiveGameWorld();
+        float TimeScale = 0.05f;
+        if (TimeScaleObject.valid() && TimeScaleObject.get_type() == sol::type::number)
+        {
+            TimeScale = TimeScaleObject.as<float>();
+        }
+        World->StartHitStop(Duration, TimeScale);
+    });
+    TimeManagerTable.set_function("GetTimeScale", []() -> float
+    {
+        UWorld* World = GetActiveGameWorld();
+        return World ? World->GetGlobalTimeDilation() : 1.0f;
+    });
+    TimeManagerTable.set_function("GetScaledDeltaTime", []() -> float
+    {
+        UWorld* World = GetActiveGameWorld();
+        return World ? World->GetScaledDeltaTime() : 0.0f;
+    });
+    TimeManagerTable.set_function("GetUnscaledDeltaTime", []() -> float
+    {
+        UWorld* World = GetActiveGameWorld();
+        return World ? World->GetUnscaledDeltaTime() : 0.0f;
+    });
+    Lua["TimeManager"] = TimeManagerTable;
+    
     Lua.set_function("FindActorByTag", [](const FString& Tag) -> AActor*
     {
         UWorld* World = GetActiveGameWorld();

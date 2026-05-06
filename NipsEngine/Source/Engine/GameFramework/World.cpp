@@ -276,3 +276,8 @@ void UWorld::StartSlomo(float TimeScale, float Duration)
 {
     TimeManager.StartSlomo(TimeScale, Duration);
 }
+
+void UWorld::StopSlomo()
+{
+    TimeManager.StopSlomo();
+}

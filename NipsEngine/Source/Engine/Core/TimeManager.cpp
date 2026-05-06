@@ -99,3 +99,9 @@ void FTimeManager::StartSlomo(float TimeScale, float Duration)
         SlomoTimeScale = ClampedTimeScale;
     }
 }
+
+void FTimeManager::StopSlomo()
+{
+    SlomoRemainingTime = 0.0f;
+    SlomoTimeScale = 1.0f;
+}

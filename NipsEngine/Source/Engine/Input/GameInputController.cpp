@@ -15,7 +15,7 @@
 
 namespace
 {
-    constexpr int32 WatchedKeys[] = { 'W', 'A', 'S', 'D', 'Q', 'E' };
+    constexpr int32 WatchedKeys[] = { 'W', 'A', 'S', 'D', 'Q', 'E', 'O' };
     constexpr int32 WatchedMouseButtons[] = { VK_LBUTTON, VK_RBUTTON, VK_MBUTTON };
 
     bool ReadFileToStringByWidePath(const FWString& FilePath, FString& OutSource)
@@ -452,6 +452,7 @@ const char* FGameInputController::GetKeyName(int32 KeyCode) const
     case 'D': return "D";
     case 'Q': return "Q";
     case 'E': return "E";
+    case 'O': return "O";
     default: return "Unknown";
     }
 }

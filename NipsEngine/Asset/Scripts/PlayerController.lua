@@ -41,6 +41,9 @@ local is_turn_left_pressed = false
 local is_turn_right_pressed = false
 local boat_forward_speed = 0.0
 local boat_turn_speed = 0.0
+local active_routines = {} -- 진행 중인 Coroutine 목록
+local is_slomo_key_pressed = false
+local is_boat_slomo_running = false -- Slomo Coroutine이 중복 실행되지 않게 막기용
 
 local function clamp(value, min_value, max_value)
     if value < min_value then
@@ -52,6 +55,74 @@ local function clamp(value, min_value, max_value)
     end
 
     return value
+end
+
+local function resume_routine(routine)
+    local ok, wait_seconds = coroutine.resume(routine.thread)
+
+    if not ok then
+        if Warning ~= nil then
+            Warning("Boat slomo coroutine error: " .. tostring(wait_seconds))
+        end
+        return false
+    end
+
+    if coroutine.status(routine.thread) == "dead" then
+        return false
+    end
+
+    routine.wait_remaining = math.max(0.0, tonumber(wait_seconds) or 0.0)
+    return true
+end
+
+local function start_routine(func)
+    local routine = {
+        thread = coroutine.create(func),
+        wait_remaining = 0.0,
+    }
+
+    if resume_routine(routine) then
+        table.insert(active_routines, routine)
+    end
+end
+
+local function tick_routines(delta_time)
+    for i = #active_routines, 1, -1 do
+        local routine = active_routines[i]
+
+        if routine.wait_remaining > 0.0 then
+            routine.wait_remaining = math.max(
+                0.0,
+                routine.wait_remaining - math.max(0.0, delta_time or 0.0)
+            )
+        end
+
+        if routine.wait_remaining <= 0.0 then
+            if not resume_routine(routine) then
+                table.remove(active_routines, i)
+            end
+        end
+    end
+end
+
+local function boat_slomo_routine()
+    if is_boat_slomo_running then
+        return
+    end
+
+    is_boat_slomo_running = true
+
+    if Camera ~= nil and Camera.FOVKick ~= nil then
+        Camera.FOVKick(6.0, 0.2)
+    end
+
+    if Camera ~= nil and Camera.SetVignette ~= nil then
+        Camera.SetVignette(0.25, 0.75)
+    end
+
+    Wait(0.12)
+
+    is_boat_slomo_running = false
 end
 
 local function move_toward(current, target, max_delta)
@@ -84,6 +155,18 @@ end
 
 -- TODO: 이 함수 내용들은 PlayerController 스크립트보다는 별도의 Pawn 스크립트에 들어가는 게 더 적절할 수 있습니다.
 function OnUpdate(delta_time)
+    local routine_delta_time = delta_time or 0.0
+    if TimeManager ~= nil and TimeManager.GetUnscaledDeltaTime ~= nil then
+        routine_delta_time = TimeManager.GetUnscaledDeltaTime()
+    end
+
+    tick_routines(routine_delta_time)
+    if is_slomo_key_pressed then
+        if TimeManager ~= nil and TimeManager.StartSlomo ~= nil then
+            TimeManager.StartSlomo(0.35, 0.08)
+        end
+    end    
+        
     if is_input_locked() then
         boat_forward_speed = 0.0
         boat_turn_speed = 0.0
@@ -192,6 +275,14 @@ function OnUpdate(delta_time)
 end
 
 function OnKeyDown(key)
+    if key == "O" then
+        if not is_slomo_key_pressed then
+            is_slomo_key_pressed = true
+            start_routine(boat_slomo_visual_routine)
+        end
+        return
+    end
+    
     if key == "W" then
         is_forward_pressed = true
     elseif key == "S" then
@@ -204,6 +295,20 @@ function OnKeyDown(key)
 end
 
 function OnKeyUp(key)
+    if key == "O" then
+        is_slomo_key_pressed = false
+    
+        if TimeManager ~= nil and TimeManager.StopSlomo ~= nil then
+            TimeManager.StopSlomo()
+        end
+    
+        if Camera ~= nil and Camera.SetVignette ~= nil then
+            Camera.SetVignette(0.0, 0.75)
+        end
+    
+        return
+    end
+    
     if key == "W" then
         is_forward_pressed = false
     elseif key == "S" then

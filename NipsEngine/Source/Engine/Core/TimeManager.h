@@ -13,6 +13,7 @@ public:
     void SetBaseTimeDilation(float InTimeDilation);
     void StartHitStop(float Duration, float TimeScale = 0.05f);
     void StartSlomo(float TimeScale, float Duration);
+    void StopSlomo();
 
 private:
     float FrameUnscaledDeltaTime = 0.0f;
