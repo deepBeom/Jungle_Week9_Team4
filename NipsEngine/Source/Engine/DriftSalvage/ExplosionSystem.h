@@ -4,9 +4,11 @@
 #include "Core/Delegate/MulticastDelegate.h"
 #include "Math/Vector.h"
 #include "Object/WeakObjectPtr.h"
+#include "Spatial/WorldSpatialIndex.h"
 
 class UWorld;
 class AActor;
+class UPrimitiveComponent;
 class USubUVComponent;
 
 // 폭발/충돌로 떠밀린 actor의 push 속도를 추적하면서
@@ -86,6 +88,7 @@ private:
 
     void HandleRockCollision(AActor* Actor, FVector& Velocity);
     void HandleCollectibleCollision(AActor* Actor, FVector& Velocity);
+    void QueryActorCandidatesInSphere(UWorld* World, const FVector& Center, float QueryRadius, TArray<AActor*>& OutActors);
 
     bool IsActorInsideRadius(const AActor* Actor, const FVector& Center, float InRadius) const;
     bool IsCollectibleTag(const AActor* Actor) const;
@@ -102,6 +105,9 @@ private:
     TArray<FPendingPush> PendingPushes;
     TArray<FHazardSubUVEffect> HazardSubUVEffects;
     TArray<FDebugRing> DebugRings;
+    TArray<UPrimitiveComponent*> SpatialCandidatePrimitives;
+    TArray<AActor*> SpatialCandidateActors;
+    FWorldSpatialIndex::FPrimitiveSphereQueryScratch SpatialSphereQueryScratch;
     FOnExplosionDelegate OnExplosion;
 
     // 폭발 파라미터

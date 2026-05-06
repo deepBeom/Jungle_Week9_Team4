@@ -7,9 +7,6 @@
 #include "Core/Paths.h"
 #include "Render/Resource/ObjMtlLoader.h"
 #include "Render/Scene/RenderCommand.h"
-#if WITH_EDITOR
-#include "Settings/EditorSettings.h"
-#endif
 #include "Core/Logging/Log.h"
 
 #include "DDSTextureLoader.h"
@@ -19,6 +16,25 @@
 namespace
 {
     constexpr const char* DefaultUberLitShaderPath = "Shaders/UberLit.hlsl";
+    constexpr bool bGenerateStaticMeshLODsOnLoad = true;
+
+    void BuildRuntimeLODs(UStaticMesh* LoadedMesh, const FString& Path)
+    {
+        if (!bGenerateStaticMeshLODsOnLoad || LoadedMesh == nullptr || !LoadedMesh->HasValidMeshData())
+        {
+            return;
+        }
+
+        const auto LodStart = std::chrono::steady_clock::now();
+        FStaticMeshSimplifier::BuildLODs(LoadedMesh);
+        const auto LodEnd = std::chrono::steady_clock::now();
+
+        const double LodSec = std::chrono::duration<double>(LodEnd - LodStart).count();
+        UE_LOG("[StaticMeshLoad] Generated %d LODs for %s in %.3f sec",
+               LoadedMesh->GetValidLODCount(),
+               Path.c_str(),
+               LodSec);
+    }
 
     bool TryLoadKnownMaterialShader(FResourceManager& ResourceManager, const FString& ShaderName)
     {
@@ -2664,23 +2680,7 @@ UStaticMesh* FResourceManager::LoadStaticMeshWithOptions(const FString& Path, co
     UStaticMesh* LoadedMesh = UObjectManager::Get().CreateObject<UStaticMesh>();
     LoadedMesh->SetMeshData(LoadedMeshData);
 
-#if WITH_EDITOR
-    if (FEditorSettings::Get().ShowFlags.bEnableLOD)
-    {
-        const auto LodStart = std::chrono::steady_clock::now();
-        FStaticMeshSimplifier::BuildLODs(LoadedMesh);
-        const auto LodEnd = std::chrono::steady_clock::now();
-        double LodSec = std::chrono::duration<double>(LodEnd - LodStart).count();
-        UE_LOG("[StaticMeshLoad] Generated %d LODs for %s in %.3f sec",
-               LoadedMesh->GetValidLODCount(), Path.c_str(), LodSec);
-    }
-    else
-    {
-        UE_LOG("[StaticMeshLoad] LOD generation skipped for %s (Enable LOD is off)", Path.c_str());
-    }
-#else
-    UE_LOG("[StaticMeshLoad] LOD generation skipped for %s (non-editor build)", Path.c_str());
-#endif
+    BuildRuntimeLODs(LoadedMesh, Path);
 
     StaticMeshes.insert({CacheKey, LoadedMesh});
 

@@ -7,6 +7,7 @@
 #include "Component/ShapeComponent.h"
 #include "Component/SubUVComponent.h"
 #include "Core/ActorTags.h"
+#include "Core/Containers/Set.h"
 #include "Core/Logging/Log.h"
 #include "Core/SoundManager.h"
 #include "GameFramework/Actor.h"
@@ -132,6 +133,10 @@ void FExplosionSystem::Reset()
     PendingPushes.clear();
     HazardSubUVEffects.clear();
     DebugRings.clear();
+    SpatialCandidatePrimitives.clear();
+    SpatialCandidateActors.clear();
+    SpatialSphereQueryScratch.ObjectIndices.clear();
+    SpatialSphereQueryScratch.BVHScratch.TraversalStack.clear();
     BindDefaultExplosionEvents();
 }
 
@@ -523,7 +528,9 @@ void FExplosionSystem::EnqueuePushToCollectibles(UWorld* World, const FVector& C
 {
     const float SafeSpeed = std::max(0.01f, ChainShockwaveSpeed);
 
-    for (AActor* Actor : World->GetActors())
+    QueryActorCandidatesInSphere(World, Center, Radius, SpatialCandidateActors);
+
+    for (AActor* Actor : SpatialCandidateActors)
     {
         if (!ActorAlive(Actor) || !IsCollectibleTag(Actor))
         {
@@ -575,7 +582,9 @@ void FExplosionSystem::EnqueueChainExplosions(UWorld* World, AActor* SourceHazar
 {
     const float SafeSpeed = std::max(0.01f, ChainShockwaveSpeed);
 
-    for (AActor* Actor : World->GetActors())
+    QueryActorCandidatesInSphere(World, Center, Radius, SpatialCandidateActors);
+
+    for (AActor* Actor : SpatialCandidateActors)
     {
         if (!ActorAlive(Actor) || !IsHazardTag(Actor))
         {
@@ -637,7 +646,11 @@ void FExplosionSystem::HandleRockCollision(AActor* Actor, FVector& Velocity)
         return;
     }
 
-    for (AActor* Other : World->GetActors())
+    const FVector QueryCenter = MoverBox.GetCenter();
+    const float QueryRadius = (MoverBox.Max - MoverBox.Min).Size() * 0.5f;
+    QueryActorCandidatesInSphere(World, QueryCenter, QueryRadius, SpatialCandidateActors);
+
+    for (AActor* Other : SpatialCandidateActors)
     {
         if (!ActorAlive(Other) || Other == Actor || !IsRockTag(Other))
         {
@@ -689,7 +702,11 @@ void FExplosionSystem::HandleCollectibleCollision(AActor* Actor, FVector& Veloci
         return;
     }
 
-    for (AActor* Other : World->GetActors())
+    const FVector QueryCenter = MoverBox.GetCenter();
+    const float QueryRadius = (MoverBox.Max - MoverBox.Min).Size() * 0.5f;
+    QueryActorCandidatesInSphere(World, QueryCenter, QueryRadius, SpatialCandidateActors);
+
+    for (AActor* Other : SpatialCandidateActors)
     {
         if (!ActorAlive(Other) || Other == Actor || !IsCollectibleTag(Other))
         {
@@ -728,6 +745,48 @@ void FExplosionSystem::HandleCollectibleCollision(AActor* Actor, FVector& Veloci
             // 자기 속도는 normal 성분 일부 잃음.
             Velocity = Velocity - Normal * (Into * Transfer);
         }
+    }
+}
+
+void FExplosionSystem::QueryActorCandidatesInSphere(
+    UWorld* World,
+    const FVector& Center,
+    float QueryRadius,
+    TArray<AActor*>& OutActors)
+{
+    OutActors.clear();
+    SpatialCandidatePrimitives.clear();
+
+    if (!World || QueryRadius <= 0.0f)
+    {
+        return;
+    }
+
+    World->GetSpatialIndex().SphereQueryPrimitives(
+        Center,
+        QueryRadius,
+        SpatialCandidatePrimitives,
+        SpatialSphereQueryScratch);
+
+    TSet<AActor*> VisitedActors;
+    VisitedActors.reserve(SpatialCandidatePrimitives.size());
+    OutActors.reserve(SpatialCandidatePrimitives.size());
+
+    for (UPrimitiveComponent* Primitive : SpatialCandidatePrimitives)
+    {
+        if (!Primitive || !Primitive->IsActive())
+        {
+            continue;
+        }
+
+        AActor* Owner = Primitive->GetOwner();
+        if (!ActorAlive(Owner) || VisitedActors.find(Owner) != VisitedActors.end())
+        {
+            continue;
+        }
+
+        VisitedActors.insert(Owner);
+        OutActors.push_back(Owner);
     }
 }
 
