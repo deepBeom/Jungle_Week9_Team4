@@ -48,6 +48,9 @@ local active_routines = {} -- 진행 중인 Coroutine 목록
 local is_slomo_key_pressed = false
 local is_boat_slomo_running = false -- Slomo Coroutine이 중복 실행되지 않게 막기용
 local is_forward_loop_sfx_playing = false
+local boat_slomo_time_scale = 0.35
+local boat_slomo_refresh_duration = 0.08
+local boat_slomo_remaining_time = 0.0
 
 local function clamp(value, min_value, max_value)
     if value < min_value then
@@ -169,23 +172,25 @@ end
 
 -- TODO: 이 함수 내용들은 PlayerController 스크립트보다는 별도의 Pawn 스크립트에 들어가는 게 더 적절할 수 있습니다.
 function OnUpdate(delta_time)
-    local input_delta_time = delta_time or 0.0
-    local physics_delta_time = input_delta_time
-    if TimeManager ~= nil and TimeManager.GetScaledDeltaTime ~= nil then
-        physics_delta_time = TimeManager.GetScaledDeltaTime()
-    end
-
-    local routine_delta_time = input_delta_time
+    local physics_delta_time = delta_time or 0.0
+    local routine_delta_time = physics_delta_time
     if TimeManager ~= nil and TimeManager.GetUnscaledDeltaTime ~= nil then
         routine_delta_time = TimeManager.GetUnscaledDeltaTime()
     end
+    local input_delta_time = routine_delta_time
 
     tick_routines(routine_delta_time)
     if is_slomo_key_pressed then
-        if TimeManager ~= nil and TimeManager.StartSlomo ~= nil then
-            TimeManager.StartSlomo(0.35, 0.08)
-        end
+        boat_slomo_remaining_time = boat_slomo_refresh_duration
     end    
+    boat_slomo_remaining_time = math.max(
+        0.0,
+        boat_slomo_remaining_time - math.max(0.0, routine_delta_time or 0.0)
+    )
+    physics_delta_time = routine_delta_time
+    if boat_slomo_remaining_time > 0.0 then
+        physics_delta_time = routine_delta_time * boat_slomo_time_scale
+    end
         
     if is_input_locked() then
         update_forward_loop_sfx(false)
@@ -322,10 +327,7 @@ end
 function OnKeyUp(key)
     if key == "O" then
         is_slomo_key_pressed = false
-    
-        if TimeManager ~= nil and TimeManager.StopSlomo ~= nil then
-            TimeManager.StopSlomo()
-        end
+        boat_slomo_remaining_time = 0.0
     
         return
     end
