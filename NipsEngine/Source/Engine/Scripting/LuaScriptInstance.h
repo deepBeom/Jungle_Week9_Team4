@@ -2,6 +2,8 @@
 
 #include <sol/sol.hpp>
 
+#include "Core/Containers/Map.h"
+
 class AActor;
 class UScriptComponent;
 
@@ -22,12 +24,16 @@ struct FLuaScriptInstance
     UScriptComponent* OwnerComponent = nullptr;
     /** Assigned script path (normalized, resolved by subsystem on load). */
     FString ScriptPath;
+    /** Absolute normalized script path key used for shared hot reload matching. */
+    FWString ResolvedScriptPathKey;
 
     /** Per-instance Lua environment (isolated global namespace for this actor). */
     sol::environment Env;
 
     /** True when script file loaded and initial chunk executed successfully. */
     bool bLoaded = false;
+    /** Cached callback convention per function name: true when owner should be passed as first arg. */
+    TMap<FString, bool> CallbackUsesOwnerArgument;
 
     /**
      * @brief Creates isolated environment from subsystem shared Lua state.

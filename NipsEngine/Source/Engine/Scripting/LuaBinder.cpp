@@ -677,6 +677,10 @@ namespace
     {
         Lua.new_usertype<AActor>(
             "Actor",
+            "UUID", sol::property([](AActor* Actor) -> uint32
+            {
+                return IsValidActorObject(Actor) ? Actor->GetUUID() : 0u;
+            }),
             "GetName", [](AActor* Actor) -> FString
             {
                 return SafeObjectName(Actor);
