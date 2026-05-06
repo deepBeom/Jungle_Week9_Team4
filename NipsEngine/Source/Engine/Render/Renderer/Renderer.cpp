@@ -203,7 +203,7 @@ void FRenderer::UseBackBufferRenderTargets()
     }
 }
 
-void FRenderer::PresentToBackBuffer(const ID3D11ShaderResourceView* FinalSRV)
+void FRenderer::PresentToBackBuffer(const ID3D11ShaderResourceView* FinalSRV, const FScreenEffectSettings& ScreenEffectSettings)
 {
     // TODO: assert 정리
     assert(FinalSRV && "PresentToBackBuffer requires a final scene SRV.");
@@ -221,6 +221,14 @@ void FRenderer::PresentToBackBuffer(const ID3D11ShaderResourceView* FinalSRV)
 
     PresentShaderBinding->SetSRV("SceneFinalColor", const_cast<ID3D11ShaderResourceView*>(FinalSRV));
     PresentShaderBinding->SetAllSamplers(FResourceManager::Get().GetOrCreateSamplerState(ESamplerType::EST_Linear));
+    PresentShaderBinding->SetFloat("FadeAmount", ScreenEffectSettings.FadeAmount);
+    PresentShaderBinding->SetVector3("FadeColor", ScreenEffectSettings.FadeColor);
+    PresentShaderBinding->SetFloat("LetterBoxAmount", ScreenEffectSettings.LetterBoxAmount);
+    PresentShaderBinding->SetBool("bGammaCorrectionEnabled", ScreenEffectSettings.bGammaCorrectionEnabled);
+    PresentShaderBinding->SetFloat("Gamma", ScreenEffectSettings.Gamma);
+    PresentShaderBinding->SetBool("bVignetteEnabled", ScreenEffectSettings.bVignetteEnabled);
+    PresentShaderBinding->SetFloat("VignetteIntensity", ScreenEffectSettings.VignetteIntensity);
+    PresentShaderBinding->SetFloat("VignetteRadius", ScreenEffectSettings.VignetteRadius);
 
     Device.SetSubViewport(0, 0, static_cast<int32>(BackBufferRenderTargets->Width), static_cast<int32>(BackBufferRenderTargets->Height));
 

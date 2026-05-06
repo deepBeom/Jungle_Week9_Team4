@@ -51,7 +51,7 @@ void FGameRenderPipeline::RenderViewport(FRenderer& Renderer)
 
     Renderer.PrepareBatchers(Bus);
     Renderer.Render(Bus);
-    Renderer.PresentToBackBuffer(Renderer.GetCurrentSceneSRV());
+    Renderer.PresentToBackBuffer(Renderer.GetCurrentSceneSRV(), Bus.GetScreenEffectSettings());
 }
 
 bool FGameRenderPipeline::PrepareViewport(FRenderer& Renderer, FSceneView& OutSceneView, FGameViewportClient*& OutViewportClient)
@@ -87,6 +87,7 @@ bool FGameRenderPipeline::PrepareViewport(FRenderer& Renderer, FSceneView& OutSc
     Bus.SetViewportOrigin(FVector2(static_cast<float>(Rect.X), static_cast<float>(Rect.Y)));
     Bus.SetFXAAEnabled(!OutSceneView.bOrthographic);
     Bus.SetShadowFilterType(EShadowFilterType::PCF);
+    Bus.SetScreenEffectSettings(OutViewportClient->GetWorld()->GetPlayerCameraManager().GetScreenEffectSettings());
 
     return true;
 }

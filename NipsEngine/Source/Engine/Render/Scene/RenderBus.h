@@ -60,6 +60,8 @@ public:
 
     EShadowFilterType GetShadowFilterType() const { return ShadowFilterType; }
     void SetShadowFilterType(const EShadowFilterType NewShadowFilterType) { ShadowFilterType = NewShadowFilterType; }
+    void SetScreenEffectSettings(const FScreenEffectSettings& InSettings) { ScreenEffectSettings = InSettings; }
+    const FScreenEffectSettings& GetScreenEffectSettings() const { return ScreenEffectSettings; }
 
 private:
     TArray<FRenderCommand> PassQueues[(uint32)ERenderPass::MAX];
@@ -87,4 +89,5 @@ private:
     FShowFlags ShowFlags;
     FVector WireframeColor = FVector(1.0f, 1.0f, 1.0f);
     bool bFXAAEnabled = true;
+    FScreenEffectSettings ScreenEffectSettings;
 };

@@ -28,6 +28,8 @@ public:
     const FString& GetDefaultControllerScriptPath() const { return DefaultControllerScriptPath; }
     void SetUIMode(bool bInUIMode);
     bool IsUIMode() const { return bUIMode; }
+    void SetPlayerControlEnabled(bool bEnabled);
+    bool IsPlayerControlEnabled() const { return bPlayerControlEnabled; }
 
     void Tick(float DeltaTime);
     void Reset();
@@ -36,7 +38,7 @@ public:
     bool IsMouseLocked() const { return bMouseLocked; }
 
 private:
-    // 프로젝트의 전역 sol에 통합되어야 함..
+    // TODO: 프로젝트의 전역 sol에 통합되어야 함..
     template <typename... Args>
     bool CallLuaFunction(const char* FunctionName, Args&&... ArgsToForward)
     {
@@ -71,7 +73,6 @@ private:
     FWString ResolveScriptPathWide(const FString& InScriptPath) const;
     FString ResolveActiveControllerScriptPath();
     void RefreshControlledPawn();
-    void SyncViewportCameraFromPawn();
     void TickLuaInput(InputSystem& Input);
     void ApplyUIModeState();
 
@@ -93,10 +94,12 @@ private:
     UCameraComponent* ControlledCameraComponent = nullptr;
 
     bool bUIMode = false;
+    bool bPlayerControlEnabled = true;
     bool bCursorHidden = false;               // 실제 커서 숨김 상태입니다.
     bool bMouseLocked = false;                // 실제 마우스 고정 상태입니다.
     bool bScriptLoadAttempted = false;
     bool bScriptLoaded = false;
+    FString LastScriptError;
 
     FString DefaultControllerScriptPath = "Asset/Scripts/DefaultController.lua";
     FString ActiveControllerScriptPath;

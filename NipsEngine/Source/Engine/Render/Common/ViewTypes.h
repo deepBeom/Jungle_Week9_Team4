@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Core/CoreTypes.h"
+#include "Math/Vector.h"
 
 // 에디터 UI와 렌더러가 공유하는 view mode 정의다.
 // 새 view mode를 추가할 때는 enum만 늘리지 말고 아래 helper 규칙도 함께 확장해야 한다.
@@ -58,6 +59,18 @@ struct FGridRenderSettings
     float AxisThickness;
     float AxisIntensity;
     float AxisLengthScale;
+};
+
+struct FScreenEffectSettings
+{
+    float FadeAmount = 0.0f;
+    FVector FadeColor = FVector::ZeroVector;
+    float LetterBoxAmount = 0.0f;
+    bool bGammaCorrectionEnabled = false;
+    float Gamma = 2.2f;
+    bool bVignetteEnabled = false;
+    float VignetteIntensity = 0.0f;
+    float VignetteRadius = 0.75f;
 };
 
 constexpr FGridRenderSettings MakeDefaultGridRenderSettings()

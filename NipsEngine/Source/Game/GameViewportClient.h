@@ -18,6 +18,8 @@ public:
     virtual void BuildSceneView(FSceneView& OutView) const override;
 
     void SetWorld(UWorld* InWorld);
+    void UpdateCamera(float UnscaledDeltaTime);
+    void SetPlayerControlEnabled(bool bEnabled);
     UWorld* GetWorld() const { return World; }
 
     FViewportCamera& GetCamera() { return Camera; }

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Object/Object.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/Camera/PlayerCameraManager.h"
 #include "DriftSalvage/CollectionSystem.h"
 #include "DriftSalvage/ExplosionSystem.h"
 #include "Level.h"
@@ -76,6 +77,7 @@ public:
     void BeginPlay();      // Triggers BeginPlay on all actors
     void Tick(float DeltaTime);  // Drives the game loop every frame
     void EndPlay(EEndPlayReason::Type EndPlayReason); // Cleanup before world is destroyed
+    void PrepareFrame(float UnscaledDeltaTime);
 
     /** @brief Rebuild the world BVH and bounds snapshot from all current primitives. */
     void RebuildSpatialIndex();
@@ -88,6 +90,15 @@ public:
     // Active Camera — EditorViewportClient 또는 PlayerController가 세팅e
     void SetActiveCamera(FViewportCamera* InCamera) { ActiveCamera = InCamera; }
     FViewportCamera* GetActiveCamera() const { return ActiveCamera; }
+    FPlayerCameraManager& GetPlayerCameraManager() { return PlayerCameraManager; }
+    const FPlayerCameraManager& GetPlayerCameraManager() const { return PlayerCameraManager; }
+
+    float GetUnscaledDeltaTime() const { return FrameUnscaledDeltaTime; }
+    float GetScaledDeltaTime() const { return FrameScaledDeltaTime; }
+    float GetGlobalTimeDilation() const { return ResolvedGlobalTimeDilation; }
+    void SetBaseTimeDilation(float InTimeDilation);
+    void StartHitStop(float Duration, float TimeScale = 0.05f);
+    void StartSlomo(float TimeScale, float Duration);
 
     /** @brief Access the world-level primitive AABB/BVH manager. */
     FWorldSpatialIndex& GetSpatialIndex() { return SpatialIndex; }
@@ -125,4 +136,14 @@ private:
     FCollectionSystem CollectionSystem;
     FExplosionSystem ExplosionSystem;
     bool bIsIteratingLevelActors = false;
+    FPlayerCameraManager PlayerCameraManager;
+
+    float FrameUnscaledDeltaTime = 0.0f;
+    float FrameScaledDeltaTime = 0.0f;
+    float BaseTimeDilation = 1.0f;
+    float ResolvedGlobalTimeDilation = 1.0f;
+    float HitStopRemainingTime = 0.0f;
+    float HitStopTimeScale = 0.05f;
+    float SlomoRemainingTime = 0.0f;
+    float SlomoTimeScale = 1.0f;
 };

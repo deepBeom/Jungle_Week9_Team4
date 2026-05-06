@@ -68,6 +68,25 @@ void FGameViewportClient::SetWorld(UWorld* InWorld)
     }
 }
 
+void FGameViewportClient::UpdateCamera(float UnscaledDeltaTime)
+{
+    if (World == nullptr)
+    {
+        return;
+    }
+
+    // The camera manager owns transient blends/shakes and writes the temporary final POV into the viewport camera.
+    FPlayerCameraManager& PlayerCameraManager = World->GetPlayerCameraManager();
+    PlayerCameraManager.Update(UnscaledDeltaTime);
+    PlayerCameraManager.ApplyToViewportCamera(Camera);
+    World->SetActiveCamera(&Camera);
+}
+
+void FGameViewportClient::SetPlayerControlEnabled(bool bEnabled)
+{
+    InputRouter.GetGameInputController().SetPlayerControlEnabled(bEnabled);
+}
+
 void FGameViewportClient::ResetInputState()
 {
     InputRouter.GetGameInputController().Reset();

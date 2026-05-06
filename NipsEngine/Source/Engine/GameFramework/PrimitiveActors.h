@@ -10,6 +10,7 @@ class USubUVComponent;
 class UMaterialInterface;
 class UStaticMesh;
 class UStaticMeshComponent;
+class UCameraComponent;
 
 class ASceneActor : public AActor
 {
@@ -38,6 +39,25 @@ public:
     AWaterActor() = default;
 
     void InitDefaultComponents();
+};
+
+class ACameraActor : public AActor
+{
+public:
+    DECLARE_CLASS(ACameraActor, AActor)
+    ACameraActor() = default;
+
+    void InitDefaultComponents() override;
+    UCameraComponent* GetCameraComponent() const;
+};
+
+class ACineCameraActor : public ACameraActor
+{
+public:
+    DECLARE_CLASS(ACineCameraActor, ACameraActor)
+    ACineCameraActor() = default;
+
+    void InitDefaultComponents() override;
 };
 
 class AGlobalOceanActor : public AActor

@@ -91,6 +91,17 @@ void FGameInputController::SetUIMode(bool bInUIMode)
     ApplyUIModeState();
 }
 
+void FGameInputController::SetPlayerControlEnabled(bool bEnabled)
+{
+    if (bPlayerControlEnabled == bEnabled)
+    {
+        return;
+    }
+
+    bPlayerControlEnabled = bEnabled;
+    ApplyUIModeState();
+}
+
 void FGameInputController::Tick(float DeltaTime)
 {
     if (!Camera)
@@ -107,10 +118,8 @@ void FGameInputController::Tick(float DeltaTime)
 
     RefreshControlledPawn();
 
-    SyncViewportCameraFromPawn();
-
     ApplyUIModeState();
-    if (bUIMode)
+    if (bUIMode || !bPlayerControlEnabled)
     {
         return;
     }
@@ -177,6 +186,7 @@ void FGameInputController::TickLuaInput(InputSystem& Input)
 void FGameInputController::Reset()
 {
     bUIMode = false;
+    bPlayerControlEnabled = true;
     LuaBinder::SetUIMode(false);
     ApplyUIModeState();
     ControlledPawn = nullptr;
@@ -223,37 +233,9 @@ void FGameInputController::RefreshControlledPawn()
     ControlledCameraComponent = ControlledPawn ? ControlledPawn->GetCameraComponent() : nullptr;
 }
 
-void FGameInputController::SyncViewportCameraFromPawn()
-{
-    if (!Camera || !ControlledCameraComponent)
-    {
-        return;
-    }
-
-    const FTransform CameraTransform = ControlledCameraComponent->GetWorldTransform();
-    const FCameraState& CameraState = ControlledCameraComponent->GetCameraState();
-
-    Camera->SetLocation(CameraTransform.GetLocation());
-    Camera->SetRotation(CameraTransform.GetRotation());
-    Camera->SetNearPlane(CameraState.NearZ);
-    Camera->SetFarPlane(CameraState.FarZ);
-
-    if (CameraState.bIsOrthogonal)
-    {
-        Camera->SetProjectionType(EViewportProjectionType::Orthographic);
-        const float AspectRatio = Camera->GetAspectRatio() > 0.0f ? Camera->GetAspectRatio() : 1.0f;
-        Camera->SetOrthoHeight(CameraState.OrthoWidth / AspectRatio);
-    }
-    else
-    {
-        Camera->SetProjectionType(EViewportProjectionType::Perspective);
-        Camera->SetFOV(CameraState.FOV);
-    }
-}
-
 void FGameInputController::ApplyUIModeState()
 {
-    const bool bGameplayInputActive = !bUIMode;
+    const bool bGameplayInputActive = !bUIMode && bPlayerControlEnabled;
     bCursorHidden = bGameplayInputActive;
     bMouseLocked = bGameplayInputActive;
 
@@ -287,7 +269,10 @@ void FGameInputController::EnsureScriptLoaded()
         return;
     }
 
-    if (LoadedScriptPath != ActiveControllerScriptPath)
+    const FString ResolvedActiveControllerScriptPath =
+        FPaths::ToUtf8(ResolveScriptPathWide(ActiveControllerScriptPath));
+
+    if (LoadedScriptPath != ResolvedActiveControllerScriptPath)
     {
         bScriptLoadAttempted = false;
         bScriptLoaded = false;
@@ -306,11 +291,6 @@ void FGameInputController::EnsureScriptLoaded()
 
 bool FGameInputController::LoadScript()
 {
-    if (!GEngine)
-    {
-        return false;
-    }
-
     sol::state& Lua = GEngine->GetLuaScriptSubsystem().GetLuaState();
     ScriptEnvironment = sol::environment(Lua, sol::create, Lua.globals());
     InstallBindings();
@@ -321,7 +301,7 @@ bool FGameInputController::LoadScript()
     FString ScriptSource;
     if (!ReadFileToStringByWidePath(ResolvedScriptPathWide, ScriptSource))
     {
-        printf("[Lua Input Load Error] Failed to open script file: %s\n", LoadedScriptPath.c_str());
+        UE_LOG("[Lua] Failed to read script file: %s", LoadedScriptPath.c_str());
         return false;
     }
 
@@ -330,8 +310,9 @@ bool FGameInputController::LoadScript()
     sol::load_result LoadedScript = Lua.load(ScriptSource, LoadedScriptPath);
     if (!LoadedScript.valid())
     {
+        UE_LOG("[Lua] Failed to load script: %s", LoadedScriptPath.c_str());
         sol::error Error = LoadedScript;
-        printf("[Lua Input Load Error] %s: %s\n", LoadedScriptPath.c_str(), Error.what());
+        UE_LOG("[Lua] Syntax Error in script: %s", Error.what());
         return false;
     }
 
@@ -341,8 +322,9 @@ bool FGameInputController::LoadScript()
     sol::protected_function_result Result = ScriptFunction();
     if (!Result.valid())
     {
+        UE_LOG("[Lua] Failed to execute script: %s", LoadedScriptPath.c_str());
         sol::error Error = Result;
-        printf("[Lua Input Runtime Error] %s: %s\n", LoadedScriptPath.c_str(), Error.what());
+        UE_LOG("[Lua] Runtime Error in script: %s", Error.what());
         return false;
     }
 
@@ -359,6 +341,32 @@ void FGameInputController::InstallBindings()
     {
         sol::state_view Lua(ScriptEnvironment.lua_state());
         sol::table CameraTable = Lua.create_table();
+        sol::object GlobalCameraObject = Lua["Camera"];
+        if (GlobalCameraObject.valid() && GlobalCameraObject.get_type() == sol::type::table)
+        {
+            sol::table GlobalCameraTable = GlobalCameraObject;
+            const char* ForwardedFunctions[] =
+            {
+                "SetViewTargetWithBlend",
+                "Shake",
+                "FadeIn",
+                "FadeOut",
+                "SetLetterBox",
+                "SetVignette",
+                "EnableGammaCorrection",
+                "FOVKick",
+            };
+
+            for (const char* FunctionName : ForwardedFunctions)
+            {
+                sol::object FunctionObject = GlobalCameraTable[FunctionName];
+                if (FunctionObject.valid())
+                {
+                    CameraTable[FunctionName] = FunctionObject;
+                }
+            }
+        }
+
         CameraTable.set_function("GetPosition", [this]()
         {
             return Camera ? Camera->GetLocation() : FVector::ZeroVector;

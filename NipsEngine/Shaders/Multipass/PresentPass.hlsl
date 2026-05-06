@@ -4,6 +4,18 @@
 Texture2D SceneFinalColor : register(t0);
 SamplerState SampleState : register(s0);
 
+cbuffer PresentSettings : register(b0)
+{
+    float FadeAmount;
+    float3 FadeColor;
+    float LetterBoxAmount;
+    uint bGammaCorrectionEnabled;
+    float Gamma;
+    uint bVignetteEnabled;
+    float VignetteIntensity;
+    float VignetteRadius;
+};
+
 struct VSOutput
 {
     float4 ClipPos : SV_POSITION;
@@ -36,5 +48,35 @@ VSOutput mainVS(uint VertexID : SV_VertexID)
 float4 mainPS(VSOutput Input) : SV_TARGET
 {
     // 최종 scene result를 그대로 출력한다.
-    return SceneFinalColor.Sample(SampleState, Input.UV);
+    float2 UV = saturate(Input.UV);
+    float3 Color = SceneFinalColor.Sample(SampleState, UV).rgb;
+
+    if (bVignetteEnabled != 0 && VignetteIntensity > 0.0f)
+    {
+        float2 CenteredUV = (UV - 0.5f) / 0.70710678f;
+        float DistanceFromCenter = length(CenteredUV);
+        float EdgeAlpha = smoothstep(VignetteRadius, 1.0f, DistanceFromCenter);
+        Color *= 1.0f - saturate(EdgeAlpha * VignetteIntensity);
+    }
+
+    if (FadeAmount > 0.0f)
+    {
+        Color = lerp(Color, FadeColor, saturate(FadeAmount));
+    }
+
+    if (bGammaCorrectionEnabled != 0 && Gamma > 0.0f)
+    {
+        Color = pow(saturate(Color), 1.0f / Gamma);
+    }
+
+    if (LetterBoxAmount > 0.0f)
+    {
+        bool bInLetterBox = UV.y <= LetterBoxAmount || UV.y >= (1.0f - LetterBoxAmount);
+        if (bInLetterBox)
+        {
+            Color = 0.0f.xxx;
+        }
+    }
+
+    return float4(Color, 1.0f);
 }

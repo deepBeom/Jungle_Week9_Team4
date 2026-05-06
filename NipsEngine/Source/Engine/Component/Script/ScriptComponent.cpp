@@ -3,8 +3,11 @@
 
 #include "Engine/Core/CollisionTypes.h"
 #include "Engine/Core/Paths.h"
+#include "Engine/GameFramework/World.h"
 #include "Engine/Runtime/Engine.h"
 #include "Engine/Scripting/LuaScriptSubsystem.h"
+
+#include <algorithm>
 
 namespace
 {
@@ -21,6 +24,7 @@ void UScriptComponent::BeginPlay()
     // Reset runtime phase for every play session / PIE entry.
     RuntimeState = EScriptRuntimeState::Idle;
     ConsecutiveRuntimeErrorCount = 0;
+    ClearCoroutines();
 
     // Keep runtime active state aligned with serialized toggle at PIE/Game start.
     // This prevents stale runtime-only bIsActive values from silently blocking updates.
@@ -44,6 +48,7 @@ void UScriptComponent::BeginPlay()
 void UScriptComponent::EndPlay()
 {
     NotifyScriptDestroyed();
+    ClearCoroutines();
 
     if (ScriptInstance)
     {
@@ -73,6 +78,14 @@ void UScriptComponent::TickComponent(float DeltaTime)
     bool bHadCallback = false;
     const bool bResult = TryCallPreferred({ "OnUpdate", "Tick" }, &bHadCallback, DeltaTime);
     ApplyRuntimeFailurePolicy(bHadCallback, bResult, "OnUpdate/Tick");
+    if (!IsActive())
+    {
+        ClearCoroutines();
+        return;
+    }
+
+    UWorld* World = GetOwner() ? GetOwner()->GetFocusedWorld() : nullptr;
+    TickCoroutines(World ? World->GetUnscaledDeltaTime() : DeltaTime);
 }
 
 void UScriptComponent::Activate()
@@ -164,7 +177,7 @@ void UScriptComponent::OnOverlapBegin(AActor* OtherActor)
     }
 
     bool bHadCallback = false;
-    const bool bResult = TryCallPreferred({ "OnOverlapBegin", "OnOverlap" }, &bHadCallback, OtherActor);
+    const bool bResult = TryCallPreferred({ "OnOverlapBegin", "OnBeginOverlap", "OnOverlap" }, &bHadCallback, OtherActor);
     ApplyRuntimeFailurePolicy(bHadCallback, bResult, "OnOverlapBegin/OnOverlap");
 }
 
@@ -176,7 +189,7 @@ void UScriptComponent::OnOverlapEnd(AActor* OtherActor)
     }
 
     bool bHadCallback = false;
-    const bool bResult = TryCallPreferred({ "OnOverlapEnd" }, &bHadCallback, OtherActor);
+    const bool bResult = TryCallPreferred({ "OnOverlapEnd", "OnEndOverlap" }, &bHadCallback, OtherActor);
     ApplyRuntimeFailurePolicy(bHadCallback, bResult, "OnOverlapEnd");
 }
 
@@ -206,6 +219,7 @@ bool UScriptComponent::ReloadScript()
     }
 
     NotifyScriptDestroyed();
+    ClearCoroutines();
 
     const bool bReloaded = GEngine->GetLuaScriptSubsystem().ReloadScript(ScriptInstance);
     RuntimeState = EScriptRuntimeState::Idle;
@@ -229,6 +243,51 @@ bool UScriptComponent::ReloadScript()
     }
 
     return true;
+}
+
+void UScriptComponent::StartCoroutine(const sol::function& Function)
+{
+    if (!ScriptInstance || !ScriptInstance->bLoaded || !Function.valid())
+    {
+        return;
+    }
+
+    lua_State* MainState = ScriptInstance->Env.lua_state();
+    if (MainState == nullptr)
+    {
+        return;
+    }
+
+    lua_State* ThreadState = lua_newthread(MainState);
+    if (ThreadState == nullptr)
+    {
+        lua_pop(MainState, 1);
+        return;
+    }
+
+    const int ThreadRegistryRef = luaL_ref(MainState, LUA_REGISTRYINDEX);
+    sol::stack::push(MainState, Function);
+    lua_xmove(MainState, ThreadState, 1);
+
+    FLuaCoroutineState CoroutineState;
+    CoroutineState.Thread = ThreadState;
+    CoroutineState.ThreadRegistryRef = ThreadRegistryRef;
+    CoroutineState.WaitRemaining = 0.0f;
+
+    if (ResumeCoroutine(CoroutineState))
+    {
+        if (bTickingCoroutines)
+        {
+            PendingCoroutines.push_back(CoroutineState);
+        }
+        else
+        {
+            ActiveCoroutines.push_back(CoroutineState);
+        }
+        return;
+    }
+
+    luaL_unref(MainState, LUA_REGISTRYINDEX, ThreadRegistryRef);
 }
 
 void UScriptComponent::SetScriptPath(const FString& InPath)
@@ -412,6 +471,10 @@ void UScriptComponent::ApplyRuntimeFailurePolicy(bool bHadCallback, bool bSuccee
             UE_LOG("[Lua] Last failed callback context: %s\n", CallbackContext);
         }
         DisableScriptAfterFatalError();
+        if (!bTickingCoroutines)
+        {
+            ClearCoroutines();
+        }
     }
 }
 
@@ -431,4 +494,123 @@ bool UScriptComponent::ShouldDisableAfterRuntimeFailure(bool bHadCallback, bool 
 
     ++ConsecutiveRuntimeErrorCount;
     return ConsecutiveRuntimeErrorCount >= MaxConsecutiveRuntimeFailures;
+}
+
+void UScriptComponent::TickCoroutines(float UnscaledDeltaTime)
+{
+    if (ActiveCoroutines.empty())
+    {
+        return;
+    }
+
+    bTickingCoroutines = true;
+    for (int32 CoroutineIndex = static_cast<int32>(ActiveCoroutines.size()) - 1; CoroutineIndex >= 0; --CoroutineIndex)
+    {
+        FLuaCoroutineState& CoroutineState = ActiveCoroutines[CoroutineIndex];
+        if (CoroutineState.Thread == nullptr)
+        {
+            ActiveCoroutines.erase(ActiveCoroutines.begin() + CoroutineIndex);
+            continue;
+        }
+
+        if (CoroutineState.WaitRemaining > 0.0f)
+        {
+            CoroutineState.WaitRemaining = std::max(0.0f, CoroutineState.WaitRemaining - UnscaledDeltaTime);
+            if (CoroutineState.WaitRemaining > 0.0f)
+            {
+                continue;
+            }
+        }
+
+        if (ResumeCoroutine(CoroutineState))
+        {
+            continue;
+        }
+
+        if (!IsActive())
+        {
+            ClearCoroutines();
+            return;
+        }
+
+        if (ScriptInstance)
+        {
+            luaL_unref(ScriptInstance->Env.lua_state(), LUA_REGISTRYINDEX, CoroutineState.ThreadRegistryRef);
+        }
+        ActiveCoroutines.erase(ActiveCoroutines.begin() + CoroutineIndex);
+    }
+    bTickingCoroutines = false;
+
+    if (!PendingCoroutines.empty())
+    {
+        ActiveCoroutines.insert(ActiveCoroutines.end(), PendingCoroutines.begin(), PendingCoroutines.end());
+        PendingCoroutines.clear();
+    }
+}
+
+bool UScriptComponent::ResumeCoroutine(FLuaCoroutineState& CoroutineState)
+{
+    if (CoroutineState.Thread == nullptr)
+    {
+        return false;
+    }
+
+    int ResultCount = 0;
+    const int ResumeStatus = lua_resume(CoroutineState.Thread, nullptr, 0, &ResultCount);
+    if (ResumeStatus == LUA_YIELD)
+    {
+        float WaitSeconds = 0.0f;
+        if (ResultCount > 0 && lua_isnumber(CoroutineState.Thread, -1))
+        {
+            WaitSeconds = static_cast<float>(lua_tonumber(CoroutineState.Thread, -1));
+        }
+
+        lua_settop(CoroutineState.Thread, 0);
+        CoroutineState.WaitRemaining = std::max(0.0f, WaitSeconds);
+        return true;
+    }
+
+    if (ResumeStatus == LUA_OK)
+    {
+        lua_settop(CoroutineState.Thread, 0);
+        return false;
+    }
+
+    const char* ErrorMessage = lua_tostring(CoroutineState.Thread, -1);
+    UE_LOG("[Lua Coroutine Error] %s (%s)\n",
+        ErrorMessage ? ErrorMessage : "Unknown coroutine failure",
+        ScriptPath.c_str());
+    lua_settop(CoroutineState.Thread, 0);
+    ApplyRuntimeFailurePolicy(true, false, "Coroutine");
+    return false;
+}
+
+void UScriptComponent::ClearCoroutines()
+{
+    if (ScriptInstance)
+    {
+        lua_State* MainState = ScriptInstance->Env.lua_state();
+        if (MainState != nullptr)
+        {
+            for (FLuaCoroutineState& CoroutineState : ActiveCoroutines)
+            {
+                if (CoroutineState.ThreadRegistryRef != LUA_NOREF)
+                {
+                    luaL_unref(MainState, LUA_REGISTRYINDEX, CoroutineState.ThreadRegistryRef);
+                }
+            }
+
+            for (FLuaCoroutineState& CoroutineState : PendingCoroutines)
+            {
+                if (CoroutineState.ThreadRegistryRef != LUA_NOREF)
+                {
+                    luaL_unref(MainState, LUA_REGISTRYINDEX, CoroutineState.ThreadRegistryRef);
+                }
+            }
+        }
+    }
+
+    ActiveCoroutines.clear();
+    PendingCoroutines.clear();
+    bTickingCoroutines = false;
 }

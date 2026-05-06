@@ -56,6 +56,13 @@ namespace
         Instance.Env["Self"] = Owner;
         Instance.Env["Owner"] = Owner;
         Instance.Env["Component"] = OwnerComponent;
+        Instance.Env["StartCoroutine"] = [OwnerComponent](const sol::function& Function)
+        {
+            if (OwnerComponent && UObject::IsValid(OwnerComponent))
+            {
+                OwnerComponent->StartCoroutine(Function);
+            }
+        };
         Instance.Env["DestroySelf"] = [Owner]()
         {
             if (Owner && UObject::IsValid(Owner))

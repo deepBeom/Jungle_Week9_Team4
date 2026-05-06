@@ -1,4 +1,4 @@
-#include "Core/EnginePCH.h"
+﻿#include "Core/EnginePCH.h"
 #include "Engine/Scripting/LuaBinder.h"
 
 #include "Engine/Component/ActorComponent.h"
@@ -12,6 +12,7 @@
 #include "Engine/Core/ResourceManager.h"
 #include "Engine/GameFramework/Actor.h"
 #include "Engine/GameFramework/Pawn.h"
+#include "Engine/GameFramework/Camera/PlayerCameraManager.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Runtime/Engine.h"
@@ -88,6 +89,110 @@ namespace
     bool IsUsableComponent(UActorComponent* Component)
     {
         return Component && UObject::IsValid(Component);
+    }
+
+    UWorld* GetActiveGameWorld()
+    {
+        return GEngine ? GEngine->GetWorld() : nullptr;
+    }
+
+    UCameraComponent* FindCameraComponentOnActor(AActor* Actor)
+    {
+        if (!IsUsableActor(Actor))
+        {
+            return nullptr;
+        }
+
+        if (APawn* Pawn = Cast<APawn>(Actor))
+        {
+            return Pawn->GetCameraComponent();
+        }
+
+        for (UActorComponent* Component : Actor->GetComponents())
+        {
+            if (UCameraComponent* CameraComponent = Cast<UCameraComponent>(Component))
+            {
+                return CameraComponent;
+            }
+        }
+
+        return nullptr;
+    }
+
+    AActor* FindActorByTagOrName(UWorld* World, const FString& Identifier)
+    {
+        if (World == nullptr || Identifier.empty())
+        {
+            return nullptr;
+        }
+
+        AActor* NameMatch = nullptr;
+        for (AActor* Actor : World->GetActors())
+        {
+            if (!IsUsableActor(Actor))
+            {
+                continue;
+            }
+
+            if (Actor->CompareTag(Identifier))
+            {
+                return Actor;
+            }
+
+            if (NameMatch == nullptr && static_cast<FString>(Actor->GetName()) == Identifier)
+            {
+                NameMatch = Actor;
+            }
+        }
+
+        return NameMatch;
+    }
+
+    AActor* ResolvePlayerCameraTarget(UWorld* World)
+    {
+        if (World == nullptr)
+        {
+            return nullptr;
+        }
+
+        for (AActor* Actor : World->GetActors())
+        {
+            if (!IsUsableActor(Actor))
+            {
+                continue;
+            }
+
+            APawn* Pawn = Cast<APawn>(Actor);
+            if (Pawn && FindCameraComponentOnActor(Pawn) != nullptr)
+            {
+                return Pawn;
+            }
+        }
+
+        return nullptr;
+    }
+
+    AActor* ResolveLuaCameraTarget(UWorld* World, const FString& Identifier)
+    {
+        if (World == nullptr)
+        {
+            return nullptr;
+        }
+
+        if (Identifier.empty() || Identifier == "PlayerCamera")
+        {
+            return ResolvePlayerCameraTarget(World);
+        }
+
+        AActor* Actor = FindActorByTagOrName(World, Identifier);
+        return FindCameraComponentOnActor(Actor) != nullptr ? Actor : nullptr;
+    }
+
+    int LuaWaitFunction(lua_State* ThreadState)
+    {
+        const float WaitSeconds = static_cast<float>(luaL_optnumber(ThreadState, 1, 0.0));
+        lua_pushnumber(ThreadState, WaitSeconds);
+        return lua_yield(ThreadState, 1);
     }
 
     FString SafeObjectName(UObject* Object)
@@ -724,51 +829,6 @@ namespace
             "GetUpVector", [](APawn* Pawn)
             {
                 return Pawn ? Pawn->GetUpVector() : FVector(0.0f, 0.0f, 1.0f);
-            },
-            "UpdateBoatMovement", [](APawn* Pawn,
-                                     float DeltaTime,
-                                     float ThrottleInput,
-                                     float SteerInput,
-                                     float Mass,
-                                     float ForwardAccel,
-                                     float ReverseAccel,
-                                     float BrakeAccel,
-                                     float LinearDrag,
-                                     float TurnAccel,
-                                     float TurnDrag,
-                                     float MaxForwardSpeed,
-                                     float MaxReverseSpeed,
-                                     float MaxYawSpeed,
-                                     float MinSteerAuthority,
-                                     float SpeedEpsilon)
-            {
-                if (Pawn)
-                {
-                    Pawn->UpdateBoatMovement(
-                        DeltaTime,
-                        ThrottleInput,
-                        SteerInput,
-                        Mass,
-                        ForwardAccel,
-                        ReverseAccel,
-                        BrakeAccel,
-                        LinearDrag,
-                        TurnAccel,
-                        TurnDrag,
-                        MaxForwardSpeed,
-                        MaxReverseSpeed,
-                        MaxYawSpeed,
-                        MinSteerAuthority,
-                        SpeedEpsilon);
-                }
-            },
-            "GetBoatForwardSpeed", [](APawn* Pawn)
-            {
-                return Pawn ? Pawn->GetBoatForwardSpeed() : 0.0f;
-            },
-            "GetBoatYawSpeed", [](APawn* Pawn)
-            {
-                return Pawn ? Pawn->GetBoatYawSpeed() : 0.0f;
             });
     }
 }
@@ -947,7 +1007,19 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         return VK > 0 && InputSystem::Get().GetKeyUp(VK);
     });
 
+    InputTable.set_function("SetPlayerControlEnabled", [](bool bEnabled)
+    {
+        if (GEngine)
+        {
+            GEngine->SetPlayerControlEnabled(bEnabled);
+        }
+    });
+
     Lua["Input"] = InputTable;
+
+    lua_State* LuaState = Lua.lua_state();
+    lua_pushcfunction(LuaState, LuaWaitFunction);
+    lua_setglobal(LuaState, "Wait");
 
     Lua.set_function("SetUIMode", [](bool bEnabled)
     {
@@ -959,9 +1031,104 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         return LuaBinder::IsUIMode();
     });
 
+    sol::table CameraTable = Lua.create_table();
+    CameraTable.set_function("SetViewTargetWithBlend", [](const FString& ActorIdentifier, float BlendTime)
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World == nullptr)
+        {
+            return;
+        }
+
+        AActor* TargetActor = ResolveLuaCameraTarget(World, ActorIdentifier);
+        if (TargetActor == nullptr)
+        {
+            UE_LOG("[Lua Camera] Failed to resolve view target '%s'\n", ActorIdentifier.c_str());
+            return;
+        }
+
+        World->GetPlayerCameraManager().SetViewTargetWithBlend(TargetActor, BlendTime);
+    });
+    CameraTable.set_function("Shake", [](float Amplitude, float Frequency, float Duration)
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World)
+        {
+            World->GetPlayerCameraManager().AddCameraShake(Amplitude, Frequency, Duration);
+        }
+    });
+    CameraTable.set_function("FadeIn", [](float Duration)
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World)
+        {
+            World->GetPlayerCameraManager().FadeIn(Duration);
+        }
+    });
+    CameraTable.set_function("FadeOut", [](float Duration)
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World)
+        {
+            World->GetPlayerCameraManager().FadeOut(Duration);
+        }
+    });
+    CameraTable.set_function("SetLetterBox", [](float Amount, float BlendTime)
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World)
+        {
+            World->GetPlayerCameraManager().SetLetterBox(Amount, BlendTime);
+        }
+    });
+    CameraTable.set_function("SetVignette", [](float Intensity, float Radius)
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World)
+        {
+            World->GetPlayerCameraManager().SetVignette(Intensity, Radius);
+        }
+    });
+    CameraTable.set_function("EnableGammaCorrection", [](bool bEnabled)
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World)
+        {
+            World->GetPlayerCameraManager().EnableGammaCorrection(bEnabled);
+        }
+    });
+    CameraTable.set_function("FOVKick", [](float AddFovDegrees, float Duration)
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World)
+        {
+            World->GetPlayerCameraManager().AddFOVKick(AddFovDegrees, Duration);
+        }
+    });
+    Lua["Camera"] = CameraTable;
+
+    sol::table HitFeelTable = Lua.create_table();
+    HitFeelTable.set_function("HitStop", [](float Duration)
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World)
+        {
+            World->StartHitStop(Duration, 0.05f);
+        }
+    });
+    HitFeelTable.set_function("Slomo", [](float TimeScale, float Duration)
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (World)
+        {
+            World->StartSlomo(TimeScale, Duration);
+        }
+    });
+    Lua["HitFeel"] = HitFeelTable;
+
     Lua.set_function("FindActorByTag", [](const FString& Tag) -> AActor*
     {
-        UWorld* World = GEngine ? GEngine->GetWorld() : nullptr;
+        UWorld* World = GetActiveGameWorld();
         if (!World)
         {
             return nullptr;
@@ -983,7 +1150,7 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         sol::state_view L(ts);
         sol::table Result = L.create_table();
 
-        UWorld* World = GEngine ? GEngine->GetWorld() : nullptr;
+        UWorld* World = GetActiveGameWorld();
         if (!World)
         {
             return Result;

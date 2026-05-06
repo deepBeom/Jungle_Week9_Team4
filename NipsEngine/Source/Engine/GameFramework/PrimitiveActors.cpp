@@ -1,5 +1,6 @@
 ﻿#include "GameFramework/PrimitiveActors.h"
 
+#include "Component/CameraComponent.h"
 #include "Component/BillboardComponent.h"
 #include "Component/DecalComponent.h"
 #include "Component/HeightFogComponent.h"
@@ -71,6 +72,12 @@ REGISTER_FACTORY(AStaticMeshActor)
 DEFINE_CLASS(AWaterActor, AActor)
 REGISTER_FACTORY(AWaterActor)
 
+DEFINE_CLASS(ACameraActor, AActor)
+REGISTER_FACTORY(ACameraActor)
+
+DEFINE_CLASS(ACineCameraActor, ACameraActor)
+REGISTER_FACTORY(ACineCameraActor)
+
 DEFINE_CLASS(AGlobalOceanActor, AActor)
 REGISTER_FACTORY(AGlobalOceanActor)
 
@@ -141,6 +148,39 @@ void AWaterActor::InitDefaultComponents()
     StaticMesh->SetStaticMesh(WaterMesh);
     // Keep the mesh's own slot materials (OBJ/MTL or assigned material instance).
     // Runtime water behavior is driven per-object through UWaterComponent uniforms.
+}
+
+void ACameraActor::InitDefaultComponents()
+{
+    USceneComponent* SceneRoot = AddComponent<USceneComponent>();
+    SetRootComponent(SceneRoot);
+
+    UCameraComponent* CameraComponent = AddComponent<UCameraComponent>();
+    CameraComponent->AttachToComponent(SceneRoot);
+
+    UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
+    Billboard->AttachToComponent(SceneRoot);
+    Billboard->SetEditorOnly(true);
+    Billboard->SetHiddenInEditor(true);
+    Billboard->SetTexturePath("Asset/Texture/Pawn_64x.png");
+}
+
+UCameraComponent* ACameraActor::GetCameraComponent() const
+{
+    for (UActorComponent* Component : GetComponents())
+    {
+        if (UCameraComponent* CameraComponent = Cast<UCameraComponent>(Component))
+        {
+            return CameraComponent;
+        }
+    }
+
+    return nullptr;
+}
+
+void ACineCameraActor::InitDefaultComponents()
+{
+    ACameraActor::InitDefaultComponents();
 }
 
 void AGlobalOceanActor::InitDefaultComponents()

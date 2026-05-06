@@ -16,6 +16,7 @@ public:
     void Tick(float DeltaTime) override;
     void OnWindowResized(uint32 Width, uint32 Height) override;
     void RequestGameRestart() override;
+    void SetPlayerControlEnabled(bool bEnabled) override;
 
     const FGameViewportClient& GetViewportClient() const { return ViewportClient; }
     FGameViewportClient& GetViewportClient() { return ViewportClient; }

@@ -1,4 +1,4 @@
-#include "Game/GameEngine.h"
+﻿#include "Game/GameEngine.h"
 #include "Game/GameViewportClient.h"
 #include "Game/GameRenderPipeline.h"
 #include "Core/Paths.h"
@@ -126,9 +126,21 @@ void UGameEngine::Tick(float DeltaTime)
         RestartStartLevel();
     }
 
+    UWorld* World = GetWorld();
+    const float UnscaledDeltaTime = DeltaTime;
+    float ScaledDeltaTime = DeltaTime;
+    if (World)
+    {
+        // Gameplay uses scaled delta time, but camera/post-process timers keep the original frame delta.
+        World->PrepareFrame(UnscaledDeltaTime);
+        ScaledDeltaTime = World->GetScaledDeltaTime();
+    }
+
 	InputSystem::Get().Tick();
-	ViewportClient.Tick(DeltaTime);
-	WorldTick(DeltaTime);
+	ViewportClient.Tick(ScaledDeltaTime);
+    ViewportClient.UpdateCamera(World ? World->GetUnscaledDeltaTime() : UnscaledDeltaTime);
+	WorldTick(ScaledDeltaTime);
+    ViewportClient.UpdateCamera(World ? World->GetUnscaledDeltaTime() : UnscaledDeltaTime);
 	++FrameCounter;
 	Render(DeltaTime);
 }
@@ -137,4 +149,9 @@ void UGameEngine::OnWindowResized(uint32 Width, uint32 Height)
 {
     UEngine::OnWindowResized(Width, Height);
     ViewportClient.SetViewportSize(Window->GetWidth(), Window->GetHeight());
+}
+
+void UGameEngine::SetPlayerControlEnabled(bool bEnabled)
+{
+    ViewportClient.SetPlayerControlEnabled(bEnabled);
 }

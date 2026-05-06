@@ -197,6 +197,23 @@ function OnHit(self, other_actor)
     handle_reaction(self, other_actor)
 end
 
-function OnUpdate(self, delta_time)
+local function ResetVignette()
+    Wait(0.18)
+    Camera.SetVignette(0.0, 0.75)
+end
+
+function OnUpdate(self, delta_time, hitInfo)
+    HitFeel.HitStop(0.08)
+    HitFeel.Slomo(0.35, 0.25)
+
+    Camera.Shake(4.0, 20.0, 0.18)
+
+    if Camera.FOVKick ~= nil then
+        Camera.FOVKick(8.0, 0.2)
+    end
+
+    Camera.SetVignette(0.6, 0.75)
+    StartCoroutine(ResetVignette)
+    
     update_scale_pulse(self, delta_time, get_profile(self))
 end
