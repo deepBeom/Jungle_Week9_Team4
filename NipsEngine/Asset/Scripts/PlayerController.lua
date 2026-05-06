@@ -226,7 +226,6 @@ function OnKeyDown(key)
 end
 
 function OnKeyUp(key)
-    Log("asdf");
     if key == "W" then
         is_forward_pressed = false
     elseif key == "S" then
@@ -243,16 +242,15 @@ function OnKeyUp(key)
             LocationFrequency = Vec3.new(1.0, 1.0, 1.0),
             RotationAmplitude = Vec3.new(1.0, 1.0, 1.0),
             RotationFrequency = Vec3.new(1.0, 1.0, 1.0),
-            FOVAmplitude = 1,
+            FOVAmplitude = 30.0 * math.pi / 180.0,
             FOVFrequency = 1.0
         })
     elseif key == "L" then
         Camera.Shake({
             Type = "CameraSequence",
             Sequence = "SampleCameraShake",
-            Scale = 1.0
+            Scale = 0.1
         })
-        Log("Camera sequence shake triggered")
     end
 end
 

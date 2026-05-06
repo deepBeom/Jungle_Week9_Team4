@@ -511,7 +511,7 @@ void FEditorCameraSequenceWidget::RenderChannelCanvas()
         ImGui::SetTooltip("Arrive Tangent: %.3f", Channel->Keys[HoveredArriveHandleKeyIndex].ArriveTangent);
     }
 
-    ImGui::TextDisabled("Click a key to select. Drag keys to move. Drag Bezier handles for tangents. Duration follows the last key.");
+    // ImGui::TextDisabled("Click a key to select. Drag keys to move. Drag Bezier handles for tangents. Duration follows the last key.");
 }
 
 void FEditorCameraSequenceWidget::RenderKeyInspector()

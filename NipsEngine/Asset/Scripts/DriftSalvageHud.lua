@@ -43,6 +43,9 @@ local bLowHealthVignetteActive = false
 local prevHealth = nil
 local LOW_HEALTH_VIGNETTE_RADIUS = 5.0
 local LOW_HEALTH_VIGNETTE_BLEND_TIME = 1.0
+local DAMAGE_SHAKE_DURATION = 0.3
+local DAMAGE_SHAKE_LOCATION_AMPLITUDE = 4.0
+local DAMAGE_SHAKE_LOCATION_FREQUENCY = 3.0
 local bGameOverSequencePlaying = false
 local bRestartFadeOutPending = false
 local BOAT_SINK_GAMEOVER_DELAY = 3.0
@@ -250,10 +253,34 @@ local function FlashHitVignette()
     end)
 end
 
+local function PlayDamageCameraShake()
+    if not Camera or not Camera.Shake then
+        return
+    end
+
+    Camera.Shake({
+        Type = "WaveOscillator",
+        Duration = DAMAGE_SHAKE_DURATION,
+        LocationAmplitude = Vec3.new(
+            DAMAGE_SHAKE_LOCATION_AMPLITUDE,
+            DAMAGE_SHAKE_LOCATION_AMPLITUDE,
+            DAMAGE_SHAKE_LOCATION_AMPLITUDE * 0.4),
+        LocationFrequency = Vec3.new(
+            DAMAGE_SHAKE_LOCATION_FREQUENCY,
+            DAMAGE_SHAKE_LOCATION_FREQUENCY * 1.15,
+            DAMAGE_SHAKE_LOCATION_FREQUENCY * 0.85),
+        RotationAmplitude = Vec3.new(0.0, 0.0, 0.0),
+        RotationFrequency = Vec3.new(0.0, 0.0, 0.0),
+        FOVAmplitude = 0.0,
+        FOVFrequency = 0.0,
+    })
+end
+
 local function UpdateLowHealthVignette()
     local currentHealth = GetHudHealth()
     if prevHealth ~= nil and currentHealth < prevHealth then
         FlashHitVignette()
+        PlayDamageCameraShake()
     end
     prevHealth = currentHealth
 end
