@@ -234,6 +234,18 @@ function OnKeyUp(key)
         is_turn_left_pressed = false
     elseif key == "D" then
         is_turn_right_pressed = false
+    elseif key == "P" then
+        Camera.Shake({
+            Type = "WaveOscillator",
+            Duration = 3,
+            LocationAmplitude = Vec3.new(1.0, 1.0, 1.0),
+            LocationFrequency = Vec3.new(1.0, 1.0, 1.0),
+            RotationAmplitude = Vec3.new(1.0, 1.0, 1.0),
+            RotationFrequency = Vec3.new(1.0, 1.0, 1.0),
+            FOVAmplitude = 1,
+            FOVFrequency = 1.0
+        })
+        Log("Camera shake triggered!")
     end
 end
 

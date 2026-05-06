@@ -1,53 +1,78 @@
 #include "GameFramework/Camera/CameraModifier_CameraShake.h"
-
 #include "Math/Utils.h"
 
 #include <cmath>
+#include <memory>
 
 namespace
 {
-    // Smooth envelope helper: soft in/out for reducing abrupt shake cut-off.
-    float SmoothStep01(float Alpha)
+    std::unique_ptr<ICameraShakePattern> MakeCameraShakePattern(const FCameraShakeParams& Params)
     {
-        const float ClampedAlpha = MathUtil::Clamp(Alpha, 0.0f, 1.0f);
-        return ClampedAlpha * ClampedAlpha * (3.0f - 2.0f * ClampedAlpha);
+        switch (Params.PatternType)
+        {
+        case ECameraShakePatternType::WaveOscillator:
+            return std::make_unique<FWaveOscillatorPattern>(Params.WaveOscillator);
+
+        case ECameraShakePatternType::CameraSequence:
+            return std::make_unique<FSequenceCameraShakePattern>();
+        }
+
+        return std::make_unique<FWaveOscillatorPattern>(Params.WaveOscillator);
     }
 }
 
-FCameraShakeModifier::FCameraShakeModifier(float InAmplitude, float InFrequency, float InDuration)
-    : FTimedCameraModifier(MathUtil::Clamp(InDuration, 0.0f, 10.0f))
-    , Amplitude(MathUtil::Clamp(InAmplitude, 0.0f, 100.0f))
-    , Frequency(MathUtil::Clamp(InFrequency, 0.0f, 1000.0f))
+FCameraShakeModifier::FCameraShakeModifier(const FCameraShakeParams& Params)
+    : FTimedCameraModifier(Params.Duration), ShakePattern(MakeCameraShakePattern(Params))
 {
     Priority = 16;
 }
 
 bool FCameraShakeModifier::ModifyCamera(float DeltaTime, FMinimalViewInfo& InOutPOV)
 {
-    // The base class handles duration and normalized progress.
-    float NormalizedTime = 1.0f;
+    float NormalizedTime = -1.0f; // OutParam of Advance()
     if (!Advance(DeltaTime, NormalizedTime))
     {
         return false;
     }
 
-    // Fade out toward the end to avoid a visible camera "snap" when stopping.
-    const float Envelope = 1.0f - SmoothStep01(NormalizedTime);
-    const float AngularTime = GetElapsedSeconds() * Frequency * MathUtil::TwoPi;
+    const FCameraShakePatternUpdateResult Delta = ShakePattern->UpdatePattern(
+        DeltaTime,
+        GetElapsedSeconds(),
+        GetTotalDuration());
 
-    // Use multiple phase/frequency channels so shake feels less repetitive.
-    const float RightOffset = std::sin(AngularTime) * Amplitude * Envelope;
-    const float UpOffset = std::cos(AngularTime * 1.37f + 1.1f) * Amplitude * 0.6f * Envelope;
-    const float ForwardOffset = std::sin(AngularTime * 0.73f + 2.2f) * Amplitude * 0.2f * Envelope;
-
-    // Apply in camera-local axes to keep shake direction relative to look direction.
-    const FVector Forward = InOutPOV.Rotation.GetForwardVector();
-    const FVector Right = InOutPOV.Rotation.GetRightVector();
-    const FVector Up = InOutPOV.Rotation.GetUpVector();
-
-    InOutPOV.Location += Right * RightOffset;
-    InOutPOV.Location += Up * UpOffset;
-    InOutPOV.Location += Forward * ForwardOffset;
+    float FinalWeight = Alpha * (1.0f - NormalizedTime);
+    InOutPOV.Location += Delta.Location * FinalWeight;
+    InOutPOV.Rotation = (InOutPOV.Rotation * FQuat::Slerp(FQuat::Identity, Delta.Rotation, FinalWeight)).GetNormalized();
+    InOutPOV.FOV += Delta.FOV * FinalWeight;
 
     return true;
+}
+
+FCameraShakePatternUpdateResult FWaveOscillatorPattern::UpdatePattern(float DeltaTime, float ElapsedTime, float TotalDuration)
+{
+    FCameraShakePatternUpdateResult Result;
+    Result.Location.X = Params.LocationAmplitude.X * std::sin(Params.LocationFrequency.X * ElapsedTime * 2.0f * MathUtil::PI);
+    Result.Location.Y = Params.LocationAmplitude.Y * std::sin(Params.LocationFrequency.Y * ElapsedTime * 2.0f * MathUtil::PI);
+    Result.Location.Z = Params.LocationAmplitude.Z * std::sin(Params.LocationFrequency.Z * ElapsedTime * 2.0f * MathUtil::PI);
+
+    const FVector RotationEuler(
+        Params.RotationAmplitude.X * std::sin(Params.RotationFrequency.X * ElapsedTime * 2.0f * MathUtil::PI),
+        Params.RotationAmplitude.Y * std::sin(Params.RotationFrequency.Y * ElapsedTime * 2.0f * MathUtil::PI),
+        Params.RotationAmplitude.Z * std::sin(Params.RotationFrequency.Z * ElapsedTime * 2.0f * MathUtil::PI));
+    Result.Rotation = FQuat::MakeFromEuler(RotationEuler);
+
+    Result.FOV = Params.FOVAmplitude * std::sin(Params.FOVFrequency * ElapsedTime * 2.0f * MathUtil::PI);
+
+    return Result;
+}
+
+FCameraShakePatternUpdateResult FSequenceCameraShakePattern::UpdatePattern(float DeltaTime, float ElapsedTime, float TotalDuration)
+{
+    FCameraShakePatternUpdateResult Result;
+
+    // Result.Location = Sequence->SampleLocation(ElapsedTime);
+    // Result.Rotation = Sequence->SampleRotation(ElapsedTime);
+    // Result.FOV = Sequence->SampleFOV(ElapsedTime);
+
+    return Result;
 }

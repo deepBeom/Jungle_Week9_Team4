@@ -31,19 +31,24 @@ void FWorldCameraInterface::SetViewTarget(AActor* NewTarget)
 
 void FWorldCameraInterface::SetViewTargetWithBlend(AActor* NewTarget, float BlendTime)
 {
+    SetViewTargetWithBlend(NewTarget, BlendTime, ECameraBlendFunction::SmoothStep);
+}
+
+void FWorldCameraInterface::SetViewTargetWithBlend(AActor* NewTarget, float BlendTime, ECameraBlendFunction BlendFunction)
+{
     if (OwnerWorld)
     {
         // Blend algorithm (location/rotation/FOV) is owned by camera manager.
-        OwnerWorld->GetPlayerCameraManager().SetViewTargetWithBlend(NewTarget, BlendTime);
+        OwnerWorld->GetPlayerCameraManager().SetViewTargetWithBlend(NewTarget, BlendTime, BlendFunction);
     }
 }
 
-void FWorldCameraInterface::AddCameraShake(float Amplitude, float Frequency, float Duration)
+void FWorldCameraInterface::AddCameraShake(const FCameraShakeParams& Params)
 {
     if (OwnerWorld)
     {
         // Adds transient shake modifier; does not mutate source actor transform.
-        OwnerWorld->GetPlayerCameraManager().AddCameraShake(Amplitude, Frequency, Duration);
+        OwnerWorld->GetPlayerCameraManager().AddCameraShake(Params);
     }
 }
 

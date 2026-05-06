@@ -23,3 +23,12 @@ struct FViewTarget
 };
 
 using FCameraScreenEffectSettings = FScreenEffectSettings;
+
+enum class ECameraBlendFunction : uint8
+{
+    Linear = 0,
+    SmoothStep,
+    EaseIn,
+    EaseOut,
+    EaseInOut
+};

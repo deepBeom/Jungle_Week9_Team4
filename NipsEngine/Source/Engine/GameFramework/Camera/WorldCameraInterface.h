@@ -1,6 +1,9 @@
 #pragma once
 
+#include "GameFramework/Camera/CameraTypes.h"
+
 class AActor;
+struct FCameraShakeParams;
 class UWorld;
 
 // Unified entry point for gameplay-facing camera/hit-feel commands.
@@ -31,10 +34,11 @@ public:
     // Blended switch to target camera source.
     // Blend interpolation is implemented inside PlayerCameraManager.
     void SetViewTargetWithBlend(AActor* NewTarget, float BlendTime);
+    void SetViewTargetWithBlend(AActor* NewTarget, float BlendTime, ECameraBlendFunction BlendFunction);
 
     // Camera modifiers.
     // These spawn transient modifiers that affect only per-frame FinalPOV.
-    void AddCameraShake(float Amplitude, float Frequency, float Duration);
+    void AddCameraShake(const FCameraShakeParams& Params);
     void AddFOVKick(float AddFovDegrees, float Duration);
 
     // Screen effects.

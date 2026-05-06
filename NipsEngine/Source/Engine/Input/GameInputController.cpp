@@ -15,7 +15,7 @@
 
 namespace
 {
-    constexpr int32 WatchedKeys[] = { 'W', 'A', 'S', 'D', 'Q', 'E' };
+    constexpr int32 WatchedKeys[] = { 'W', 'A', 'S', 'D', 'Q', 'E', 'P' };
     constexpr int32 WatchedMouseButtons[] = { VK_LBUTTON, VK_RBUTTON, VK_MBUTTON };
 
     bool ReadFileToStringByWidePath(const FWString& FilePath, FString& OutSource)
@@ -444,14 +444,32 @@ FString FGameInputController::ResolveActiveControllerScriptPath()
 
 const char* FGameInputController::GetKeyName(int32 KeyCode) const
 {
+    if ((KeyCode >= '0' && KeyCode <= '9') || (KeyCode >= 'A' && KeyCode <= 'Z'))
+    {
+        static char KeyName[2] = {};
+        KeyName[0] = static_cast<char>(KeyCode);
+        return KeyName;
+    }
+
     switch (KeyCode)
     {
-    case 'W': return "W";
-    case 'A': return "A";
-    case 'S': return "S";
-    case 'D': return "D";
-    case 'Q': return "Q";
-    case 'E': return "E";
+    case VK_SPACE: return "Space";
+    case VK_RETURN: return "Enter";
+    case VK_ESCAPE: return "Escape";
+    case VK_TAB: return "Tab";
+    case VK_SHIFT: return "Shift";
+    case VK_LSHIFT: return "LeftShift";
+    case VK_RSHIFT: return "RightShift";
+    case VK_CONTROL: return "Control";
+    case VK_LCONTROL: return "LeftControl";
+    case VK_RCONTROL: return "RightControl";
+    case VK_MENU: return "Alt";
+    case VK_LMENU: return "LeftAlt";
+    case VK_RMENU: return "RightAlt";
+    case VK_UP: return "Up";
+    case VK_DOWN: return "Down";
+    case VK_LEFT: return "Left";
+    case VK_RIGHT: return "Right";
     default: return "Unknown";
     }
 }

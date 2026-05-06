@@ -1,4 +1,4 @@
-﻿#include "Core/EnginePCH.h"
+#include "Core/EnginePCH.h"
 #include "Engine/Scripting/LuaBinder.h"
 
 #include "Engine/Component/ActorComponent.h"
@@ -12,6 +12,7 @@
 #include "Engine/Core/ResourceManager.h"
 #include "Engine/Core/SoundManager.h"
 #include "Engine/GameFramework/Actor.h"
+#include "Engine/GameFramework/Camera/CameraModifier_CameraShake.h"
 #include "Engine/GameFramework/Pawn.h"
 #include "Engine/GameFramework/PrimitiveActors.h"
 #include "Engine/GameFramework/World.h"
@@ -187,6 +188,56 @@ namespace
 
         AActor* Actor = FindActorByTagOrName(World, Identifier);
         return FindCameraComponentOnActor(Actor) != nullptr ? Actor : nullptr;
+    }
+
+    ECameraBlendFunction ParseLuaBlendFunction(const FString& BlendFunction)
+    {
+        if (BlendFunction == "Linear")
+        {
+            return ECameraBlendFunction::Linear;
+        }
+        if (BlendFunction == "EaseIn")
+        {
+            return ECameraBlendFunction::EaseIn;
+        }
+        if (BlendFunction == "EaseOut")
+        {
+            return ECameraBlendFunction::EaseOut;
+        }
+        if (BlendFunction == "EaseInOut")
+        {
+            return ECameraBlendFunction::EaseInOut;
+        }
+
+        return ECameraBlendFunction::SmoothStep;
+    }
+
+    bool ParseLuaCameraShakeParams(const sol::table& Table, FCameraShakeParams& OutParams)
+    {
+        const FString PatternType = Table.get_or("Type", FString("WaveOscillator"));
+        if (PatternType == "WaveOscillator")
+        {
+            OutParams.PatternType = ECameraShakePatternType::WaveOscillator;
+        }
+        else if (PatternType == "CameraSequence")
+        {
+            OutParams.PatternType = ECameraShakePatternType::CameraSequence;
+        }
+        else
+        {
+            return false;
+        }
+
+        OutParams.Duration = Table.get_or("Duration", 0.0f);
+        OutParams.WaveOscillator.LocationAmplitude = Table["LocationAmplitude"];
+        OutParams.WaveOscillator.LocationFrequency = Table["LocationFrequency"];
+        OutParams.WaveOscillator.RotationAmplitude =
+            Table.get<sol::optional<FVector>>("RotationAmplitude").value_or(FVector::ZeroVector);
+        OutParams.WaveOscillator.RotationFrequency =
+            Table.get<sol::optional<FVector>>("RotationFrequency").value_or(FVector::ZeroVector);
+        OutParams.WaveOscillator.FOVAmplitude = Table.get_or("FOVAmplitude", 0.0f);
+        OutParams.WaveOscillator.FOVFrequency = Table.get_or("FOVFrequency", 0.0f);
+        return true;
     }
 
     int LuaWaitFunction(lua_State* ThreadState)
@@ -1119,12 +1170,39 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         // Forward request to unified camera façade.
         World->GetCameraInterface().SetViewTargetWithBlend(TargetActor, BlendTime);
     });
-    CameraTable.set_function("Shake", [](float Amplitude, float Frequency, float Duration)
+    CameraTable.set_function("SetViewTargetWithBlendEx", [](const FString& ActorIdentifier, float BlendTime, const FString& BlendFunction)
     {
+        UWorld* World = GetActiveGameWorld();
+        if (World == nullptr)
+        {
+            return;
+        }
+
+        AActor* TargetActor = ResolveLuaCameraTarget(World, ActorIdentifier);
+        if (TargetActor == nullptr)
+        {
+            UE_LOG("[Lua Camera] Failed to resolve view target '%s'\n", ActorIdentifier.c_str());
+            return;
+        }
+
+        World->GetCameraInterface().SetViewTargetWithBlend(
+            TargetActor,
+            BlendTime,
+            ParseLuaBlendFunction(BlendFunction));
+    });
+    CameraTable.set_function("Shake", [](const sol::table& ShakeParamsTable)
+    {
+        FCameraShakeParams ShakeParams;
+        if (!ParseLuaCameraShakeParams(ShakeParamsTable, ShakeParams))
+        {
+            UE_LOG("[Lua Camera] Unsupported camera shake type\n");
+            return;
+        }
+
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetCameraInterface().AddCameraShake(Amplitude, Frequency, Duration);
+            World->GetCameraInterface().AddCameraShake(ShakeParams);
         }
     });
     CameraTable.set_function("FadeIn", [](float Duration)
