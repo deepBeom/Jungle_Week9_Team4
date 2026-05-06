@@ -91,6 +91,17 @@ void FGameInputController::SetUIMode(bool bInUIMode)
     ApplyUIModeState();
 }
 
+void FGameInputController::SetPlayerControlEnabled(bool bEnabled)
+{
+    if (bPlayerControlEnabled == bEnabled)
+    {
+        return;
+    }
+
+    bPlayerControlEnabled = bEnabled;
+    ApplyUIModeState();
+}
+
 void FGameInputController::Tick(float DeltaTime)
 {
     if (!Camera)
@@ -107,10 +118,8 @@ void FGameInputController::Tick(float DeltaTime)
 
     RefreshControlledPawn();
 
-    SyncViewportCameraFromPawn();
-
     ApplyUIModeState();
-    if (bUIMode)
+    if (bUIMode || !bPlayerControlEnabled)
     {
         return;
     }
@@ -177,6 +186,7 @@ void FGameInputController::TickLuaInput(InputSystem& Input)
 void FGameInputController::Reset()
 {
     bUIMode = false;
+    bPlayerControlEnabled = true;
     LuaBinder::SetUIMode(false);
     ApplyUIModeState();
     ControlledPawn = nullptr;
@@ -223,37 +233,9 @@ void FGameInputController::RefreshControlledPawn()
     ControlledCameraComponent = ControlledPawn ? ControlledPawn->GetCameraComponent() : nullptr;
 }
 
-void FGameInputController::SyncViewportCameraFromPawn()
-{
-    if (!Camera || !ControlledCameraComponent)
-    {
-        return;
-    }
-
-    const FTransform CameraTransform = ControlledCameraComponent->GetWorldTransform();
-    const FCameraState& CameraState = ControlledCameraComponent->GetCameraState();
-
-    Camera->SetLocation(CameraTransform.GetLocation());
-    Camera->SetRotation(CameraTransform.GetRotation());
-    Camera->SetNearPlane(CameraState.NearZ);
-    Camera->SetFarPlane(CameraState.FarZ);
-
-    if (CameraState.bIsOrthogonal)
-    {
-        Camera->SetProjectionType(EViewportProjectionType::Orthographic);
-        const float AspectRatio = Camera->GetAspectRatio() > 0.0f ? Camera->GetAspectRatio() : 1.0f;
-        Camera->SetOrthoHeight(CameraState.OrthoWidth / AspectRatio);
-    }
-    else
-    {
-        Camera->SetProjectionType(EViewportProjectionType::Perspective);
-        Camera->SetFOV(CameraState.FOV);
-    }
-}
-
 void FGameInputController::ApplyUIModeState()
 {
-    const bool bGameplayInputActive = !bUIMode;
+    const bool bGameplayInputActive = !bUIMode && bPlayerControlEnabled;
     bCursorHidden = bGameplayInputActive;
     bMouseLocked = bGameplayInputActive;
 
@@ -359,6 +341,32 @@ void FGameInputController::InstallBindings()
     {
         sol::state_view Lua(ScriptEnvironment.lua_state());
         sol::table CameraTable = Lua.create_table();
+        sol::object GlobalCameraObject = Lua["Camera"];
+        if (GlobalCameraObject.valid() && GlobalCameraObject.get_type() == sol::type::table)
+        {
+            sol::table GlobalCameraTable = GlobalCameraObject;
+            const char* ForwardedFunctions[] =
+            {
+                "SetViewTargetWithBlend",
+                "Shake",
+                "FadeIn",
+                "FadeOut",
+                "SetLetterBox",
+                "SetVignette",
+                "EnableGammaCorrection",
+                "FOVKick",
+            };
+
+            for (const char* FunctionName : ForwardedFunctions)
+            {
+                sol::object FunctionObject = GlobalCameraTable[FunctionName];
+                if (FunctionObject.valid())
+                {
+                    CameraTable[FunctionName] = FunctionObject;
+                }
+            }
+        }
+
         CameraTable.set_function("GetPosition", [this]()
         {
             return Camera ? Camera->GetLocation() : FVector::ZeroVector;

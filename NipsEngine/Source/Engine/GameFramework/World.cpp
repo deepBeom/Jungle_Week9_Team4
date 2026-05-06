@@ -5,6 +5,8 @@
 
 #include "Engine/Core/SoundManager.h"
 
+#include <algorithm>
+
 
 DEFINE_CLASS(UWorld, UObject)
 REGISTER_FACTORY(UWorld)
@@ -34,6 +36,7 @@ namespace
 UWorld::UWorld()
 {
     PersistentLevel = UObjectManager::Get().CreateObject<ULevel>();
+    PlayerCameraManager.SetOwnerWorld(this);
 }
 
 // 소멸 역시 UObjectManager를 통해 처리한다.
@@ -58,8 +61,18 @@ void UWorld::PostDuplicate(UObject* Original)
 
     // 프로퍼티 시스템에 노출되지 않은 필드를 직접 복사합니다.
     WorldType      = OrigWorld->WorldType;
-    ActiveCamera   = OrigWorld->ActiveCamera;
+    ActiveCamera   = nullptr;
     bHasBegunPlay  = false; // 항상 미시작 상태로 시작
+    FrameUnscaledDeltaTime = 0.0f;
+    FrameScaledDeltaTime = 0.0f;
+    BaseTimeDilation = 1.0f;
+    ResolvedGlobalTimeDilation = 1.0f;
+    HitStopRemainingTime = 0.0f;
+    HitStopTimeScale = 0.05f;
+    SlomoRemainingTime = 0.0f;
+    SlomoTimeScale = 1.0f;
+    PlayerCameraManager.SetOwnerWorld(this);
+    PlayerCameraManager.Reset();
 
     // PersistentLevel 을 깊은 복사한 뒤, 복제된 액터들의 소속을 새 월드로 재설정합니다.
     if (OrigWorld->PersistentLevel)
@@ -78,6 +91,16 @@ void UWorld::PostDuplicate(UObject* Original)
 void UWorld::BeginPlay()
 {
     bHasBegunPlay = true;
+    FrameUnscaledDeltaTime = 0.0f;
+    FrameScaledDeltaTime = 0.0f;
+    BaseTimeDilation = 1.0f;
+    ResolvedGlobalTimeDilation = 1.0f;
+    HitStopRemainingTime = 0.0f;
+    HitStopTimeScale = 0.05f;
+    SlomoRemainingTime = 0.0f;
+    SlomoTimeScale = 1.0f;
+    PlayerCameraManager.SetOwnerWorld(this);
+    PlayerCameraManager.Reset();
     CollisionSystem.Reset();
     CollectionSystem.Reset();
     ExplosionSystem.Reset();
@@ -88,6 +111,33 @@ void UWorld::BeginPlay()
     RebuildSpatialIndex();
 
     FSoundManager::Get().PlayBGM("Menu.mp3");
+}
+
+void UWorld::PrepareFrame(float UnscaledDeltaTime)
+{
+    FrameUnscaledDeltaTime = std::max(0.0f, UnscaledDeltaTime);
+
+    HitStopRemainingTime = std::max(0.0f, HitStopRemainingTime - FrameUnscaledDeltaTime);
+    SlomoRemainingTime = std::max(0.0f, SlomoRemainingTime - FrameUnscaledDeltaTime);
+
+    const float ClampedBaseDilation = MathUtil::Clamp(BaseTimeDilation, 0.0f, 8.0f);
+    const bool bHitStopActive = HitStopRemainingTime > 0.0f;
+    const bool bSlomoActive = SlomoRemainingTime > 0.0f;
+
+    if (bHitStopActive)
+    {
+        ResolvedGlobalTimeDilation = ClampedBaseDilation * MathUtil::Clamp(HitStopTimeScale, 0.0f, 1.0f);
+    }
+    else if (bSlomoActive)
+    {
+        ResolvedGlobalTimeDilation = ClampedBaseDilation * MathUtil::Clamp(SlomoTimeScale, 0.0f, 1.0f);
+    }
+    else
+    {
+        ResolvedGlobalTimeDilation = ClampedBaseDilation;
+    }
+
+    FrameScaledDeltaTime = FrameUnscaledDeltaTime * ResolvedGlobalTimeDilation;
 }
 
 void UWorld::Tick(float DeltaTime)
@@ -128,6 +178,15 @@ void UWorld::EndPlay(EEndPlayReason::Type EndPlayReason)
     CollisionSystem.Reset();
     CollectionSystem.Reset();
     ExplosionSystem.Reset();
+    PlayerCameraManager.Reset();
+    FrameUnscaledDeltaTime = 0.0f;
+    FrameScaledDeltaTime = 0.0f;
+    BaseTimeDilation = 1.0f;
+    ResolvedGlobalTimeDilation = 1.0f;
+    HitStopRemainingTime = 0.0f;
+    HitStopTimeScale = 0.05f;
+    SlomoRemainingTime = 0.0f;
+    SlomoTimeScale = 1.0f;
 }
 
 void UWorld::RebuildSpatialIndex()
@@ -243,4 +302,21 @@ void UWorld::UnregisterLight(ULightComponentBase* Comp)
     WorldLightSlots[LightHandle.Index].bAlive = false;
     WorldLightSlots[LightHandle.Index].LightData = nullptr;
     FreeLightSlotList.push_back(LightHandle.Index);
+}
+
+void UWorld::SetBaseTimeDilation(float InTimeDilation)
+{
+    BaseTimeDilation = MathUtil::Clamp(InTimeDilation, 0.0f, 8.0f);
+}
+
+void UWorld::StartHitStop(float Duration, float TimeScale)
+{
+    HitStopRemainingTime = std::max(HitStopRemainingTime, MathUtil::Clamp(Duration, 0.0f, 5.0f));
+    HitStopTimeScale = MathUtil::Clamp(TimeScale, 0.0f, 1.0f);
+}
+
+void UWorld::StartSlomo(float TimeScale, float Duration)
+{
+    SlomoRemainingTime = std::max(SlomoRemainingTime, MathUtil::Clamp(Duration, 0.0f, 10.0f));
+    SlomoTimeScale = MathUtil::Clamp(TimeScale, 0.0f, 1.0f);
 }

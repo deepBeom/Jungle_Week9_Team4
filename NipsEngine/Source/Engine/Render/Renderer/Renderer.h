@@ -122,7 +122,7 @@ public:
     void Render(const FRenderBus& InRenderBus);
     void EndFrame();
     void UseBackBufferRenderTargets();
-    void PresentToBackBuffer(const ID3D11ShaderResourceView* FinalSRV);
+    void PresentToBackBuffer(const ID3D11ShaderResourceView* FinalSRV, const FScreenEffectSettings& ScreenEffectSettings);
 
     void UseViewportRenderTargets(FRenderTargetSet* InRenderTargetSet);
     void InvalidateSceneFinalTargets();

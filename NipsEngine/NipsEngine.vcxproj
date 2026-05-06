@@ -519,6 +519,10 @@
     <ClCompile Include="Source\Engine\GameFramework\Level.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Pawn.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\OceanSystem.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Camera\CameraModifier.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Camera\CameraModifier_CameraShake.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Camera\CameraModifier_FOVKick.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Camera\PlayerCameraManager.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\PrimitiveActors.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\World.cpp" />
     <ClCompile Include="Source\Engine\Geometry\AABB.cpp" />
@@ -877,6 +881,11 @@
     <ClInclude Include="Source\Engine\GameFramework\Level.h" />
     <ClInclude Include="Source\Engine\GameFramework\Pawn.h" />
     <ClInclude Include="Source\Engine\GameFramework\OceanSystem.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Camera\CameraModifier.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Camera\CameraModifier_CameraShake.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Camera\CameraModifier_FOVKick.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Camera\CameraTypes.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Camera\PlayerCameraManager.h" />
     <ClInclude Include="Source\Engine\GameFramework\PrimitiveActors.h" />
     <ClInclude Include="Source\Engine\GameFramework\World.h" />
     <ClInclude Include="Source\Engine\GameFramework\WorldContext.h" />

@@ -27,6 +27,7 @@ public:
     virtual void BeginPlay();
     virtual void Tick(float DeltaTime);
     virtual void RequestGameRestart() {}
+    virtual void SetPlayerControlEnabled(bool bEnabled) {}
 
     virtual void OnWindowResized(uint32 Width, uint32 Height);
 

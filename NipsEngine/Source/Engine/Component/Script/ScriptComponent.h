@@ -2,6 +2,8 @@
 
 #include "Engine/Component/ActorComponent.h"
 
+#include <sol/sol.hpp>
+
 struct FHitResult;
 struct FLuaScriptInstance;
 
@@ -16,6 +18,8 @@ struct FLuaScriptInstance;
  */
 class UScriptComponent : public UActorComponent
 {
+    struct FLuaCoroutineState;
+
 public:
     DECLARE_CLASS(UScriptComponent, UActorComponent)
 
@@ -78,6 +82,7 @@ public:
 
     /** @brief Rebuilds script environment and reruns startup flow. */
     bool ReloadScript();
+    void StartCoroutine(const sol::function& Function);
 
     /** @brief Sets script path (normalized). */
     void SetScriptPath(const FString& InPath);
@@ -108,6 +113,9 @@ private:
     void ApplyRuntimeFailurePolicy(bool bHadCallback, bool bSucceeded, const char* CallbackContext);
     /** @brief Returns true when failure policy should disable this script. */
     bool ShouldDisableAfterRuntimeFailure(bool bHadCallback, bool bSucceeded);
+    void TickCoroutines(float UnscaledDeltaTime);
+    bool ResumeCoroutine(FLuaCoroutineState& CoroutineState);
+    void ClearCoroutines();
 
     /**
      * @brief Calls the first existing Lua function from CallbackNames.
@@ -125,6 +133,13 @@ private:
         Args&&... args);
 
 private:
+    struct FLuaCoroutineState
+    {
+        lua_State* Thread = nullptr;
+        int ThreadRegistryRef = LUA_NOREF;
+        float WaitRemaining = 0.0f;
+    };
+
     /** Relative script path under project root (usually Asset/Scripts/... ). */
     FString ScriptPath;
     /** Serialized checkbox state mirrored to SetActive. */
@@ -137,4 +152,7 @@ private:
     int32 ConsecutiveRuntimeErrorCount = 0;
     /** Per-component Lua script instance (environment is not shared with other actors). */
     std::shared_ptr<FLuaScriptInstance> ScriptInstance;
+    TArray<FLuaCoroutineState> ActiveCoroutines;
+    TArray<FLuaCoroutineState> PendingCoroutines;
+    bool bTickingCoroutines = false;
 };
