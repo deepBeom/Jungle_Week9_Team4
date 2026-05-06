@@ -299,6 +299,7 @@ namespace
 
         if (LuaBinder::TryApplyDriftSalvagePickup(Collectible->GetTag()))
         {
+            FSoundManager::Get().PlaySFX("Pick.mp3", 0.3f);
             UE_LOG("[CollectByBoatOverlap] name=%s tag=%s",
                    *Collectible->GetName(),
                    Collectible->GetTag().c_str());

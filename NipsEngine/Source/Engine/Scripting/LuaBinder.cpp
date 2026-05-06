@@ -1,4 +1,4 @@
-﻿#include "Core/EnginePCH.h"
+#include "Core/EnginePCH.h"
 #include "Engine/Scripting/LuaBinder.h"
 
 #include "Engine/Component/ActorComponent.h"
@@ -10,9 +10,10 @@
 #include "Engine/Core/Paths.h"
 #include "Engine/Core/Logging/Timer.h"
 #include "Engine/Core/ResourceManager.h"
+#include "Engine/Core/SoundManager.h"
 #include "Engine/GameFramework/Actor.h"
+#include "Engine/GameFramework/Camera/CameraModifier_CameraShake.h"
 #include "Engine/GameFramework/Pawn.h"
-#include "Engine/GameFramework/Camera/PlayerCameraManager.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Runtime/Engine.h"
@@ -186,6 +187,56 @@ namespace
 
         AActor* Actor = FindActorByTagOrName(World, Identifier);
         return FindCameraComponentOnActor(Actor) != nullptr ? Actor : nullptr;
+    }
+
+    ECameraBlendFunction ParseLuaBlendFunction(const FString& BlendFunction)
+    {
+        if (BlendFunction == "Linear")
+        {
+            return ECameraBlendFunction::Linear;
+        }
+        if (BlendFunction == "EaseIn")
+        {
+            return ECameraBlendFunction::EaseIn;
+        }
+        if (BlendFunction == "EaseOut")
+        {
+            return ECameraBlendFunction::EaseOut;
+        }
+        if (BlendFunction == "EaseInOut")
+        {
+            return ECameraBlendFunction::EaseInOut;
+        }
+
+        return ECameraBlendFunction::SmoothStep;
+    }
+
+    bool ParseLuaCameraShakeParams(const sol::table& Table, FCameraShakeParams& OutParams)
+    {
+        const FString PatternType = Table.get_or("Type", FString("WaveOscillator"));
+        if (PatternType == "WaveOscillator")
+        {
+            OutParams.PatternType = ECameraShakePatternType::WaveOscillator;
+        }
+        else if (PatternType == "CameraSequence")
+        {
+            OutParams.PatternType = ECameraShakePatternType::CameraSequence;
+        }
+        else
+        {
+            return false;
+        }
+
+        OutParams.Duration = Table.get_or("Duration", 0.0f);
+        OutParams.WaveOscillator.LocationAmplitude = Table["LocationAmplitude"];
+        OutParams.WaveOscillator.LocationFrequency = Table["LocationFrequency"];
+        OutParams.WaveOscillator.RotationAmplitude =
+            Table.get<sol::optional<FVector>>("RotationAmplitude").value_or(FVector::ZeroVector);
+        OutParams.WaveOscillator.RotationFrequency =
+            Table.get<sol::optional<FVector>>("RotationFrequency").value_or(FVector::ZeroVector);
+        OutParams.WaveOscillator.FOVAmplitude = Table.get_or("FOVAmplitude", 0.0f);
+        OutParams.WaveOscillator.FOVFrequency = Table.get_or("FOVFrequency", 0.0f);
+        return true;
     }
 
     int LuaWaitFunction(lua_State* ThreadState)
@@ -1025,6 +1076,38 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 
     Lua["Input"] = InputTable;
 
+    sol::table SoundTable = Lua.create_table();
+    SoundTable.set_function("PlaySFX", [](const FString& FileName, sol::variadic_args Args)
+    {
+        float Volume = 0.1f;
+        bool bLoop = false;
+
+        if (Args.size() >= 1 && Args[0].get_type() == sol::type::number)
+        {
+            Volume = Args[0].as<float>();
+        }
+
+        if (Args.size() >= 2 && Args[1].get_type() == sol::type::boolean)
+        {
+            bLoop = Args[1].as<bool>();
+        }
+
+        FSoundManager::Get().PlaySFX(FileName, Volume, bLoop);
+    });
+    SoundTable.set_function("StopSFX", [](const FString& FileName)
+    {
+        FSoundManager::Get().StopSFX(FileName);
+    });
+    SoundTable.set_function("PlayBGM", [](const FString& FileName, float Volume)
+    {
+        FSoundManager::Get().PlayBGM(FileName, Volume);
+    });
+    SoundTable.set_function("StopBGM", []()
+    {
+        FSoundManager::Get().StopBGM();
+    });
+    Lua["Sound"] = SoundTable;
+
     lua_State* LuaState = Lua.lua_state();
     lua_pushcfunction(LuaState, LuaWaitFunction);
     lua_setglobal(LuaState, "Wait");
@@ -1040,6 +1123,8 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
     });
 
     sol::table CameraTable = Lua.create_table();
+    // Lua Camera API -> WorldCameraInterface -> internal camera/time systems.
+    // Scripts only know this stable surface; engine internals stay decoupled.
     CameraTable.set_function("SetViewTargetWithBlend", [](const FString& ActorIdentifier, float BlendTime)
     {
         UWorld* World = GetActiveGameWorld();
@@ -1055,14 +1140,42 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
             return;
         }
 
-        World->GetPlayerCameraManager().SetViewTargetWithBlend(TargetActor, BlendTime);
+        // Forward request to unified camera façade.
+        World->GetCameraInterface().SetViewTargetWithBlend(TargetActor, BlendTime);
     });
-    CameraTable.set_function("Shake", [](float Amplitude, float Frequency, float Duration)
+    CameraTable.set_function("SetViewTargetWithBlendEx", [](const FString& ActorIdentifier, float BlendTime, const FString& BlendFunction)
     {
+        UWorld* World = GetActiveGameWorld();
+        if (World == nullptr)
+        {
+            return;
+        }
+
+        AActor* TargetActor = ResolveLuaCameraTarget(World, ActorIdentifier);
+        if (TargetActor == nullptr)
+        {
+            UE_LOG("[Lua Camera] Failed to resolve view target '%s'\n", ActorIdentifier.c_str());
+            return;
+        }
+
+        World->GetCameraInterface().SetViewTargetWithBlend(
+            TargetActor,
+            BlendTime,
+            ParseLuaBlendFunction(BlendFunction));
+    });
+    CameraTable.set_function("Shake", [](const sol::table& ShakeParamsTable)
+    {
+        FCameraShakeParams ShakeParams;
+        if (!ParseLuaCameraShakeParams(ShakeParamsTable, ShakeParams))
+        {
+            UE_LOG("[Lua Camera] Unsupported camera shake type\n");
+            return;
+        }
+
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().AddCameraShake(Amplitude, Frequency, Duration);
+            World->GetCameraInterface().AddCameraShake(ShakeParams);
         }
     });
     CameraTable.set_function("FadeIn", [](float Duration)
@@ -1070,7 +1183,7 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().FadeIn(Duration);
+            World->GetCameraInterface().FadeIn(Duration);
         }
     });
     CameraTable.set_function("FadeOut", [](float Duration)
@@ -1078,7 +1191,7 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().FadeOut(Duration);
+            World->GetCameraInterface().FadeOut(Duration);
         }
     });
     CameraTable.set_function("SetLetterBox", [](float Amount, float BlendTime)
@@ -1086,15 +1199,37 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().SetLetterBox(Amount, BlendTime);
+            World->GetCameraInterface().SetLetterBox(Amount, BlendTime);
         }
     });
-    CameraTable.set_function("SetVignette", [](float Intensity, float Radius, float Softness)
+    CameraTable.set_function("SetVignette", [](float Intensity, float Radius, sol::variadic_args Args)
     {
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().SetVignette(Intensity, Radius, Softness);
+            float Softness = 0.2f;
+            FVector Color = FVector::ZeroVector;
+            float BlendTime = 0.0f;
+
+            if (Args.size() >= 1 && Args[0].get_type() == sol::type::number)
+            {
+                Softness = Args[0].as<float>();
+            }
+
+            if (Args.size() >= 4 &&
+                Args[1].get_type() == sol::type::number &&
+                Args[2].get_type() == sol::type::number &&
+                Args[3].get_type() == sol::type::number)
+            {
+                Color = FVector(Args[1].as<float>(), Args[2].as<float>(), Args[3].as<float>());
+            }
+
+            if (Args.size() >= 5 && Args[4].get_type() == sol::type::number)
+            {
+                BlendTime = Args[4].as<float>();
+            }
+
+            World->GetPlayerCameraManager().SetVignette(Intensity, Radius, Softness, Color, BlendTime);
         }
     });
     CameraTable.set_function("EnableGammaCorrection", [](bool bEnabled)
@@ -1102,7 +1237,7 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().EnableGammaCorrection(bEnabled);
+            World->GetCameraInterface().EnableGammaCorrection(bEnabled);
         }
     });
     CameraTable.set_function("FOVKick", [](float AddFovDegrees, float Duration)
@@ -1110,12 +1245,13 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().AddFOVKick(AddFovDegrees, Duration);
+            World->GetCameraInterface().AddFOVKick(AddFovDegrees, Duration);
         }
     });
     Lua["Camera"] = CameraTable;
 
     sol::table HitFeelTable = Lua.create_table();
+    // Hit-feel API also goes through the same façade so Lua call sites remain uniform.
     HitFeelTable.set_function("HitStop", [](float Duration, sol::object TimeScaleObject)
     {
         UWorld* World = GetActiveGameWorld();

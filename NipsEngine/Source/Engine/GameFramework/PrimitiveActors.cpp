@@ -16,7 +16,6 @@
 #include "Core/ActorTags.h"
 #include "Core/ResourceManager.h"
 #include "Engine/Viewport/ViewportCamera.h"
-#include "Engine/Core/SoundManager.h"
 #include "GameFramework/OceanSystem.h"
 #include "GameFramework/World.h"
 #include "Render/Common/WaterRenderingCommon.h"
@@ -472,12 +471,6 @@ void AStaticMeshActor::BeginPlay()
 
         ShapeComp->SetGenerateOverlapEvents(true);
 
-        // 기본 StaticMeshActor 테스트 사운드는 blocking hit가 아니라 overlap 진입 시점에 재생합니다.
-        ShapeComp->OnComponentBeginOverlap.Add([](const FCollisionEvent& Event)
-            {
-                (void)Event;
-                FSoundManager::Get().PlaySFX("Click.wav");
-            });
     }
 }
 

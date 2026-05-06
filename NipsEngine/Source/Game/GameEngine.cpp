@@ -80,7 +80,7 @@ bool UGameEngine::ActivateLoadedStartLevel(bool bBeginPlayNow)
     ResetStartLevelRuntimeState();
     ViewportClient.SetWorld(Context.World);
     ViewportClient.ResetInputState();
-    CreateLogoHud();
+    CreateDriftSalvageHud();
 
     if (bBeginPlayNow && !Context.World->HasBegunPlay())
     {
@@ -90,14 +90,14 @@ bool UGameEngine::ActivateLoadedStartLevel(bool bBeginPlayNow)
     return true;
 }
 
-void UGameEngine::CreateLogoHud()
+void UGameEngine::CreateDriftSalvageHud()
 {
     UWorld* World = GetWorld();
     if (!World) return;
 
     AActor* HudActor = World->SpawnActor<AActor>();
     UScriptComponent* Script = HudActor->AddComponent<UScriptComponent>();
-    Script->SetScriptPath("Asset/Scripts/LogoHud.lua");
+    Script->SetScriptPath("Asset/Scripts/DriftSalvageHud.lua");
 }
 
 void UGameEngine::RequestGameRestart()

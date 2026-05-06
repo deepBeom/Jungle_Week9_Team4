@@ -1,4 +1,4 @@
-﻿#include "GameFramework/Camera/PlayerCameraManager.h"
+#include "GameFramework/Camera/PlayerCameraManager.h"
 
 #include "Component/CameraComponent.h"
 #include "GameFramework/Actor.h"
@@ -17,6 +17,31 @@ namespace
     {
         const float ClampedAlpha = MathUtil::Clamp(Alpha, 0.0f, 1.0f);
         return ClampedAlpha * ClampedAlpha * (3.0f - 2.0f * ClampedAlpha);
+    }
+
+    float EaseIn01(float Alpha)
+    {
+        const float ClampedAlpha = MathUtil::Clamp(Alpha, 0.0f, 1.0f);
+        return ClampedAlpha * ClampedAlpha;
+    }
+
+    float EaseOut01(float Alpha)
+    {
+        const float ClampedAlpha = MathUtil::Clamp(Alpha, 0.0f, 1.0f);
+        const float Inverse = 1.0f - ClampedAlpha;
+        return 1.0f - (Inverse * Inverse);
+    }
+
+    float EaseInOut01(float Alpha)
+    {
+        const float ClampedAlpha = MathUtil::Clamp(Alpha, 0.0f, 1.0f);
+        if (ClampedAlpha < 0.5f)
+        {
+            return 2.0f * ClampedAlpha * ClampedAlpha;
+        }
+
+        const float Inverse = 1.0f - ClampedAlpha;
+        return 1.0f - (2.0f * Inverse * Inverse);
     }
 
     // View-target validity check used before dereferencing actor/component pointers.
@@ -68,10 +93,12 @@ void FPlayerCameraManager::Reset()
 {
     // Reset in logical groups to keep lifecycle transitions easy to reason about.
     ResetViewTargets();
+    ResetScreenEffects();
     SetAnimatedScalarImmediate(FadeAnimation, 0.0f);
     SetAnimatedScalarImmediate(LetterBoxAnimation, 0.0f);
+    SetAnimatedScalarImmediate(VignetteIntensityAnimation, 0.0f);
+    SetAnimatedScalarImmediate(VignetteRadiusAnimation, ScreenEffects.VignetteRadius);
     Modifiers.clear();
-    ResetScreenEffects();
 }
 
 void FPlayerCameraManager::ResetViewTargets()
@@ -143,12 +170,13 @@ void FPlayerCameraManager::TickAnimatedScalar(FAnimatedScalar& InOutState, float
     }
 }
 
-void FPlayerCameraManager::BeginViewTargetBlend(float BlendTime)
+void FPlayerCameraManager::BeginViewTargetBlend(float BlendTime, ECameraBlendFunction BlendFunction)
 {
     // Blend always starts from current frame state.
     ViewTargetBlend.bActive = true;
     ViewTargetBlend.Duration = MathUtil::Clamp(BlendTime, 0.0f, MaxViewTargetBlendDuration);
     ViewTargetBlend.Elapsed = 0.0f;
+    ViewTargetBlend.Function = BlendFunction;
 }
 
 void FPlayerCameraManager::CancelViewTargetBlend()
@@ -170,7 +198,22 @@ float FPlayerCameraManager::EvaluateViewTargetBlendAlpha() const
 {
     // SmallNumber guard avoids divide-by-zero on unexpected durations.
     const float Duration = std::max(ViewTargetBlend.Duration, MathUtil::SmallNumber);
-    return SmoothStep01(ViewTargetBlend.Elapsed / Duration);
+    const float RawAlpha = MathUtil::Clamp(ViewTargetBlend.Elapsed / Duration, 0.0f, 1.0f);
+
+    switch (ViewTargetBlend.Function)
+    {
+    case ECameraBlendFunction::Linear:
+        return RawAlpha;
+    case ECameraBlendFunction::EaseIn:
+        return EaseIn01(RawAlpha);
+    case ECameraBlendFunction::EaseOut:
+        return EaseOut01(RawAlpha);
+    case ECameraBlendFunction::EaseInOut:
+        return EaseInOut01(RawAlpha);
+    case ECameraBlendFunction::SmoothStep:
+    default:
+        return SmoothStep01(RawAlpha);
+    }
 }
 
 void FPlayerCameraManager::Update(float UnscaledDeltaTime)
@@ -214,6 +257,11 @@ void FPlayerCameraManager::SetViewTarget(AActor* NewTarget)
 
 void FPlayerCameraManager::SetViewTargetWithBlend(AActor* NewTarget, float BlendTime)
 {
+    SetViewTargetWithBlend(NewTarget, BlendTime, ECameraBlendFunction::SmoothStep);
+}
+
+void FPlayerCameraManager::SetViewTargetWithBlend(AActor* NewTarget, float BlendTime, ECameraBlendFunction BlendFunction)
+{
     // Resolve once to avoid blending toward invalid/destroyed actors.
     AActor* ResolvedTarget = ResolveActiveViewTarget(NewTarget);
     if (BlendTime <= 0.0f || ResolvedTarget == CurrentViewTarget.Target)
@@ -231,13 +279,13 @@ void FPlayerCameraManager::SetViewTargetWithBlend(AActor* NewTarget, float Blend
 
     PendingViewTarget.Target = ResolvedTarget;
     RefreshViewTargetPOV(PendingViewTarget);
-    BeginViewTargetBlend(BlendTime);
+    BeginViewTargetBlend(BlendTime, BlendFunction);
 }
 
-void FPlayerCameraManager::AddCameraShake(float Amplitude, float Frequency, float Duration)
+void FPlayerCameraManager::AddCameraShake(const FCameraShakeParams& Params)
 {
     // Modifier list owns lifetime via unique_ptr.
-    std::unique_ptr<FCameraModifier> Modifier = std::make_unique<FCameraShakeModifier>(Amplitude, Frequency, Duration);
+    std::unique_ptr<FCameraModifier> Modifier = std::make_unique<FCameraShakeModifier>(Params);
     Modifier->SetCameraOwner(this);
     Modifiers.push_back(std::move(Modifier));
 }
@@ -279,13 +327,27 @@ void FPlayerCameraManager::SetLetterBox(float Amount, float BlendTime)
     StartAnimatedScalar(LetterBoxAnimation, ScreenEffects.LetterBoxAmount, ClampedAmount, BlendTime);
 }
 
-void FPlayerCameraManager::SetVignette(float Intensity, float Radius, float Softness)
+void FPlayerCameraManager::SetVignette(float Intensity, float Radius, float Softness, FVector Color, float BlendTime)
 {
-    // Zero intensity implicitly disables vignette in shader.
-    ScreenEffects.bVignetteEnabled = Intensity > 0.0f;
-    ScreenEffects.VignetteIntensity = MathUtil::Clamp(Intensity, 0.0f, 1.0f);
-    ScreenEffects.VignetteRadius = MathUtil::Clamp(Radius, 0.0f, 1.5f);
+    const float ClampedIntensity = MathUtil::Clamp(Intensity, 0.0f, 1.0f);
+    const float ClampedRadius = MathUtil::Clamp(Radius, 0.0f, 1.5f);
+
+    if (BlendTime <= 0.0f)
+    {
+        SetAnimatedScalarImmediate(VignetteIntensityAnimation, ClampedIntensity);
+        SetAnimatedScalarImmediate(VignetteRadiusAnimation, ClampedRadius);
+        ScreenEffects.VignetteIntensity = ClampedIntensity;
+        ScreenEffects.VignetteRadius = ClampedRadius;
+    }
+    else
+    {
+        StartAnimatedScalar(VignetteIntensityAnimation, ScreenEffects.VignetteIntensity, ClampedIntensity, BlendTime);
+        StartAnimatedScalar(VignetteRadiusAnimation, ScreenEffects.VignetteRadius, ClampedRadius, BlendTime);
+    }
+
+    ScreenEffects.bVignetteEnabled = ScreenEffects.VignetteIntensity > 0.0f || ClampedIntensity > 0.0f;
     ScreenEffects.VignetteSoftness = Softness;
+    ScreenEffects.VignetteColor = Color;
 }
 
 void FPlayerCameraManager::EnableGammaCorrection(bool bEnabled)
@@ -325,9 +387,14 @@ void FPlayerCameraManager::UpdateTransientScreenEffects(float UnscaledDeltaTime)
     // Screen effects use unscaled delta by design.
     TickAnimatedScalar(FadeAnimation, UnscaledDeltaTime);
     TickAnimatedScalar(LetterBoxAnimation, UnscaledDeltaTime);
+    TickAnimatedScalar(VignetteIntensityAnimation, UnscaledDeltaTime);
+    TickAnimatedScalar(VignetteRadiusAnimation, UnscaledDeltaTime);
 
     ScreenEffects.FadeAmount = MathUtil::Clamp(FadeAnimation.Current, 0.0f, 1.0f);
     ScreenEffects.LetterBoxAmount = MathUtil::Clamp(LetterBoxAnimation.Current, 0.0f, MaxLetterBoxAmount);
+    ScreenEffects.VignetteIntensity = MathUtil::Clamp(VignetteIntensityAnimation.Current, 0.0f, 1.0f);
+    ScreenEffects.VignetteRadius = MathUtil::Clamp(VignetteRadiusAnimation.Current, 0.0f, 1.5f);
+    ScreenEffects.bVignetteEnabled = ScreenEffects.VignetteIntensity > 0.0f;
 }
 
 void FPlayerCameraManager::ApplyModifiers(float UnscaledDeltaTime)

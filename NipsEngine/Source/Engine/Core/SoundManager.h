@@ -18,7 +18,8 @@ public:
 
 	// 파일명만 전달 (예: "menu.wav", "jump.wav")
 	void PlayBGM(const FString& FileName, float Volume = 0.1f);
-	void PlaySFX(const FString& FileName, float Volume = 0.1f);
+	void PlaySFX(const FString& FileName, float Volume = 0.1f, bool bLoop = false);
+	void StopSFX(const FString& FileName);
 	void StopBGM();
 	void StopAll();
 	void SetBGMVolume(float Volume);
@@ -37,4 +38,5 @@ private:
 	FMOD::Channel*      BGMChannel = nullptr;
 
 	TMap<FString, FMOD::Sound*> Sounds;
+	TMap<FString, FMOD::Channel*> LoopingSFXChannels;
 };

@@ -36,6 +36,8 @@ namespace
     static const FSpawnEntry PrimitiveTypes[] = {
         { "Scene", SpawnActor<ASceneActor> },
         { "Pawn", SpawnActor<APawn> },
+        { "Camera", SpawnActor<ACameraActor> },
+        { "Cine Camera", SpawnActor<ACineCameraActor> },
         { "StaticMesh", SpawnActor<AStaticMeshActor> },
         { "Water", SpawnActor<AWaterActor> },
         { "Global Ocean", SpawnActor<AGlobalOceanActor> },

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Core/Containers/Array.h"
 #include "GameFramework/Camera/CameraModifier.h"
@@ -7,6 +7,7 @@
 #include <memory>
 
 class AActor;
+struct FCameraShakeParams;
 class FViewportCamera;
 class UWorld;
 
@@ -39,20 +40,21 @@ public:
     void SetViewTarget(AActor* NewTarget);
     // Time-blended target switch.
     void SetViewTargetWithBlend(AActor* NewTarget, float BlendTime);
+    void SetViewTargetWithBlend(AActor* NewTarget, float BlendTime, ECameraBlendFunction BlendFunction);
 
     AActor* GetViewTarget() const { return CurrentViewTarget.Target; }
     const FMinimalViewInfo& GetFinalPOV() const { return FinalPOV; }
     const FCameraScreenEffectSettings& GetScreenEffectSettings() const { return ScreenEffects; }
 
     // Spawns transient modifiers. They affect only final POV per frame.
-    void AddCameraShake(float Amplitude, float Frequency, float Duration);
+    void AddCameraShake(const FCameraShakeParams& Params);
     void AddFOVKick(float AddFovDegrees, float Duration);
 
     // Post-process control helpers.
     void FadeIn(float Duration, FVector Color = {0.f, 0.f, 0.f});
     void FadeOut(float Duration, FVector Color = { 0.f, 0.f, 0.f });
     void SetLetterBox(float Amount, float BlendTime);
-    void SetVignette(float Intensity, float Radius, float Softness);
+    void SetVignette(float Intensity, float Radius, float Softness, FVector Color = FVector::ZeroVector, float BlendTime = 0.0f);
     void EnableGammaCorrection(bool bEnabled);
 
 private:
@@ -84,7 +86,7 @@ private:
     void TickAnimatedScalar(FAnimatedScalar& InOutState, float UnscaledDeltaTime);
 
     // View-target blend state machine helpers.
-    void BeginViewTargetBlend(float BlendTime);
+    void BeginViewTargetBlend(float BlendTime, ECameraBlendFunction BlendFunction);
     void CancelViewTargetBlend();
     void FinalizeViewTargetBlend();
     float EvaluateViewTargetBlendAlpha() const;
@@ -105,6 +107,7 @@ private:
         bool bActive = false;
         float Duration = 0.0f;
         float Elapsed = 0.0f;
+        ECameraBlendFunction Function = ECameraBlendFunction::SmoothStep;
     };
 
     // Generic scalar timeline used by fade and letterbox interpolation.
@@ -127,6 +130,8 @@ private:
     FBlendState ViewTargetBlend;
     FAnimatedScalar FadeAnimation;
     FAnimatedScalar LetterBoxAnimation;
+    FAnimatedScalar VignetteIntensityAnimation;
+    FAnimatedScalar VignetteRadiusAnimation;
 
     // Values consumed by post-process presentation pass.
     FCameraScreenEffectSettings ScreenEffects;
