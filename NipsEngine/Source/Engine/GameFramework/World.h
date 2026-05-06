@@ -96,7 +96,7 @@ public:
 
     float GetUnscaledDeltaTime() const { return TimeManager.GetUnscaledDeltaTime(); }
     float GetScaledDeltaTime() const { return TimeManager.GetScaledDeltaTime(); }
-    float GetGlobalTimeDilation() const { return return TimeManager.GetGlobalTimeDilation(); }
+    float GetGlobalTimeDilation() const { return  TimeManager.GetGlobalTimeDilation(); }
     void SetBaseTimeDilation(float InTimeDilation);
     void StartHitStop(float Duration, float TimeScale = 0.05f);
     void StartSlomo(float TimeScale, float Duration);
