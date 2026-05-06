@@ -119,7 +119,8 @@ void FEditorToolbarWidget::SetPanelVisibilityRefs(
     bool* InShowProperty,
     bool* InShowSceneManager,
     bool* InShowMaterialEditor,
-    bool* InShowStatProfiler)
+    bool* InShowStatProfiler,
+    bool* InShowCameraSequenceEditor)
 {
     bShowConsole = InShowConsole;
     bShowControl = InShowControl;
@@ -127,6 +128,7 @@ void FEditorToolbarWidget::SetPanelVisibilityRefs(
     bShowSceneManager = InShowSceneManager;
     bShowMaterialEditor = InShowMaterialEditor;
     bShowStatProfiler = InShowStatProfiler;
+    bShowCameraSequenceEditor = InShowCameraSequenceEditor;
 }
 
 void FEditorToolbarWidget::Render(float DeltaTime)
@@ -251,6 +253,7 @@ void FEditorToolbarWidget::RenderViewMenu()
     if (bShowSceneManager) ImGui::MenuItem("Scene Manager", nullptr, bShowSceneManager);
     if (bShowMaterialEditor) ImGui::MenuItem("Material Editor", nullptr, bShowMaterialEditor);
     if (bShowStatProfiler) ImGui::MenuItem("Stat Profiler", nullptr, bShowStatProfiler);
+    if (bShowCameraSequenceEditor) ImGui::MenuItem("Camera Sequence Editor", nullptr, bShowCameraSequenceEditor);
 
     if (ViewportOverlayWidget)
     {

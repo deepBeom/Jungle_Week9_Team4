@@ -1,11 +1,24 @@
 #include "GameFramework/Camera/CameraModifier_CameraShake.h"
 #include "Math/Utils.h"
+#include "Engine/Core/Logging/Log.h"
 
 #include <cmath>
 #include <memory>
 
 namespace
 {
+    float ResolveCameraShakeDuration(const FCameraShakeParams& Params)
+    {
+        if (Params.PatternType == ECameraShakePatternType::CameraSequence)
+        {
+            std::shared_ptr<const FCameraSequenceAsset> SequenceAsset =
+                FCameraSequenceManager::Get().LoadSequence(Params.Sequence);
+            return SequenceAsset ? SequenceAsset->Duration : 0.0f;
+        }
+
+        return Params.Duration;
+    }
+
     std::unique_ptr<ICameraShakePattern> MakeCameraShakePattern(const FCameraShakeParams& Params)
     {
         switch (Params.PatternType)
@@ -14,7 +27,7 @@ namespace
             return std::make_unique<FWaveOscillatorPattern>(Params.WaveOscillator);
 
         case ECameraShakePatternType::CameraSequence:
-            return std::make_unique<FSequenceCameraShakePattern>();
+            return std::make_unique<FSequenceCameraShakePattern>(Params);
         }
 
         return std::make_unique<FWaveOscillatorPattern>(Params.WaveOscillator);
@@ -22,7 +35,7 @@ namespace
 }
 
 FCameraShakeModifier::FCameraShakeModifier(const FCameraShakeParams& Params)
-    : FTimedCameraModifier(Params.Duration), ShakePattern(MakeCameraShakePattern(Params))
+    : FTimedCameraModifier(ResolveCameraShakeDuration(Params)), ShakePattern(MakeCameraShakePattern(Params))
 {
     Priority = 16;
 }
@@ -69,10 +82,25 @@ FCameraShakePatternUpdateResult FWaveOscillatorPattern::UpdatePattern(float Delt
 FCameraShakePatternUpdateResult FSequenceCameraShakePattern::UpdatePattern(float DeltaTime, float ElapsedTime, float TotalDuration)
 {
     FCameraShakePatternUpdateResult Result;
+    if (!SequenceAsset)
+    {
+        return Result;
+    }
 
-    // Result.Location = Sequence->SampleLocation(ElapsedTime);
-    // Result.Rotation = Sequence->SampleRotation(ElapsedTime);
-    // Result.FOV = Sequence->SampleFOV(ElapsedTime);
+    const FCameraSequenceSample Sample = SequenceAsset->Evaluate(ElapsedTime, Scale);
+    Result.Location = Sample.Location;
+    Result.Rotation = FQuat::MakeFromEuler(Sample.RotationEuler);
+    Result.FOV = Sample.FOV;
 
     return Result;
+}
+
+FSequenceCameraShakePattern::FSequenceCameraShakePattern(const FCameraShakeParams& InParams)
+    : SequenceAsset(FCameraSequenceManager::Get().LoadSequence(InParams.Sequence))
+    , Scale(InParams.Scale)
+{
+    if (!SequenceAsset)
+    {
+        UE_LOG("[CameraSequence] Failed to resolve sequence '%s' for camera shake.\n", InParams.Sequence.c_str());
+    }
 }

@@ -15,7 +15,7 @@
 
 namespace
 {
-    constexpr int32 WatchedKeys[] = { 'W', 'A', 'S', 'D', 'Q', 'E', 'P' };
+constexpr int32 WatchedKeys[] = { 'W', 'A', 'S', 'D', 'Q', 'E', 'P', 'L' };
     constexpr int32 WatchedMouseButtons[] = { VK_LBUTTON, VK_RBUTTON, VK_MBUTTON };
 
     bool ReadFileToStringByWidePath(const FWString& FilePath, FString& OutSource)

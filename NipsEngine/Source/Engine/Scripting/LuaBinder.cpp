@@ -229,6 +229,18 @@ namespace
         }
 
         OutParams.Duration = Table.get_or("Duration", 0.0f);
+        if (OutParams.PatternType == ECameraShakePatternType::CameraSequence)
+        {
+            OutParams.Sequence = Table.get_or("Sequence", FString());
+            OutParams.Scale = Table.get_or("Scale", 1.0f);
+            if (OutParams.Sequence.empty())
+            {
+                UE_LOG("[Lua Camera] CameraSequence shake requires a Sequence string\n");
+                return false;
+            }
+            return true;
+        }
+
         OutParams.WaveOscillator.LocationAmplitude = Table["LocationAmplitude"];
         OutParams.WaveOscillator.LocationFrequency = Table["LocationFrequency"];
         OutParams.WaveOscillator.RotationAmplitude =
