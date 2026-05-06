@@ -57,7 +57,7 @@ namespace
 
     bool IsFixedCollisionActor(const AActor* Actor)
     {
-        return Actor && Actor->CompareTag(ActorTags::Rock);
+        return Actor && (Actor->CompareTag(ActorTags::Rock) || Actor->CompareTag(ActorTags::Tire));
     }
 
     bool IsForcedMovableActor(const AActor* Actor)

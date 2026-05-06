@@ -236,7 +236,10 @@ bool FExplosionSystem::IsActorPushed(const AActor* Actor) const
 
 void FExplosionSystem::ApplyKnockback(AActor* Actor, const FVector& Velocity)
 {
-    if (!ActorAlive(Actor) || IsRockTag(Actor) || Velocity.IsNearlyZero())
+    if (!ActorAlive(Actor) ||
+        IsRockTag(Actor) ||
+        (Actor && Actor->CompareTag(ActorTags::Tire)) ||
+        Velocity.IsNearlyZero())
     {
         return;
     }

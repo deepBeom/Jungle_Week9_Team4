@@ -272,6 +272,17 @@ namespace
                     Component->SetRelativeRotation(FVector(X, Y, Z));
                 }
             },
+            "GetRelativeScale", [](USceneComponent* Component)
+            {
+                return Component ? Component->GetRelativeScale() : FVector(1.0f, 1.0f, 1.0f);
+            },
+            "SetRelativeScale", [](USceneComponent* Component, float X, float Y, float Z)
+            {
+                if (Component)
+                {
+                    Component->SetRelativeScale(FVector(X, Y, Z));
+                }
+            },
             "GetForwardVector", [](USceneComponent* Component)
             {
                 return Component ? Component->GetForwardVector() : FVector(1.0f, 0.0f, 0.0f);
@@ -659,6 +670,10 @@ namespace
             {
                 return FindActorComponentByType(Actor, TypeName);
             },
+            "FindSceneComponentByClass", [](AActor* Actor, const FString& TypeName) -> USceneComponent*
+            {
+                return Cast<USceneComponent>(FindActorComponentByType(Actor, TypeName));
+            },
             "GetRootComponent", [](AActor* Actor) -> USceneComponent*
             {
                 if (!IsUsableActor(Actor))
@@ -675,6 +690,13 @@ namespace
             "IsValid", [](AActor* Actor)
             {
                 return IsUsableActor(Actor);
+            },
+            "ResetBoatMovement", [](AActor* Actor)
+            {
+                if (APawn* Pawn = Cast<APawn>(Actor))
+                {
+                    Pawn->ResetBoatMovement();
+                }
             });
     }
 
@@ -988,6 +1010,20 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 
         UWorld* World = Actor->GetFocusedWorld();
         return World && World->GetExplosionSystem().IsActorPushed(Actor);
+    });
+
+    Lua.set_function("ApplyActorKnockback", [](AActor* Actor, float X, float Y, float Z)
+    {
+        if (!IsUsableActor(Actor))
+        {
+            return;
+        }
+
+        UWorld* World = Actor->GetFocusedWorld();
+        if (World)
+        {
+            World->GetExplosionSystem().ApplyKnockback(Actor, FVector(X, Y, Z));
+        }
     });
 
     Lua.set_function("RequestGameRestart", []()
