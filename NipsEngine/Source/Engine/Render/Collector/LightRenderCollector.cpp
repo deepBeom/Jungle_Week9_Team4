@@ -28,6 +28,9 @@ namespace
     constexpr float PointShadowNearPlane = 0.1f;
     constexpr float PointShadowBaseResolution = 256.0f;
     constexpr int32 MaxPointShadowCount = 8;
+    constexpr float DirectionalLightFadeStartHeight = -0.02f;
+    constexpr float DirectionalLightFadeEndHeight = 0.06f;
+    constexpr float DirectionalShadowMinDayFactor = 0.001f;
 
     struct FDirectionalCSMBuildResult
     {
@@ -63,6 +66,29 @@ namespace
             Up = FVector::RightVector;
         }
         return Up;
+    }
+
+    float Saturate(float Value)
+    {
+        return MathUtil::Clamp(Value, 0.0f, 1.0f);
+    }
+
+    float SmoothStep(float Edge0, float Edge1, float X)
+    {
+        if (MathUtil::Abs(Edge1 - Edge0) <= MathUtil::Epsilon)
+        {
+            return (X >= Edge1) ? 1.0f : 0.0f;
+        }
+
+        const float T = Saturate((X - Edge0) / (Edge1 - Edge0));
+        return T * T * (3.0f - 2.0f * T);
+    }
+
+    float ComputeDirectionalDayFactor(const FVector& DirectionToLight)
+    {
+        const FVector SafeDirectionToLight = DirectionToLight.GetSafeNormal();
+        const float SunHeight = MathUtil::Clamp(FVector::DotProduct(SafeDirectionToLight, FVector::UpVector), -1.0f, 1.0f);
+        return SmoothStep(DirectionalLightFadeStartHeight, DirectionalLightFadeEndHeight, SunHeight);
     }
 
     FVector4 TransformVector4ByMatrix(const FVector4& Vector, const FMatrix& Matrix)
@@ -534,14 +560,23 @@ void FLightRenderCollector::CollectDirectionalLight(const ULightComponent* Light
 {
     ++GetStats().Shadow.DirectionalLightCount;
 
+    const UDirectionalLightComponent* DirectionalLight = Cast<UDirectionalLightComponent>(LightComponent);
+
     FVector Direction = LightComponent->GetForwardVector() * -1.0f; // 빛 방향 벡터
     Direction.Normalize();
     RenderLight.Direction = Direction;
+    const float DayFactor =
+        (DirectionalLight != nullptr && DirectionalLight->IsDayNightAttenuationEnabled())
+            ? ComputeDirectionalDayFactor(Direction)
+            : 1.0f;
+    RenderLight.Intensity *= DayFactor;
 
     // 씬의 첫 번째 Directional Light만 그림자를 반영한다.
-    if (RenderBus.GetShowFlags().bShadow && !RenderBus.HasDirectionalShadow() && LightComponent->IsCastShadows())
+    if (DayFactor > DirectionalShadowMinDayFactor &&
+        RenderBus.GetShowFlags().bShadow &&
+        !RenderBus.HasDirectionalShadow() &&
+        LightComponent->IsCastShadows())
     {
-        const UDirectionalLightComponent* DirectionalLight = Cast<UDirectionalLightComponent>(LightComponent);
         if (DirectionalLight != nullptr)
         {
             FDirectionalShadowConstants ShadowConstants;

@@ -20,6 +20,7 @@ void UDirectionalLightComponent::GetEditableProperties(TArray<FPropertyDescripto
     OutProps.push_back({ "Cascade Split Weight", EPropertyType::Float, &CascadeSplitWeight, 0.0f, 1.0f, 0.01f });
     OutProps.push_back({ "Shadow Texel Snapped", EPropertyType::Bool, &bShadowTexelSnapped });
     OutProps.push_back({ "PSM Virtual Slide Back", EPropertyType::Float, &PSMVirtualSlideBack, 0.0f, 10000.0f, 10.0f });
+    OutProps.push_back({ "Day Night Attenuation", EPropertyType::Bool, &bDayNightAttenuationEnabled });
 }
 
 void UDirectionalLightComponent::Serialize(FArchive& Ar)
@@ -34,6 +35,7 @@ void UDirectionalLightComponent::Serialize(FArchive& Ar)
     Ar << "CascadeSplitWeight" << CascadeSplitWeight;
     Ar << "bShadowTexelSnapped" << bShadowTexelSnapped;
     Ar << "PSMVirtualSlideBack" << PSMVirtualSlideBack;
+    Ar << "bDayNightAttenuationEnabled" << bDayNightAttenuationEnabled;
     SetPSMVirtualSlideBack(PSMVirtualSlideBack);
 }
 
@@ -49,5 +51,6 @@ void UDirectionalLightComponent::PostDuplicate(UObject* Original)
     CascadeSplitWeight = Orig->CascadeSplitWeight;
     bShadowTexelSnapped = Orig->bShadowTexelSnapped;
     SetPSMVirtualSlideBack(Orig->PSMVirtualSlideBack);
+    bDayNightAttenuationEnabled = Orig->bDayNightAttenuationEnabled;
 }
 

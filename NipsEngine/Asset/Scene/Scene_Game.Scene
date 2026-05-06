@@ -1,13 +1,13 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 32314,
+  "NextUUID" : 34311,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
     "Location" : [2.661757, 9.472287, 4.780694],
     "NearClip" : 0.100000,
-    "Rotation" : [13.416586, 0.955913, -85.999329]
+    "Rotation" : [13.416584, 0.955912, -85.999329]
   },
   "Primitives" : {
     "107" : {
@@ -3161,6 +3161,7 @@
       "ShadowSlopeBias" : 1.000000,
       "Type" : "UDirectionalLightComponent",
       "Visible" : true,
+      "bDayNightAttenuationEnabled" : true,
       "bShadowTexelSnapped" : true
     },
     "13909" : {

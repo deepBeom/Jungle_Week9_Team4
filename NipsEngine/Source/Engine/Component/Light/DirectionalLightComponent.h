@@ -39,9 +39,14 @@ public:
     float GetShadowDistance() const { return ShadowDistance; }
     float GetCascadeSplitWeight() const { return CascadeSplitWeight;  }
     float GetPSMVirtualSlideBack() const { return PSMVirtualSlideBack; }
+    bool IsDayNightAttenuationEnabled() const { return bDayNightAttenuationEnabled; }
     void SetPSMVirtualSlideBack(float InVirtualSlideBack)
     {
         PSMVirtualSlideBack = std::max(0.0f, InVirtualSlideBack);
+    }
+    void SetDayNightAttenuationEnabled(bool bInEnabled)
+    {
+        bDayNightAttenuationEnabled = bInEnabled;
     }
 
 private:
@@ -51,4 +56,5 @@ private:
     // 0.0f = linear split, 1.0f = logarithmic split (higher precision near camera).
     float CascadeSplitWeight = 0.5f;
     float PSMVirtualSlideBack = 100.0f;
+    bool bDayNightAttenuationEnabled = true;
 };
