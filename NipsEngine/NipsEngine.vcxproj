@@ -411,6 +411,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ShippingDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Shipping|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\Editor\UI\EditorCameraSequenceWidget.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ShippingDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Shipping|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Source\Editor\UI\EditorMainPanel.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ShippingDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Shipping|x64'">true</ExcludedFromBuild>
@@ -530,6 +534,7 @@
     <ClCompile Include="Source\Engine\GameFramework\OceanSystem.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Camera\CameraModifier.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Camera\CameraModifier_CameraShake.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Camera\CameraSequenceManager.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Camera\CameraModifier_FOVKick.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Camera\PlayerCameraManager.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Camera\WorldCameraInterface.cpp" />
@@ -799,6 +804,7 @@
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h" />
     <ClInclude Include="Source\Editor\UI\EditorConsoleWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorControlWidget.h" />
+    <ClInclude Include="Source\Editor\UI\EditorCameraSequenceWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorMainPanel.h" />
     <ClInclude Include="Source\Editor\UI\EditorMaterialWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorPlayStreamWidget.h" />
@@ -899,6 +905,7 @@
     <ClInclude Include="Source\Engine\GameFramework\OceanSystem.h" />
     <ClInclude Include="Source\Engine\GameFramework\Camera\CameraModifier.h" />
     <ClInclude Include="Source\Engine\GameFramework\Camera\CameraModifier_CameraShake.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Camera\CameraSequenceManager.h" />
     <ClInclude Include="Source\Engine\GameFramework\Camera\CameraModifier_FOVKick.h" />
     <ClInclude Include="Source\Engine\GameFramework\Camera\CameraTypes.h" />
     <ClInclude Include="Source\Engine\GameFramework\Camera\PlayerCameraManager.h" />
