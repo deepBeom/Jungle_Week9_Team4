@@ -9,6 +9,7 @@
 #include "Component/ShapeComponent.h"
 #include "Core/ActorTags.h"
 #include "Core/Logging/Log.h"
+#include "Core/SoundManager.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Math/Utils.h"
 #include "Engine/Scripting/LuaBinder.h"
@@ -238,6 +239,7 @@ void FCollectionSystem::TickFlights(float DeltaTime)
         {
             if (LuaBinder::TryApplyDriftSalvagePickup(Actor->GetTag()))
             {
+                FSoundManager::Get().PlaySFX("Pick.mp3", 0.3f);
                 UE_LOG("[CollectBySpace] name=%s tag=%s", *Actor->GetName(), Actor->GetTag().c_str());
                 Actor->Destroy();
             }

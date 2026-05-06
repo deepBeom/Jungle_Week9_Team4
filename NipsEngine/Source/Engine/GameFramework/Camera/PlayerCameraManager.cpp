@@ -68,10 +68,12 @@ void FPlayerCameraManager::Reset()
 {
     // Reset in logical groups to keep lifecycle transitions easy to reason about.
     ResetViewTargets();
+    ResetScreenEffects();
     SetAnimatedScalarImmediate(FadeAnimation, 0.0f);
     SetAnimatedScalarImmediate(LetterBoxAnimation, 0.0f);
+    SetAnimatedScalarImmediate(VignetteIntensityAnimation, 0.0f);
+    SetAnimatedScalarImmediate(VignetteRadiusAnimation, ScreenEffects.VignetteRadius);
     Modifiers.clear();
-    ResetScreenEffects();
 }
 
 void FPlayerCameraManager::ResetViewTargets()
@@ -279,13 +281,27 @@ void FPlayerCameraManager::SetLetterBox(float Amount, float BlendTime)
     StartAnimatedScalar(LetterBoxAnimation, ScreenEffects.LetterBoxAmount, ClampedAmount, BlendTime);
 }
 
-void FPlayerCameraManager::SetVignette(float Intensity, float Radius, float Softness)
+void FPlayerCameraManager::SetVignette(float Intensity, float Radius, float Softness, FVector Color, float BlendTime)
 {
-    // Zero intensity implicitly disables vignette in shader.
-    ScreenEffects.bVignetteEnabled = Intensity > 0.0f;
-    ScreenEffects.VignetteIntensity = MathUtil::Clamp(Intensity, 0.0f, 1.0f);
-    ScreenEffects.VignetteRadius = MathUtil::Clamp(Radius, 0.0f, 1.5f);
+    const float ClampedIntensity = MathUtil::Clamp(Intensity, 0.0f, 1.0f);
+    const float ClampedRadius = MathUtil::Clamp(Radius, 0.0f, 1.5f);
+
+    if (BlendTime <= 0.0f)
+    {
+        SetAnimatedScalarImmediate(VignetteIntensityAnimation, ClampedIntensity);
+        SetAnimatedScalarImmediate(VignetteRadiusAnimation, ClampedRadius);
+        ScreenEffects.VignetteIntensity = ClampedIntensity;
+        ScreenEffects.VignetteRadius = ClampedRadius;
+    }
+    else
+    {
+        StartAnimatedScalar(VignetteIntensityAnimation, ScreenEffects.VignetteIntensity, ClampedIntensity, BlendTime);
+        StartAnimatedScalar(VignetteRadiusAnimation, ScreenEffects.VignetteRadius, ClampedRadius, BlendTime);
+    }
+
+    ScreenEffects.bVignetteEnabled = ScreenEffects.VignetteIntensity > 0.0f || ClampedIntensity > 0.0f;
     ScreenEffects.VignetteSoftness = Softness;
+    ScreenEffects.VignetteColor = Color;
 }
 
 void FPlayerCameraManager::EnableGammaCorrection(bool bEnabled)
@@ -325,9 +341,14 @@ void FPlayerCameraManager::UpdateTransientScreenEffects(float UnscaledDeltaTime)
     // Screen effects use unscaled delta by design.
     TickAnimatedScalar(FadeAnimation, UnscaledDeltaTime);
     TickAnimatedScalar(LetterBoxAnimation, UnscaledDeltaTime);
+    TickAnimatedScalar(VignetteIntensityAnimation, UnscaledDeltaTime);
+    TickAnimatedScalar(VignetteRadiusAnimation, UnscaledDeltaTime);
 
     ScreenEffects.FadeAmount = MathUtil::Clamp(FadeAnimation.Current, 0.0f, 1.0f);
     ScreenEffects.LetterBoxAmount = MathUtil::Clamp(LetterBoxAnimation.Current, 0.0f, MaxLetterBoxAmount);
+    ScreenEffects.VignetteIntensity = MathUtil::Clamp(VignetteIntensityAnimation.Current, 0.0f, 1.0f);
+    ScreenEffects.VignetteRadius = MathUtil::Clamp(VignetteRadiusAnimation.Current, 0.0f, 1.5f);
+    ScreenEffects.bVignetteEnabled = ScreenEffects.VignetteIntensity > 0.0f;
 }
 
 void FPlayerCameraManager::ApplyModifiers(float UnscaledDeltaTime)

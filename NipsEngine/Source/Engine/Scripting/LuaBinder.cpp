@@ -10,6 +10,7 @@
 #include "Engine/Core/Paths.h"
 #include "Engine/Core/Logging/Timer.h"
 #include "Engine/Core/ResourceManager.h"
+#include "Engine/Core/SoundManager.h"
 #include "Engine/GameFramework/Actor.h"
 #include "Engine/GameFramework/Pawn.h"
 #include "Engine/GameFramework/Camera/PlayerCameraManager.h"
@@ -1014,6 +1015,38 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 
     Lua["Input"] = InputTable;
 
+    sol::table SoundTable = Lua.create_table();
+    SoundTable.set_function("PlaySFX", [](const FString& FileName, sol::variadic_args Args)
+    {
+        float Volume = 0.1f;
+        bool bLoop = false;
+
+        if (Args.size() >= 1 && Args[0].get_type() == sol::type::number)
+        {
+            Volume = Args[0].as<float>();
+        }
+
+        if (Args.size() >= 2 && Args[1].get_type() == sol::type::boolean)
+        {
+            bLoop = Args[1].as<bool>();
+        }
+
+        FSoundManager::Get().PlaySFX(FileName, Volume, bLoop);
+    });
+    SoundTable.set_function("StopSFX", [](const FString& FileName)
+    {
+        FSoundManager::Get().StopSFX(FileName);
+    });
+    SoundTable.set_function("PlayBGM", [](const FString& FileName, float Volume)
+    {
+        FSoundManager::Get().PlayBGM(FileName, Volume);
+    });
+    SoundTable.set_function("StopBGM", []()
+    {
+        FSoundManager::Get().StopBGM();
+    });
+    Lua["Sound"] = SoundTable;
+
     lua_State* LuaState = Lua.lua_state();
     lua_pushcfunction(LuaState, LuaWaitFunction);
     lua_setglobal(LuaState, "Wait");
@@ -1078,12 +1111,34 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
             World->GetPlayerCameraManager().SetLetterBox(Amount, BlendTime);
         }
     });
-    CameraTable.set_function("SetVignette", [](float Intensity, float Radius, float Softness)
+    CameraTable.set_function("SetVignette", [](float Intensity, float Radius, sol::variadic_args Args)
     {
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().SetVignette(Intensity, Radius, Softness);
+            float Softness = 0.2f;
+            FVector Color = FVector::ZeroVector;
+            float BlendTime = 0.0f;
+
+            if (Args.size() >= 1 && Args[0].get_type() == sol::type::number)
+            {
+                Softness = Args[0].as<float>();
+            }
+
+            if (Args.size() >= 4 &&
+                Args[1].get_type() == sol::type::number &&
+                Args[2].get_type() == sol::type::number &&
+                Args[3].get_type() == sol::type::number)
+            {
+                Color = FVector(Args[1].as<float>(), Args[2].as<float>(), Args[3].as<float>());
+            }
+
+            if (Args.size() >= 5 && Args[4].get_type() == sol::type::number)
+            {
+                BlendTime = Args[4].as<float>();
+            }
+
+            World->GetPlayerCameraManager().SetVignette(Intensity, Radius, Softness, Color, BlendTime);
         }
     });
     CameraTable.set_function("EnableGammaCorrection", [](bool bEnabled)

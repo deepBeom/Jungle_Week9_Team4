@@ -52,7 +52,7 @@ public:
     void FadeIn(float Duration, FVector Color = {0.f, 0.f, 0.f});
     void FadeOut(float Duration, FVector Color = { 0.f, 0.f, 0.f });
     void SetLetterBox(float Amount, float BlendTime);
-    void SetVignette(float Intensity, float Radius, float Softness);
+    void SetVignette(float Intensity, float Radius, float Softness, FVector Color = FVector::ZeroVector, float BlendTime = 0.0f);
     void EnableGammaCorrection(bool bEnabled);
 
 private:
@@ -127,6 +127,8 @@ private:
     FBlendState ViewTargetBlend;
     FAnimatedScalar FadeAnimation;
     FAnimatedScalar LetterBoxAnimation;
+    FAnimatedScalar VignetteIntensityAnimation;
+    FAnimatedScalar VignetteRadiusAnimation;
 
     // Values consumed by post-process presentation pass.
     FCameraScreenEffectSettings ScreenEffects;

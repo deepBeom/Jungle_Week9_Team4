@@ -7,7 +7,14 @@ local HUD_BG_SHEET = "Asset/Texture/UI/BG.png"
 local SCORE_BG_PATH = "Asset/Texture/UI/ScoreBoardBG.png"
 local ENDING_SHEET = "Asset/Texture/UI/Ending.png"
 local SCORE_MANAGER_PATH = SCRIPT_DIR .. "ScoreManager.lua"
+local MENU_BGM = "Menu.mp3"
+local MENU_BGM_VOLUME = 0.1
+local INGAME_BGM = "InGame.mp3"
+local INGAME_BGM_VOLUME = 0.1
+local BOAT_FORWARD_LOOP_SFX = "boatMove.mp3"
 local DEFAULT_WEIGHT_CAPACITY = 150.0
+local START_FADE_IN_DURATION = 0.55
+local RESTART_FADE_OUT_DURATION = 0.55
 
 local MenuPanel = nil
 local ScorePanel = nil
@@ -17,6 +24,17 @@ local BoatHomePosition = nil
 local BoatHomeRotation = nil
 local ScoreManager = nil
 local GameplayHud = nil
+local Countdown = nil
+local bGameplayInputReady = false
+local bLowHealthVignetteActive = false
+local LOW_HEALTH_VIGNETTE_RADIUS = 3.0
+local LOW_HEALTH_VIGNETTE_BLEND_TIME = 1.0
+local bGameOverSequencePlaying = false
+local bRestartFadeOutPending = false
+local BOAT_SINK_GAMEOVER_DELAY = 3.0
+local BOAT_SINK_DEPTH = 4.0
+local BOAT_SINK_ROLL_DEGREES = 12.0
+local BOAT_SINK_YAW_DEGREES = 24.0
 
 local function LoadScript(path)
     local paths = {
@@ -73,6 +91,10 @@ local function EaseSmoothStep(t)
     return t * t * (3.0 - 2.0 * t)
 end
 
+local function Lerp(a, b, t)
+    return a + (b - a) * t
+end
+
 local function EnterUIMode()
     if SetUIMode then
         SetUIMode(true)
@@ -82,6 +104,46 @@ end
 local function EnterGameplayMode()
     if SetUIMode then
         SetUIMode(false)
+    end
+end
+
+local function StopBoatForwardLoopSfx()
+    if Sound and Sound.StopSFX then
+        Sound.StopSFX(BOAT_FORWARD_LOOP_SFX)
+    end
+end
+
+local function FadeInGameplay()
+    if Camera and Camera.FadeIn then
+        Camera.FadeIn(START_FADE_IN_DURATION)
+    end
+end
+
+local function RequestGameplayRestartWithFadeOut()
+    if bRestartFadeOutPending then
+        return
+    end
+
+    bRestartFadeOutPending = true
+    bGameplayInputReady = false
+    StopBoatForwardLoopSfx()
+
+    if Camera and Camera.FadeOut then
+        Camera.FadeOut(RESTART_FADE_OUT_DURATION)
+    end
+
+    local function restart()
+        _G.DriftSalvageHudNextStartMode = "Gameplay"
+        RequestGameRestart()
+    end
+
+    if StartCoroutine and Wait then
+        StartCoroutine(function()
+            Wait(RESTART_FADE_OUT_DURATION)
+            restart()
+        end)
+    else
+        restart()
     end
 end
 
@@ -115,6 +177,28 @@ local function GetHudWeightCapacity()
     end
 
     return DEFAULT_WEIGHT_CAPACITY
+end
+
+local function SetLowHealthVignette(enabled)
+    if bLowHealthVignetteActive == enabled then
+        return
+    end
+
+    bLowHealthVignetteActive = enabled
+
+    if not Camera or not Camera.SetVignette then
+        return
+    end
+
+    if enabled then
+        Camera.SetVignette(0.55, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 1.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
+    else
+        Camera.SetVignette(0.0, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 1.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
+    end
+end
+
+local function UpdateLowHealthVignette()
+    SetLowHealthVignette(GetHudHealth() <= 2)
 end
 
 local function ResolveBoatActor()
@@ -212,6 +296,26 @@ local function GetGameplayHud()
     return GameplayHud
 end
 
+local function GetCountdown()
+    if Countdown then
+        return Countdown
+    end
+
+    local CountdownModule = LoadScript(SCRIPT_DIR .. "DriftSalvageCountdown.lua")
+    Countdown = CountdownModule.Create({
+        OnFinished = function()
+            bGameplayInputReady = true
+            UpdateLowHealthVignette()
+            if Sound and Sound.PlayBGM then
+                Sound.PlayBGM(INGAME_BGM, INGAME_BGM_VOLUME)
+            end
+            EnterGameplayMode()
+        end,
+    })
+
+    return Countdown
+end
+
 local function HideHud()
     if MenuPanel then
         UIManager.DestroyElement(MenuPanel)
@@ -230,6 +334,12 @@ local function HideGameOver()
     if GameOverPanel then
         UIManager.DestroyElement(GameOverPanel)
         GameOverPanel = nil
+    end
+end
+
+local function HideCountdown()
+    if Countdown then
+        Countdown:Hide()
     end
 end
 
@@ -276,10 +386,15 @@ end
 local function ShowGameOver()
     if GameOverPanel then return end
 
+    bGameplayInputReady = false
+    bGameOverSequencePlaying = false
+    StopBoatForwardLoopSfx()
+    SetLowHealthVignette(false)
     EnterUIMode()
     local finalScore = GetHudMoney()
     LoadScoreManager().RecordScore(finalScore)
     HideInGameHud()
+    HideCountdown()
 
     GameOverPanel = UIManager.CreateImage(nil, 0.5, 0.5, 0.55, 0.55, nil, "FullRelative")
     GameOverPanel:SetColor(0.0, 0.0, 0.0, 0.0)
@@ -299,8 +414,7 @@ local function ShowGameOver()
     restartLabel:OnHoverEnter(function() restartLabel:SetColor(1.0, 1.0, 0.0, 1.0) end)
     restartLabel:OnHoverExit(function() restartLabel:SetColor(0.0, 0.0, 0.0, 1.0) end)
     restartLabel:OnClick(function()
-        _G.DriftSalvageHudNextStartMode = "Gameplay"
-        RequestGameRestart()
+        RequestGameplayRestartWithFadeOut()
     end)
 
     local titleLabel = UIManager.CreateText(GameOverPanel, 0.01, 0.27, 280, 48, "TITLE", 48.0, "RelativePos")
@@ -315,20 +429,42 @@ local function ShowGameOver()
 end
 
 local function StartGameplay()
+    bRestartFadeOutPending = false
+    bGameplayInputReady = false
+    bGameOverSequencePlaying = false
+    StopBoatForwardLoopSfx()
+    SetLowHealthVignette(false)
+    FadeInGameplay()
     HideHud()
+    HideCountdown()
+    if Sound and Sound.StopBGM then
+        Sound.StopBGM()
+    end
     ShowInGameHud()
     if ResetDriftSalvageStats then
         ResetDriftSalvageStats()
     end
     SetBoatAtHome()
-    EnterGameplayMode()
+    EnterUIMode()
+    StartCoroutine(function()
+        GetCountdown():Run()
+    end)
 end
 
 ShowHud = function()
     if MenuPanel then return end
 
+    bRestartFadeOutPending = false
+    bGameplayInputReady = false
+    bGameOverSequencePlaying = false
+    StopBoatForwardLoopSfx()
+    SetLowHealthVignette(false)
+    if Sound and Sound.PlayBGM then
+        Sound.PlayBGM(MENU_BGM, MENU_BGM_VOLUME)
+    end
     HideInGameHud()
     HideGameOver()
+    HideCountdown()
 
     MenuPanel = UIManager.CreateImage(nil, 0.5, 0.5, 0.4, 0.5, nil, "FullRelative")
     MenuPanel:SetColor(0.0, 0.0, 0.0, 0.0)
@@ -370,33 +506,91 @@ function OnStart(self)
     ShowHud()
 end
 
+local function StartHealthZeroGameOverSequence()
+    if bGameOverSequencePlaying or GameOverPanel then
+        return
+    end
+
+    bGameOverSequencePlaying = true
+    bGameplayInputReady = false
+    StopBoatForwardLoopSfx()
+    SetLowHealthVignette(true)
+    EnterUIMode()
+
+    StartCoroutine(function()
+        local boat = ResolveBoatActor()
+        local startTime = GetTimeSeconds and GetTimeSeconds() or 0.0
+        local startPos = nil
+        local startRot = nil
+
+        if boat and boat:IsValid() then
+            startPos = boat:GetPosition()
+            startRot = boat:GetRotation()
+        end
+
+        while true do
+            local now = GetTimeSeconds and GetTimeSeconds() or (startTime + BOAT_SINK_GAMEOVER_DELAY)
+            local alpha = Clamp01((now - startTime) / BOAT_SINK_GAMEOVER_DELAY)
+            local eased = EaseSmoothStep(alpha)
+
+            if boat and boat:IsValid() and startPos and startRot then
+                boat:SetPosition(
+                    startPos.X or 0.0,
+                    startPos.Y or 0.0,
+                    Lerp(startPos.Z or 0.0, (startPos.Z or 0.0) - BOAT_SINK_DEPTH, eased))
+                boat:SetRotation(
+                    Lerp(startRot.X or 0.0, (startRot.X or 0.0) + BOAT_SINK_ROLL_DEGREES, eased),
+                    startRot.Y or 0.0,
+                    Lerp(startRot.Z or 0.0, (startRot.Z or 0.0) + BOAT_SINK_YAW_DEGREES, eased))
+            end
+
+            if alpha >= 1.0 then
+                break
+            end
+
+            Wait(0.0)
+        end
+
+        ShowGameOver()
+    end)
+end
+
 function OnUpdate(self, deltaTime)
     local hud = GameplayHud
     if not hud then
         return
     end
 
-    if hud:IsVisible() and ConsumeDriftSalvageGameOverRequest and ConsumeDriftSalvageGameOverRequest() then
-        ShowGameOver()
+    if bGameplayInputReady and hud:IsVisible() and ConsumeDriftSalvageGameOverRequest and ConsumeDriftSalvageGameOverRequest() then
+        StartHealthZeroGameOverSequence()
         return
     end
 
-    if hud:IsVisible() and Input and Input.GetKeyDown("E") then
+    if bGameplayInputReady and hud:IsVisible() and Input and Input.GetKeyDown("E") then
         ShowGameOver()
         return
     end
 
     hud:Update(deltaTime)
 
-    if hud:IsVisible() and GetHudHealth() <= 0 and not hud:IsHeartAnimating() then
-        ShowGameOver()
+    if bGameplayInputReady and hud:IsVisible() then
+        UpdateLowHealthVignette()
+    end
+
+    if bGameplayInputReady and hud:IsVisible() and GetHudHealth() <= 0 and not hud:IsHeartAnimating() then
+        StartHealthZeroGameOverSequence()
     end
 end
 
 function OnDestroy(self)
+    bGameplayInputReady = false
+    bGameOverSequencePlaying = false
+    StopBoatForwardLoopSfx()
+    SetLowHealthVignette(false)
     EnterUIMode()
     HideHud()
     HideScoreboard()
     HideGameOver()
     HideInGameHud()
+    HideCountdown()
 end

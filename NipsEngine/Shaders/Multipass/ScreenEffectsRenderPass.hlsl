@@ -18,7 +18,8 @@ cbuffer ScreenEffectsConstant : register(b10)
     float CurrentAspectRatio;
     float  VignetteRadius;
     float VignetteSoftness;
-    float2 Padding;
+    float3 VignetteColor;
+    float3 Padding;
 }
 
 struct VSOutput
@@ -61,8 +62,9 @@ float4 mainPS(VSOutput PSInput) : SV_TARGET
 
         float Dist = length(NDC);
         float Mask = 1.0f - smoothstep(VignetteRadius - VignetteSoftness, VignetteRadius, Dist);
-        
-        Color = lerp(Color, Color * Mask, VignetteIntensity);
+        float EdgeAmount = (1.0f - Mask) * VignetteIntensity;
+
+        Color = lerp(Color, VignetteColor, EdgeAmount);
     }
 
     // LetterBox
