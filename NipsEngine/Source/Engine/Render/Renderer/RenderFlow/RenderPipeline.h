@@ -30,6 +30,7 @@ class FDepthLessRenderPass;
 class FDepthPrepassRenderPass;
 class FHitMapRenderPass;
 class FPostProcessOutlineRenderPass;
+class FScreenEffectsRenderPass;
 class FOpaqueRenderPass;
 class FLightCullingPass;
 class FUIRenderPass;
@@ -66,6 +67,7 @@ private:
     std::shared_ptr<FLineBatchRenderPass> LineBatchRenderPass;
     std::shared_ptr<FDepthLessRenderPass> DepthLessRenderPass;
     std::shared_ptr<FPostProcessOutlineRenderPass> PostProcessOutlineRenderPass;
+    std::shared_ptr<FScreenEffectsRenderPass> ScreenEffectsRenderPass;
     std::shared_ptr<FToonOutlineRenderPass> ToonOutlineRenderPass;
     std::shared_ptr<FUIRenderPass>          UIRenderPass;
 

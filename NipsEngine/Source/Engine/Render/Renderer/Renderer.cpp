@@ -50,6 +50,7 @@ void FRenderer::Create(HWND hWindow)
     FResourceManager::Get().LoadShader("Shaders/Multipass/SkyPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/FogPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/Multipass/FXAAPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
+    FResourceManager::Get().LoadShader("Shaders/Multipass/ScreenEffectsRenderPass.hlsl", "mainVS", "mainPS", nullptr, 0, nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderFont.hlsl",   "VS", "PS", TextureVertexInputLayout, ARRAYSIZE(TextureVertexInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderFont2D.hlsl", "VS", "PS", UIVertexInputLayout, ARRAYSIZE(UIVertexInputLayout), nullptr);
     FResourceManager::Get().LoadShader("Shaders/ShaderUI.hlsl",     "VS", "PS", UIVertexInputLayout,      ARRAYSIZE(UIVertexInputLayout),      nullptr);
@@ -221,14 +222,6 @@ void FRenderer::PresentToBackBuffer(const ID3D11ShaderResourceView* FinalSRV, co
 
     PresentShaderBinding->SetSRV("SceneFinalColor", const_cast<ID3D11ShaderResourceView*>(FinalSRV));
     PresentShaderBinding->SetAllSamplers(FResourceManager::Get().GetOrCreateSamplerState(ESamplerType::EST_Linear));
-    PresentShaderBinding->SetFloat("FadeAmount", ScreenEffectSettings.FadeAmount);
-    PresentShaderBinding->SetVector3("FadeColor", ScreenEffectSettings.FadeColor);
-    PresentShaderBinding->SetFloat("LetterBoxAmount", ScreenEffectSettings.LetterBoxAmount);
-    PresentShaderBinding->SetBool("bGammaCorrectionEnabled", ScreenEffectSettings.bGammaCorrectionEnabled);
-    PresentShaderBinding->SetFloat("Gamma", ScreenEffectSettings.Gamma);
-    PresentShaderBinding->SetBool("bVignetteEnabled", ScreenEffectSettings.bVignetteEnabled);
-    PresentShaderBinding->SetFloat("VignetteIntensity", ScreenEffectSettings.VignetteIntensity);
-    PresentShaderBinding->SetFloat("VignetteRadius", ScreenEffectSettings.VignetteRadius);
 
     Device.SetSubViewport(0, 0, static_cast<int32>(BackBufferRenderTargets->Width), static_cast<int32>(BackBufferRenderTargets->Height));
 

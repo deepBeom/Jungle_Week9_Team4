@@ -177,6 +177,21 @@ struct FFXAAConstants
     float  Padding;
 };
 
+struct FScreenCameraEffectsConstants
+{
+    float FadeAmount;
+    FVector FadeColor;
+
+    float LetterBoxAmount = 0.0f;
+
+    bool bGammaCorrectionEnabled = false;
+    float Gamma = 2.2f;
+    
+    float VignetteIntensity = 0.0f;
+    float VignetteRadius = 0.75f;
+    float Padding[3];
+};
+
 // WaterShaderBindings::MaterialConstantBuffer in Shaders/Water.hlsl.
 // Per-water-primitive runtime data must come from component/collector path,
 // not from per-frame mutation of shared material instances.
@@ -349,6 +364,7 @@ struct FRenderCommand
         FSkyConstants Sky;
         FFogConstants Fog;
         FFXAAConstants FXAA;
+        FScreenCameraEffectsConstants ScreenEffects;
     } Constants;
 
     FWaterRenderData Water = {};

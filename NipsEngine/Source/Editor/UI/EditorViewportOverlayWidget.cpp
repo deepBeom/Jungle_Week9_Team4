@@ -270,6 +270,14 @@ void FEditorViewportOverlayWidget::RenderViewportSettings(float DeltaTime)
         ImGui::Checkbox("Enable LOD", &Settings.ShowFlags.bEnableLOD);
         ImGui::Checkbox("Decals", &Settings.ShowFlags.bDecals);
         ImGui::Checkbox("Fog", &Settings.ShowFlags.bFog);
+        ImGui::Checkbox("Gamma Correction", &Settings.ShowFlags.bGammaCorrection);
+        if (Settings.ShowFlags.bGammaCorrection)
+        {
+            ImGui::Indent();
+            SetControlWidth();
+            ImGui::SliderFloat("Gamma", &Settings.ShowFlags.GammaValue, 1.0f, 3.0f, "%.2f");
+            ImGui::Unindent();
+        }
     }
 
     if (BeginSettingsSection("Camera Settings", true))

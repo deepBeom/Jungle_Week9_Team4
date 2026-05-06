@@ -1078,12 +1078,12 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
             World->GetPlayerCameraManager().SetLetterBox(Amount, BlendTime);
         }
     });
-    CameraTable.set_function("SetVignette", [](float Intensity, float Radius)
+    CameraTable.set_function("SetVignette", [](float Intensity, float Radius, float Softness)
     {
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().SetVignette(Intensity, Radius);
+            World->GetPlayerCameraManager().SetVignette(Intensity, Radius, Softness);
         }
     });
     CameraTable.set_function("EnableGammaCorrection", [](bool bEnabled)

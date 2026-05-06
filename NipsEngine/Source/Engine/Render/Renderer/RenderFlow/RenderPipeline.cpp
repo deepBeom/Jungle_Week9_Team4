@@ -18,6 +18,7 @@
 #include "DepthLessRenderPass.h"
 #include "DepthPrepassRenderPass.h"
 #include "PostProcessOutlineRenderPass.h"
+#include "ScreenEffectsRenderPass.h"
 #include "ShadowPass.h"
 #include "BlurPass.h"
 #include "HitMapRenderPass.h"
@@ -122,6 +123,9 @@ bool FRenderPipeline::Initialize()
     PostProcessOutlineRenderPass = std::make_shared<FPostProcessOutlineRenderPass>();
     PostProcessOutlineRenderPass->Initialize();
 
+    ScreenEffectsRenderPass = std::make_shared<FScreenEffectsRenderPass>();
+    ScreenEffectsRenderPass->Initialize();
+
     ToonOutlineRenderPass = std::make_shared<FToonOutlineRenderPass>();
     ToonOutlineRenderPass->Initialize();
 
@@ -162,6 +166,7 @@ bool FRenderPipeline::Initialize()
 
     RenderPasses.push_back(DepthLessRenderPass);
     RenderPasses.push_back(PostProcessOutlineRenderPass);
+    RenderPasses.push_back(ScreenEffectsRenderPass);
 
     return true;
 }
@@ -358,6 +363,12 @@ void FRenderPipeline::Release()
     {
         UIRenderPass->Release();
         UIRenderPass.reset();
+    }
+
+    if (ScreenEffectsRenderPass)
+    {
+        ScreenEffectsRenderPass->Release();
+        ScreenEffectsRenderPass.reset();
     }
 }
 

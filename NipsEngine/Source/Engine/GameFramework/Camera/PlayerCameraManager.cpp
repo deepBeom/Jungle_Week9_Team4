@@ -1,4 +1,4 @@
-#include "GameFramework/Camera/PlayerCameraManager.h"
+﻿#include "GameFramework/Camera/PlayerCameraManager.h"
 
 #include "Component/CameraComponent.h"
 #include "GameFramework/Actor.h"
@@ -249,20 +249,20 @@ void FPlayerCameraManager::AddFOVKick(float AddFovDegrees, float Duration)
     Modifiers.push_back(std::move(Modifier));
 }
 
-void FPlayerCameraManager::FadeIn(float Duration)
+void FPlayerCameraManager::FadeIn(float Duration, FVector Color)
 {
     // Typical cinematic fade-in starts from fully black to clear.
     StartAnimatedScalar(FadeAnimation, 1.0f, 0.0f, Duration);
     ScreenEffects.FadeAmount = MathUtil::Clamp(FadeAnimation.Current, 0.0f, 1.0f);
-    ScreenEffects.FadeColor = FVector::ZeroVector;
+    ScreenEffects.FadeColor = Color;
 }
 
-void FPlayerCameraManager::FadeOut(float Duration)
+void FPlayerCameraManager::FadeOut(float Duration, FVector Color)
 {
     // Fade-out starts from current value for chaining safety.
     StartAnimatedScalar(FadeAnimation, ScreenEffects.FadeAmount, 1.0f, Duration);
     ScreenEffects.FadeAmount = MathUtil::Clamp(FadeAnimation.Current, 0.0f, 1.0f);
-    ScreenEffects.FadeColor = FVector::ZeroVector;
+    ScreenEffects.FadeColor = Color;
 }
 
 void FPlayerCameraManager::SetLetterBox(float Amount, float BlendTime)
@@ -279,12 +279,13 @@ void FPlayerCameraManager::SetLetterBox(float Amount, float BlendTime)
     StartAnimatedScalar(LetterBoxAnimation, ScreenEffects.LetterBoxAmount, ClampedAmount, BlendTime);
 }
 
-void FPlayerCameraManager::SetVignette(float Intensity, float Radius)
+void FPlayerCameraManager::SetVignette(float Intensity, float Radius, float Softness)
 {
     // Zero intensity implicitly disables vignette in shader.
     ScreenEffects.bVignetteEnabled = Intensity > 0.0f;
     ScreenEffects.VignetteIntensity = MathUtil::Clamp(Intensity, 0.0f, 1.0f);
     ScreenEffects.VignetteRadius = MathUtil::Clamp(Radius, 0.0f, 1.5f);
+    ScreenEffects.VignetteSoftness = Softness;
 }
 
 void FPlayerCameraManager::EnableGammaCorrection(bool bEnabled)
