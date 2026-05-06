@@ -38,6 +38,8 @@ namespace EditorKey
     constexpr const char* bShadow = "bShadow";
     constexpr const char* bCascadeDebug = "bCascadeDebug";
     constexpr const char* bShowLightHitmapOverlay = "bShowLightHitmapOverlay";
+    constexpr const char* bGammaCorrection = "bGammaCorrection";
+    constexpr const char* GammaValue = "GammaValue";
     constexpr const char* FXAAEnabled = "FXAAEnabled";
     constexpr const char* FXAAThreshold = "FXAAThreshold"; // Backward compatibility
     constexpr const char* ShadowFilterType = "ShadowFilterType";
@@ -105,6 +107,8 @@ void FEditorSettings::SaveToFile(const FString& Path) const
     ViewObj[EditorKey::bBVHBoundingVolume] = ShowFlags.bBVHBoundingVolume;
     ViewObj[EditorKey::bShadow] = ShowFlags.bShadow;
     ViewObj[EditorKey::bShowLightHitmapOverlay] = ShowFlags.bShowLightHitmapOverlay;
+    ViewObj[EditorKey::bGammaCorrection] = ShowFlags.bGammaCorrection;
+    ViewObj[EditorKey::GammaValue] = ShowFlags.GammaValue;
     ViewObj[EditorKey::FXAAEnabled] = bEnableFXAA;
     ViewObj[EditorKey::ShadowFilterType] = static_cast<int32>(ShadowFilterType);
     Root[EditorKey::View] = ViewObj;
@@ -249,6 +253,10 @@ void FEditorSettings::LoadFromFile(const FString& Path)
             ShowFlags.bShadow = ViewObj[EditorKey::bShadow].ToBool();
         if (ViewObj.hasKey(EditorKey::bShowLightHitmapOverlay))
             ShowFlags.bShowLightHitmapOverlay = ViewObj[EditorKey::bShowLightHitmapOverlay].ToBool();
+        if (ViewObj.hasKey(EditorKey::bGammaCorrection))
+            ShowFlags.bGammaCorrection = ViewObj[EditorKey::bGammaCorrection].ToBool();
+        if (ViewObj.hasKey(EditorKey::GammaValue))
+            ShowFlags.GammaValue = static_cast<float>(ViewObj[EditorKey::GammaValue].ToFloat());
         if (ViewObj.hasKey(EditorKey::bCascadeDebug) && ViewObj[EditorKey::bCascadeDebug].ToBool())
             ViewMode = EViewMode::CascadeShadow;
         if (ViewObj.hasKey(EditorKey::FXAAEnabled))

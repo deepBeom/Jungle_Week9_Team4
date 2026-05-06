@@ -15,37 +15,3 @@ FDefaultRenderPipeline::~FDefaultRenderPipeline()
 {
     Collector.Release();
 }
-
-void FDefaultRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
-{
-    Bus.Clear();
-
-
-    UWorld* World = Engine->GetWorld();
-    FViewportCamera* Camera = World ? World->GetActiveCamera() : nullptr;
-    if (Camera)
-    {
-        FMatrix ViewMat = Camera->GetViewMatrix();
-        FMatrix ProjMat = Camera->GetProjectionMatrix();
-
-        FShowFlags ShowFlags;
-        EViewMode ViewMode = EViewMode::Lit;
-
-        Bus.SetViewProjection(Camera->GetViewMatrix(), Camera->GetProjectionMatrix());
-        Bus.SetCameraPlane(Camera->GetNearPlane(), Camera->GetFarPlane());
-        Bus.SetRenderSettings(ViewMode, ShowFlags);
-        Bus.SetFXAAEnabled(true);
-        Renderer.GetDebugLineBatcher().Clear();
-        Renderer.GetDebugRingBatcher().Clear();
-        Collector.SetLineBatcher(&Renderer.GetDebugLineBatcher());
-        Collector.SetRingBatcher(&Renderer.GetDebugRingBatcher());
-
-        const FFrustum& ViewFrustum = Camera->GetFrustum();
-        Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum);
-    }
-
-    Renderer.PrepareBatchers(Bus);
-    Renderer.BeginFrame();
-    Renderer.Render(Bus);
-    Renderer.EndFrame();
-}

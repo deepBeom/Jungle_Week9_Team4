@@ -126,6 +126,11 @@ bool FEditorRenderPipeline::PrepareViewport(FRenderer& Renderer, int32 ViewportI
     Bus.SetFXAAEnabled(Settings.bEnableFXAA && !OutSceneView.bOrthographic);
     Bus.SetShadowFilterType(Settings.ShadowFilterType);
 
+    FScreenEffectSettings ScreenEffects;
+    ScreenEffects.bGammaCorrectionEnabled = Settings.ShowFlags.bGammaCorrection;
+    ScreenEffects.Gamma = Settings.ShowFlags.GammaValue;
+    Bus.SetScreenEffectSettings(ScreenEffects);
+
     return true;
 }
 

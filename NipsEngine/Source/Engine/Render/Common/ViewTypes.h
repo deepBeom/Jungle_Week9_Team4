@@ -47,6 +47,8 @@ struct FShowFlags
     bool bFog = true;
     bool bShadow = true;
     bool bShowLightHitmapOverlay = false;
+    bool bGammaCorrection = false;
+    float GammaValue = 2.2f;
 };
 
 struct FGridRenderSettings
@@ -65,12 +67,14 @@ struct FScreenEffectSettings
 {
     float FadeAmount = 0.0f;
     FVector FadeColor = FVector::ZeroVector;
+
     float LetterBoxAmount = 0.0f;
     bool bGammaCorrectionEnabled = false;
     float Gamma = 2.2f;
     bool bVignetteEnabled = false;
     float VignetteIntensity = 0.0f;
     float VignetteRadius = 0.75f;
+    float VignetteSoftness = 0.2f;
 };
 
 constexpr FGridRenderSettings MakeDefaultGridRenderSettings()

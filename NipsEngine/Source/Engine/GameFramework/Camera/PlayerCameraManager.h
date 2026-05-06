@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/Containers/Array.h"
 #include "GameFramework/Camera/CameraModifier.h"
@@ -49,10 +49,10 @@ public:
     void AddFOVKick(float AddFovDegrees, float Duration);
 
     // Post-process control helpers.
-    void FadeIn(float Duration);
-    void FadeOut(float Duration);
+    void FadeIn(float Duration, FVector Color = {0.f, 0.f, 0.f});
+    void FadeOut(float Duration, FVector Color = { 0.f, 0.f, 0.f });
     void SetLetterBox(float Amount, float BlendTime);
-    void SetVignette(float Intensity, float Radius);
+    void SetVignette(float Intensity, float Radius, float Softness);
     void EnableGammaCorrection(bool bEnabled);
 
 private:

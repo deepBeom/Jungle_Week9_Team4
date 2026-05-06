@@ -11,7 +11,7 @@ public:
     FDefaultRenderPipeline(UEngine* InEngine, FRenderer& InRenderer);
     ~FDefaultRenderPipeline() override;
 
-    void Execute(float DeltaTime, FRenderer& Renderer) override;
+    virtual void Execute(float DeltaTime, FRenderer& Renderer) {};
 
 private:
     UEngine* Engine = nullptr;
