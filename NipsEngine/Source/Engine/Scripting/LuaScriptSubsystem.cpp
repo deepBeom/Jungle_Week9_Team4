@@ -9,6 +9,7 @@
 #include <cwctype>
 #include <filesystem>
 #include <fstream>
+#include <set>
 
 namespace
 {
@@ -53,9 +54,12 @@ namespace
     // Bind commonly used script globals into an already created environment.
     void PopulateInstanceEnvironment(FLuaScriptInstance& Instance, AActor* Owner, UScriptComponent* OwnerComponent)
     {
+        UActorComponent* BaseComponent = OwnerComponent;
+        Instance.Env["obj"] = Owner;
         Instance.Env["Self"] = Owner;
         Instance.Env["Owner"] = Owner;
-        Instance.Env["Component"] = OwnerComponent;
+        Instance.Env["script"] = BaseComponent;
+        Instance.Env["Component"] = BaseComponent;
         Instance.Env["StartCoroutine"] = [OwnerComponent](const sol::function& Function)
         {
             if (OwnerComponent && UObject::IsValid(OwnerComponent))
@@ -106,9 +110,67 @@ void FLuaScriptSubsystem::Initialize()
 
 void FLuaScriptSubsystem::Shutdown()
 {
+    SetScriptHotReloadEnabled(false);
     // Drop runtime references owned by subsystem.
     ScriptInstances.clear();
     AvailableScriptPaths.clear();
+    bScriptPathCacheInitialized = false;
+}
+
+void FLuaScriptSubsystem::Tick()
+{
+    if (!bScriptHotReloadEnabled)
+    {
+        return;
+    }
+
+    const TArray<FWString> ChangedFiles = ScriptFileWatcher.DequeueChangedFiles();
+    if (ChangedFiles.empty())
+    {
+        return;
+    }
+
+    TArray<FWString> ChangedLuaFiles;
+    ChangedLuaFiles.reserve(ChangedFiles.size());
+    for (const FWString& ChangedFile : ChangedFiles)
+    {
+        std::filesystem::path ChangedPath(ChangedFile);
+        FWString Extension = ChangedPath.extension().wstring();
+        std::transform(Extension.begin(), Extension.end(), Extension.begin(), towlower);
+        if (Extension == L".lua")
+        {
+            ChangedLuaFiles.push_back(ChangedFile);
+        }
+    }
+
+    if (ChangedLuaFiles.empty())
+    {
+        return;
+    }
+
+    ReloadChangedScripts(ChangedLuaFiles);
+}
+
+void FLuaScriptSubsystem::SetScriptHotReloadEnabled(bool bEnabled)
+{
+    if (bEnabled)
+    {
+        if (bScriptHotReloadEnabled)
+        {
+            return;
+        }
+
+        bScriptHotReloadEnabled = StartScriptFileWatcher();
+        return;
+    }
+
+    if (!bScriptHotReloadEnabled)
+    {
+        return;
+    }
+
+    ScriptFileWatcher.Stop();
+    bScriptHotReloadEnabled = false;
 }
 
 bool FLuaScriptSubsystem::CanInvoke(const std::shared_ptr<FLuaScriptInstance>& Instance) const
@@ -136,6 +198,60 @@ FWString FLuaScriptSubsystem::ResolveScriptPathWide(const FString& ScriptPath) c
     return FPaths::ToAbsolute(FPaths::ToWide(FPaths::Normalize(ScriptPath)));
 }
 
+FWString FLuaScriptSubsystem::MakeScriptPathKey(const FString& ScriptPath) const
+{
+    return MakeScriptPathKey(FPaths::ToWide(FPaths::Normalize(ScriptPath)));
+}
+
+FWString FLuaScriptSubsystem::MakeScriptPathKey(const FWString& ScriptPath) const
+{
+    FWString NormalizedPath = std::filesystem::path(FPaths::ToAbsolute(ScriptPath)).lexically_normal().generic_wstring();
+    std::transform(NormalizedPath.begin(), NormalizedPath.end(), NormalizedPath.begin(), towlower);
+    return NormalizedPath;
+}
+
+bool FLuaScriptSubsystem::ShouldPassOwnerAsFirstArgument(
+    const std::shared_ptr<FLuaScriptInstance>& Instance,
+    const FString& FunctionName,
+    const sol::object& FuncObject,
+    size_t ExplicitArgCount)
+{
+    if (!Instance)
+    {
+        return true;
+    }
+
+    if (const auto CacheIt = Instance->CallbackUsesOwnerArgument.find(FunctionName);
+        CacheIt != Instance->CallbackUsesOwnerArgument.end())
+    {
+        return CacheIt->second;
+    }
+
+    bool bPassOwnerAsFirstArgument = true;
+    lua_State* LuaState = Instance->Env.lua_state();
+    if (LuaState != nullptr)
+    {
+        sol::stack::push(LuaState, FuncObject);
+        if (lua_isfunction(LuaState, -1) && !lua_iscfunction(LuaState, -1))
+        {
+            lua_Debug DebugInfo = {};
+            if (lua_getinfo(LuaState, ">u", &DebugInfo) != 0
+                && DebugInfo.isvararg == 0
+                && DebugInfo.nparams <= static_cast<decltype(DebugInfo.nparams)>(ExplicitArgCount))
+            {
+                bPassOwnerAsFirstArgument = false;
+            }
+        }
+        else
+        {
+            lua_pop(LuaState, 1);
+        }
+    }
+
+    Instance->CallbackUsesOwnerArgument[FunctionName] = bPassOwnerAsFirstArgument;
+    return bPassOwnerAsFirstArgument;
+}
+
 void FLuaScriptSubsystem::BindEngineTypes()
 {
     LuaBinder::BindEngineTypes(Lua);
@@ -144,6 +260,25 @@ void FLuaScriptSubsystem::BindEngineTypes()
 void FLuaScriptSubsystem::BindGlobalFunctions()
 {
     LuaBinder::BindGlobalFunctions(Lua);
+}
+
+bool FLuaScriptSubsystem::StartScriptFileWatcher()
+{
+    const std::filesystem::path ScriptRoot = std::filesystem::path(FPaths::AssetDirectoryPath()) / L"Scripts";
+    std::error_code ErrorCode;
+    if (!std::filesystem::exists(ScriptRoot, ErrorCode))
+    {
+        return false;
+    }
+
+    if (ScriptFileWatcher.Start(ScriptRoot.generic_wstring(), true))
+    {
+        return true;
+    }
+
+    UE_LOG("[LuaHotReload] Failed to start script file watcher: %s\n",
+        FPaths::ToUtf8(ScriptRoot.generic_wstring()).c_str());
+    return false;
 }
 
 std::shared_ptr<FLuaScriptInstance> FLuaScriptSubsystem::CreateScriptInstance(
@@ -156,7 +291,7 @@ std::shared_ptr<FLuaScriptInstance> FLuaScriptSubsystem::CreateScriptInstance(
 
     Instance->Owner = Owner;
     Instance->OwnerComponent = OwnerComponent;
-    Instance->ScriptPath = ScriptPath;
+    Instance->ScriptPath = FPaths::Normalize(ScriptPath);
 
     // Env was created in FLuaScriptInstance constructor; only bind globals here.
     PopulateInstanceEnvironment(*Instance, Owner, OwnerComponent);
@@ -174,10 +309,12 @@ bool FLuaScriptSubsystem::LoadScript(std::shared_ptr<FLuaScriptInstance> Instanc
     }
 
     Instance->bLoaded = false;
+    Instance->CallbackUsesOwnerArgument.clear();
 
     // Resolve to absolute path to avoid working-directory sensitivity.
     const FWString ResolvedScriptPathWide = ResolveScriptPathWide(Instance->ScriptPath);
     const FString ResolvedScriptPathUtf8 = FPaths::ToUtf8(ResolvedScriptPathWide);
+    Instance->ResolvedScriptPathKey = MakeScriptPathKey(ResolvedScriptPathWide);
 
     FString ScriptSource;
     if (!ReadFileToStringByWidePath(ResolvedScriptPathWide, ScriptSource))
@@ -208,7 +345,6 @@ bool FLuaScriptSubsystem::LoadScript(std::shared_ptr<FLuaScriptInstance> Instanc
         return false;
     }
 
-    Instance->ScriptPath = ResolvedScriptPathUtf8;
     Instance->bLoaded = true;
     return true;
 }
@@ -228,6 +364,8 @@ bool FLuaScriptSubsystem::ReloadScript(std::shared_ptr<FLuaScriptInstance> Insta
     RecreateAndPopulateInstanceEnvironment(*Instance, Lua, Owner, OwnerComponent);
 
     Instance->ScriptPath = ScriptPath;
+    Instance->ResolvedScriptPathKey.clear();
+    Instance->CallbackUsesOwnerArgument.clear();
     Instance->bLoaded = false;
     return LoadScript(Instance);
 }
@@ -247,13 +385,72 @@ void FLuaScriptSubsystem::ReloadAllScripts()
             continue;
         }
 
-        ReloadScript(Instance);
+        Instance->OwnerComponent->ReloadScript();
+    }
+}
+
+void FLuaScriptSubsystem::ReloadChangedScripts(const TArray<FWString>& ChangedScriptPaths)
+{
+    if (ChangedScriptPaths.empty())
+    {
+        return;
+    }
+
+    std::set<FWString> DirtyScriptKeys;
+    for (const FWString& ChangedPath : ChangedScriptPaths)
+    {
+        DirtyScriptKeys.insert(MakeScriptPathKey(ChangedPath));
+    }
+
+    TArray<std::pair<UScriptComponent*, FWString>> ComponentsToReload;
+    for (const std::shared_ptr<FLuaScriptInstance>& Instance : ScriptInstances)
+    {
+        if (!Instance || !Instance->OwnerComponent || !UObject::IsValid(Instance->OwnerComponent))
+        {
+            continue;
+        }
+
+        const FWString ScriptPathKey = !Instance->ResolvedScriptPathKey.empty()
+            ? Instance->ResolvedScriptPathKey
+            : MakeScriptPathKey(Instance->ScriptPath);
+        if (DirtyScriptKeys.find(ScriptPathKey) == DirtyScriptKeys.end())
+        {
+            continue;
+        }
+
+        const bool bAlreadyQueued = std::any_of(
+            ComponentsToReload.begin(),
+            ComponentsToReload.end(),
+            [OwnerComponent = Instance->OwnerComponent](const auto& Entry)
+            {
+                return Entry.first == OwnerComponent;
+            });
+        if (!bAlreadyQueued)
+        {
+            ComponentsToReload.emplace_back(Instance->OwnerComponent, ScriptPathKey);
+        }
+    }
+
+    TMap<FWString, int32> ReloadCountByScriptKey;
+    for (const auto& ReloadTarget : ComponentsToReload)
+    {
+        if (ReloadTarget.first->ReloadScript())
+        {
+            ++ReloadCountByScriptKey[ReloadTarget.second];
+        }
+    }
+
+    for (const auto& ReloadEntry : ReloadCountByScriptKey)
+    {
+        UE_LOG("[LuaHotReload] Reloaded %d actor instance(s) for '%s'.\n",
+            ReloadEntry.second,
+            FPaths::ToRelativeString(ReloadEntry.first).c_str());
     }
 }
 
 const TArray<FString>& FLuaScriptSubsystem::GetAvailableScriptPaths(bool bForceRefresh)
 {
-    if (bForceRefresh || AvailableScriptPaths.empty())
+    if (bForceRefresh || !bScriptPathCacheInitialized)
     {
         RebuildScriptPathCache();
     }
@@ -269,6 +466,7 @@ void FLuaScriptSubsystem::RefreshAvailableScriptPaths()
 void FLuaScriptSubsystem::RebuildScriptPathCache()
 {
     AvailableScriptPaths.clear();
+    bScriptPathCacheInitialized = true;
 
     const std::filesystem::path ScriptRoot = std::filesystem::path(FPaths::AssetDirectoryPath()) / L"Scripts";
     std::error_code Ec;

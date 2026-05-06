@@ -18,6 +18,7 @@ REGISTER_FACTORY(UEditorEngine)
 void UEditorEngine::Init(FWindowsWindow* InWindow)
 {
     UEngine::Init(InWindow);
+    GetLuaScriptSubsystem().SetScriptHotReloadEnabled(true);
     FEditorSettings::Get().LoadFromFile(FEditorSettings::GetDefaultSettingsPath());
 
     MainPanel.Create(Window, Renderer, this);
@@ -74,6 +75,7 @@ void UEditorEngine::Tick(float DeltaTime)
 {
     InputSystem::Get().Tick();
     FSoundManager::Get().Update();
+    GetLuaScriptSubsystem().Tick();
     ViewportLayout.Tick(DeltaTime);
     MainPanel.Update();
     WorldTick(DeltaTime);

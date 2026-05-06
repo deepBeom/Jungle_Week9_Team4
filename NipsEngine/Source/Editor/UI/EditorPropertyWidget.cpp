@@ -11,9 +11,11 @@
 #include <functional>
 
 #include "Editor/Utility/EditorComponentFactory.h"
+#include "Editor/Utility/EditorLuaScriptUtils.h"
 
 #include "GameFramework/Actor.h"
 #include "Component/CameraComponent.h"
+#include "Component/Script/LuaScriptPathUtils.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/ShapeComponent.h"
 #include "Component/GizmoComponent.h"
@@ -621,14 +623,32 @@ void FEditorPropertyWidget::RenderComponentProperties()
 	{
 		ImGui::Spacing();
 		ImGui::Separator();
-		if (ImGui::Button("Reload Script", ImVec2(-1, 0)))
+        const FString ScriptFileDisplay = ScriptComp->GetScriptPath().empty() ? FString("None") : ScriptComp->GetScriptPath();
+        const FString ActorScriptType = Owner
+            ? LuaScriptPathUtils::GetActorScriptTypeName(Owner)
+            : FString("Unknown");
+
+        ImGui::TextWrapped("Script File: %s", ScriptFileDisplay.c_str());
+        ImGui::Text("Actor Script Type: %s", ActorScriptType.c_str());
+
+        if (ImGui::Button("Create Type Script", ImVec2(-1, 0)))
+        {
+            EditorLuaScriptUtils::CreateActorTypeScript(ScriptComp);
+        }
+        if (ImGui::Button("Edit Script", ImVec2(-1, 0)))
+        {
+            EditorLuaScriptUtils::OpenScriptInExternalEditor(ScriptComp->GetScriptPath());
+        }
+        if (ImGui::Button("Apply To Same Type", ImVec2(-1, 0)))
+        {
+            int32 UpdatedActors = 0;
+            int32 SkippedActors = 0;
+            EditorLuaScriptUtils::ApplyScriptToSameTypeActors(ScriptComp, UpdatedActors, SkippedActors);
+        }
+        if (ImGui::Button("Reload Script", ImVec2(-1, 0)))
         {
             ScriptComp->ReloadScript();
         }
-        if (ImGui::Button("Refresh Script List", ImVec2(-1, 0)))
-		{
-			EditorEngine->GetLuaScriptSubsystem().RefreshAvailableScriptPaths();
-		}
 		ImGui::TextDisabled("Loaded: %s", ScriptComp->IsScriptLoaded() ? "Yes" : "No");
 		ImGui::TextDisabled("Active: %s", ScriptComp->IsActive() ? "Yes" : "No");
 		ImGui::TextDisabled("Tick Enabled: %s", ScriptComp->IsComponentTickEnabled() ? "Yes" : "No");
