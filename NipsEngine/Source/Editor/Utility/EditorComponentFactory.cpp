@@ -15,6 +15,7 @@
 #include "Component/Script/ScriptComponent.h"
 #include "Component/ShapeComponent.h"
 #include "Component/SkyAtmosphereComponent.h"
+#include "Component/SpringArmComponent.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
@@ -166,6 +167,7 @@ namespace
         { "Water Component", "Common", &RegisterSimple<UWaterComponent> },
         { "HeightFog Component", "Common", &RegisterHeightFogComponent },
         { "SkyAtmosphere Component", "Common", &RegisterSimple<USkyAtmosphereComponent> },
+        { "SpringArm Component", "Common", &RegisterSimple<USpringArmComponent> },
 
         { "RotatingMovement Component", "Movement", &RegisterSimple<URotatingMovementComponent> },
         { "InterpToMovement Component", "Movement", &RegisterSimple<UInterpToMovementComponent> },
