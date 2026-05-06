@@ -21,7 +21,7 @@ local boat_linear_drag = 5.0
 -- 가벼운 기준 상태에서의 최대 전진 속도입니다. 단위: unit/s
 local boat_max_forward_speed = 40.0
 -- 가벼운 기준 상태에서의 최대 후진 속도입니다. 단위: unit/s
-local boat_max_reverse_speed = 10.0
+local boat_max_reverse_speed = 20.0
 
 -- 최대 속도에서 적용되는 조향 가속도입니다. 단위: deg/s^2
 local boat_max_turn_accel = 45.0

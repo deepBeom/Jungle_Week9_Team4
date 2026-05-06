@@ -21,10 +21,11 @@ local MINIMAP_TAG_COLORS = {
     Recyclable = { 0.3, 0.9, 0.3 },
     Premium    = { 1.0, 0.85, 0.2 },
     Hazard     = { 1.0, 0.25, 0.25 },
-    Rock       = { 0.55, 0.4, 0.25 },
+    Rock       = { 0.45, 0.65, 0.9 },
+    Tire       = { 0.0, 0.0, 0.0 },
 }
 
-local MINIMAP_DOT_TAGS = { "Rock", "Trash", "Resource", "Recyclable", "Premium", "Hazard" }
+local MINIMAP_DOT_TAGS = { "Rock", "Tire", "Trash", "Resource", "Recyclable", "Premium", "Hazard" }
 
 local function WorldDeltaToBoatLocal(boatPos, targetPos, boatYawDegrees)
     local dx = targetPos.X - boatPos.X
