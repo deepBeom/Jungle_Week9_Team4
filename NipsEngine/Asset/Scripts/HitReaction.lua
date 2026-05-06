@@ -12,7 +12,6 @@ local tire_reaction = {
         target = "other",
         speed = 14.0,
         skip_if_target_pushed = true,
-        reset_boat_movement = true,
     },
 }
 
@@ -29,6 +28,7 @@ end
 local visual_component = nil
 local base_scale = nil
 local pulse_time = 0.0
+local ResetVignette = nil
 
 local function get_profile(self)
     if self == nil then
@@ -165,14 +165,24 @@ local function apply_knockback(self, other_actor, hit_profile)
     dx = dx / length
     dy = dy / length
 
-    if knockback_profile.reset_boat_movement then
-        target:ResetBoatMovement()
-    end
-
     if ApplyActorKnockback then
         local speed = knockback_profile.speed or 10.0
         ApplyActorKnockback(target, dx * speed, dy * speed, 0.0)
     end
+end
+
+local function play_hit_feedback()
+    HitFeel.HitStop(0.08)
+    HitFeel.Slomo(0.35, 0.25)
+
+    Camera.Shake(4.0, 20.0, 0.18)
+
+    if Camera.FOVKick ~= nil then
+        Camera.FOVKick(8.0, 0.2)
+    end
+
+    Camera.SetVignette(0.6, 0.75)
+    StartCoroutine(ResetVignette)
 end
 
 local function handle_reaction(self, other_actor)
@@ -191,29 +201,18 @@ local function handle_reaction(self, other_actor)
 
     start_scale_pulse(self, hit_profile)
     apply_knockback(self, other_actor, hit_profile)
+    play_hit_feedback()
 end
 
 function OnHit(self, other_actor)
     handle_reaction(self, other_actor)
 end
 
-local function ResetVignette()
+ResetVignette = function()
     Wait(0.18)
     Camera.SetVignette(0.0, 0.75)
 end
 
 function OnUpdate(self, delta_time, hitInfo)
-    HitFeel.HitStop(0.08)
-    HitFeel.Slomo(0.35, 0.25)
-
-    Camera.Shake(4.0, 20.0, 0.18)
-
-    if Camera.FOVKick ~= nil then
-        Camera.FOVKick(8.0, 0.2)
-    end
-
-    Camera.SetVignette(0.6, 0.75)
-    StartCoroutine(ResetVignette)
-    
     update_scale_pulse(self, delta_time, get_profile(self))
 end

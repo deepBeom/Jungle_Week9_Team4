@@ -795,13 +795,6 @@ namespace
             "IsValid", [](AActor* Actor)
             {
                 return IsUsableActor(Actor);
-            },
-            "ResetBoatMovement", [](AActor* Actor)
-            {
-                if (APawn* Pawn = Cast<APawn>(Actor))
-                {
-                    Pawn->ResetBoatMovement();
-                }
             });
     }
 
