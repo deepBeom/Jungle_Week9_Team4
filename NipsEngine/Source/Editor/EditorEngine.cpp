@@ -76,6 +76,13 @@ void UEditorEngine::Tick(float DeltaTime)
     InputSystem::Get().Tick();
     FSoundManager::Get().Update();
     GetLuaScriptSubsystem().Tick();
+    for (FWorldContext& Ctx : WorldList)
+    {
+        if (Ctx.World && !Ctx.bPaused && Ctx.WorldType == EWorldType::PIE)
+        {
+            Ctx.World->PrepareFrame(DeltaTime);
+        }
+    }
     ViewportLayout.Tick(DeltaTime);
     MainPanel.Update();
     WorldTick(DeltaTime);
@@ -101,7 +108,11 @@ void UEditorEngine::WorldTick(float DeltaTime)
     {
         if (!Ctx.World || Ctx.bPaused)
             continue;
-        Ctx.World->Tick(DeltaTime);
+
+        const float WorldDeltaTime = Ctx.WorldType == EWorldType::PIE
+            ? Ctx.World->GetScaledDeltaTime()
+            : DeltaTime;
+        Ctx.World->Tick(WorldDeltaTime);
     }
 }
 

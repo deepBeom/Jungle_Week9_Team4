@@ -1116,12 +1116,17 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
     Lua["Camera"] = CameraTable;
 
     sol::table HitFeelTable = Lua.create_table();
-    HitFeelTable.set_function("HitStop", [](float Duration)
+    HitFeelTable.set_function("HitStop", [](float Duration, sol::object TimeScaleObject)
     {
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->StartHitStop(Duration, 0.05f);
+            float TimeScale = 0.05f;
+            if (TimeScaleObject.valid() && TimeScaleObject.get_type() == sol::type::number)
+            {
+                TimeScale = TimeScaleObject.as<float>();
+            }
+            World->StartHitStop(Duration, TimeScale);
         }
     });
     HitFeelTable.set_function("Slomo", [](float TimeScale, float Duration)

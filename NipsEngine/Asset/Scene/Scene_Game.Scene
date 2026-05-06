@@ -1,7 +1,7 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 34311,
+  "NextUUID" : 34312,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
@@ -12893,6 +12893,15 @@
       "UpdatedComponentUUID" : 2613,
       "UseDeterministicPhase" : true,
       "Velocity" : [-1.000000, 0.000000, 1.000000]
+    },
+    "34311" : {
+      "EditorOnly" : false,
+      "EnableTick" : true,
+      "HiddenInEditor" : false,
+      "OwnerRootUUID" : 2612,
+      "ScriptEnabled" : true,
+      "ScriptPath" : "Asset/Scripts/HitReaction.lua",
+      "Type" : "UScriptComponent"
     },
     "3719" : {
       "ActorClass" : "AStaticMeshActor",

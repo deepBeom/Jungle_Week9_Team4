@@ -15,6 +15,10 @@ local tire_reaction = {
     },
 }
 
+local boat_rock_reaction = {
+    react_to_tag = "Rock",
+}
+
 local function clamp(value, min_value, max_value)
     if value < min_value then
         return min_value
@@ -37,6 +41,10 @@ local function get_profile(self)
 
     if self:GetTag() == "Tire" then
         return tire_reaction
+    end
+
+    if self:GetTag() == "Boat" then
+        return boat_rock_reaction
     end
 
     return nil
@@ -172,17 +180,10 @@ local function apply_knockback(self, other_actor, hit_profile)
 end
 
 local function play_hit_feedback()
-    HitFeel.HitStop(0.08)
+    -- HitFeel.HitStop(1.0, 0.0)
     HitFeel.Slomo(0.35, 0.25)
 
     Camera.Shake(4.0, 20.0, 0.18)
-
-    if Camera.FOVKick ~= nil then
-        Camera.FOVKick(8.0, 0.2)
-    end
-
-    Camera.SetVignette(0.6, 0.75)
-    StartCoroutine(ResetVignette)
 end
 
 local function handle_reaction(self, other_actor)
@@ -205,6 +206,10 @@ local function handle_reaction(self, other_actor)
 end
 
 function OnHit(self, other_actor)
+    handle_reaction(self, other_actor)
+end
+
+function OnOverlapBegin(self, other_actor)
     handle_reaction(self, other_actor)
 end
 
