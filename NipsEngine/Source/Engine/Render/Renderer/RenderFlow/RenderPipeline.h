@@ -33,6 +33,7 @@ class FPostProcessOutlineRenderPass;
 class FOpaqueRenderPass;
 class FLightCullingPass;
 class FUIRenderPass;
+class FCameraEffectsRenderPass;
 class FBaseRenderPass;
 
 class FRenderPipeline
@@ -68,6 +69,7 @@ private:
     std::shared_ptr<FPostProcessOutlineRenderPass> PostProcessOutlineRenderPass;
     std::shared_ptr<FToonOutlineRenderPass> ToonOutlineRenderPass;
     std::shared_ptr<FUIRenderPass>          UIRenderPass;
+    std::shared_ptr<FCameraEffectsRenderPass> CameraEffectsRenderPass;
 
     ID3D11ShaderResourceView* OutSRV = nullptr;
     ID3D11RenderTargetView* OutRTV = nullptr;

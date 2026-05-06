@@ -24,6 +24,7 @@
 #include "ToonOutlineRenderPass.h"
 #include "Core/Logging/Log.h"
 #include "UIRenderPass.h"
+#include "CameraEffectsRenderPass.h"
 
 #include <algorithm>
 #include <cwctype>
@@ -128,6 +129,9 @@ bool FRenderPipeline::Initialize()
     UIRenderPass = std::make_shared<FUIRenderPass>();
     UIRenderPass->Initialize();
 
+    CameraEffectsRenderPass = std::make_shared<FCameraEffectsRenderPass>();
+    CameraEffectsRenderPass->Initialize();
+
     FogRenderPass->SetSkipWireframe(true);
     FXAARenderPass->SetSkipWireframe(true);
 
@@ -162,6 +166,7 @@ bool FRenderPipeline::Initialize()
 
     RenderPasses.push_back(DepthLessRenderPass);
     RenderPasses.push_back(PostProcessOutlineRenderPass);
+    RenderPasses.push_back(CameraEffectsRenderPass);  // 모든 패스 이후 카메라 연출 효과 적용
 
     return true;
 }
@@ -358,6 +363,12 @@ void FRenderPipeline::Release()
     {
         UIRenderPass->Release();
         UIRenderPass.reset();
+    }
+
+    if (CameraEffectsRenderPass)
+    {
+        CameraEffectsRenderPass->Release();
+        CameraEffectsRenderPass.reset();
     }
 }
 

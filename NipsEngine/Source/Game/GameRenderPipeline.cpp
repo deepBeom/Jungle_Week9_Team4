@@ -2,6 +2,7 @@
 
 #include "Game/GameEngine.h"
 #include "Game/GameViewportClient.h"
+#include "Game/Camera/UPlayerCameraManager.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/Runtime/SceneView.h"
 #include "Engine/Render/Renderer/Renderer.h"
@@ -23,6 +24,8 @@ void FGameRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
     {
         return;
     }
+
+    UPlayerCameraManager::Get().Tick(DeltaTime);
 
     Renderer.BeginFrame();
     RenderViewport(Renderer);
@@ -87,6 +90,7 @@ bool FGameRenderPipeline::PrepareViewport(FRenderer& Renderer, FSceneView& OutSc
     Bus.SetViewportOrigin(FVector2(static_cast<float>(Rect.X), static_cast<float>(Rect.Y)));
     Bus.SetFXAAEnabled(!OutSceneView.bOrthographic);
     Bus.SetShadowFilterType(EShadowFilterType::PCF);
+    Bus.SetCameraEffects(UPlayerCameraManager::Get().GetCameraEffectSettings());
 
     return true;
 }

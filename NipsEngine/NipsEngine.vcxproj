@@ -378,6 +378,7 @@
     <ClCompile Include="Source\Engine\Core\SoundManager.cpp" />
     <ClCompile Include="Source\Engine\DriftSalvage\CollectionSystem.cpp" />
     <ClCompile Include="Source\Engine\DriftSalvage\ExplosionSystem.cpp" />
+    <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\CameraEffectsRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\RingBatcher.cpp" />
     <ClCompile Include="Source\Engine\Render\UIBatcher.cpp" />
@@ -622,6 +623,10 @@
     <ClCompile Include="Source\Engine\Spatial\BVH.cpp" />
     <ClCompile Include="Source\Engine\Spatial\KDTree.cpp" />
     <ClCompile Include="Source\Engine\Spatial\WorldSpatialIndex.cpp" />
+    <ClCompile Include="Source\Game\Camera\UCameraModifier_FadeIn.cpp" />
+    <ClCompile Include="Source\Game\Camera\UCameraModifier_LetterBox.cpp" />
+    <ClCompile Include="Source\Game\Camera\UCameraModifier_Vignette.cpp" />
+    <ClCompile Include="Source\Game\Camera\UPlayerCameraManager.cpp" />
     <ClCompile Include="Source\Game\GameEngine.cpp" />
     <ClCompile Include="Source\Game\GameRenderPipeline.cpp" />
     <ClCompile Include="Source\Game\GameViewportClient.cpp" />
@@ -769,6 +774,7 @@
     <ClInclude Include="Source\Engine\Core\SoundManager.h" />
     <ClInclude Include="Source\Engine\DriftSalvage\CollectionSystem.h" />
     <ClInclude Include="Source\Engine\DriftSalvage\ExplosionSystem.h" />
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\CameraEffectsRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\UIRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\RingBatcher.h" />
     <ClInclude Include="Source\Engine\Render\UIBatcher.h" />
@@ -998,6 +1004,11 @@
     <ClInclude Include="Source\Engine\Spatial\BVH.h" />
     <ClInclude Include="Source\Engine\Spatial\KDTree.h" />
     <ClInclude Include="Source\Engine\Spatial\WorldSpatialIndex.h" />
+    <ClInclude Include="Source\Game\Camera\UCameraModifier.h" />
+    <ClInclude Include="Source\Game\Camera\UCameraModifier_FadeIn.h" />
+    <ClInclude Include="Source\Game\Camera\UCameraModifier_LetterBox.h" />
+    <ClInclude Include="Source\Game\Camera\UCameraModifier_Vignette.h" />
+    <ClInclude Include="Source\Game\Camera\UPlayerCameraManager.h" />
     <ClInclude Include="Source\Game\GameEngine.h" />
     <ClInclude Include="Source\Game\GameRenderPipeline.h" />
     <ClInclude Include="Source\Game\GameViewportClient.h" />
@@ -1087,6 +1098,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ShippingDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Shipping|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shaders\Multipass\CameraEffectsPass.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ShippingDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Shipping|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shaders\Multipass\PresentPass.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>

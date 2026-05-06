@@ -6,6 +6,11 @@
 #include "Engine/Core/SoundManager.h"
 
 
+#include "Game/Camera/UPlayerCameraManager.h"
+#include "Game/Camera/UCameraModifier_FadeIn.h"
+#include "Game/Camera/UCameraModifier_Vignette.h"
+#include "Game/Camera/UCameraModifier_LetterBox.h"
+
 DEFINE_CLASS(UWorld, UObject)
 REGISTER_FACTORY(UWorld)
 
@@ -57,9 +62,9 @@ void UWorld::PostDuplicate(UObject* Original)
     const UWorld* OrigWorld = Cast<UWorld>(Original);
 
     // 프로퍼티 시스템에 노출되지 않은 필드를 직접 복사합니다.
-    WorldType      = OrigWorld->WorldType;
-    ActiveCamera   = OrigWorld->ActiveCamera;
-    bHasBegunPlay  = false; // 항상 미시작 상태로 시작
+    WorldType = OrigWorld->WorldType;
+    ActiveCamera = OrigWorld->ActiveCamera;
+    bHasBegunPlay = false; // 항상 미시작 상태로 시작
 
     // PersistentLevel 을 깊은 복사한 뒤, 복제된 액터들의 소속을 새 월드로 재설정합니다.
     if (OrigWorld->PersistentLevel)
@@ -88,6 +93,8 @@ void UWorld::BeginPlay()
     RebuildSpatialIndex();
 
     FSoundManager::Get().PlayBGM("Menu.mp3");
+
+
 }
 
 void UWorld::Tick(float DeltaTime)
@@ -112,6 +119,22 @@ void UWorld::Tick(float DeltaTime)
     }
     FlushPendingDestroyActors();
     SyncSpatialIndex();
+
+    if (GetAsyncKeyState(VK_F1) & 0x8000)
+    {
+        auto* Fade = UPlayerCameraManager::Get().AddModifier<UCameraModifier_FadeIn>();
+        Fade->StartFade(1.0f, true);
+    }
+
+    if (GetAsyncKeyState(VK_F2) & 0x8000)
+    {
+        UPlayerCameraManager::Get().AddModifier<UCameraModifier_LetterBox>();
+    }
+
+    if (GetAsyncKeyState(VK_F3) & 0x8000)
+    {
+       UPlayerCameraManager::Get().AddModifier<UCameraModifier_Vignette>();
+    }
 }
 
 void UWorld::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -122,9 +145,9 @@ void UWorld::EndPlay(EEndPlayReason::Type EndPlayReason)
         FScopedLevelActorIteration ScopedLevelActorIteration(bIsIteratingLevelActors);
         PersistentLevel->EndPlay(EndPlayReason);
     }
-	///* test
-	FSoundManager::Get().StopBGM();
-	//*/
+    ///* test
+    FSoundManager::Get().StopBGM();
+    //*/
     CollisionSystem.Reset();
     CollectionSystem.Reset();
     ExplosionSystem.Reset();
@@ -140,7 +163,7 @@ void UWorld::SyncSpatialIndex()
     SpatialIndex.FlushDirtyBounds();
 }
 
-void UWorld::DestroyActor(AActor* Actor) 
+void UWorld::DestroyActor(AActor* Actor)
 {
     if (!Actor || !UObject::IsValid(Actor) || Actor->IsBeingDestroyed()) return;
 
@@ -152,7 +175,7 @@ void UWorld::DestroyActor(AActor* Actor)
 
     Actor->MarkBeingDestroyed();
     Actor->TeardownForDestroy(EEndPlayReason::Type::Destroyed);
-    
+
     PersistentLevel->RemoveActor(Actor);
     Actor->SetWorld(nullptr);
     UObjectManager::Get().DestroyObject(Actor);

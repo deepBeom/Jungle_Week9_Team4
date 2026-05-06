@@ -11,6 +11,18 @@
 #include "Render/Common/ViewTypes.h"
 #include <optional>
 
+struct FCameraEffectSettings
+{
+    float FadeAlpha = 0.0f;           // 0=투명(효과없음), 1=완전 페이드
+    FVector FadeColor = { 0.0f, 0.0f, 0.0f };
+
+    float LetterBoxRatio = 0.0f;      // 목표 종횡비 (0=비활성, e.g. 2.35)
+
+    float VignetteIntensity = 0.0f;   // 0=비활성
+    float VignetteRadius = 0.75f;     // 중앙 클리어 반경 (NDC 기준)
+    float VignetteSoftness = 0.45f;   // 페이드 소프트니스
+};
+
 class FRenderBus
 {
 public:
@@ -48,6 +60,9 @@ public:
     
     bool GetFXAAEnabled() const { return bFXAAEnabled; }
     void SetFXAAEnabled(bool bInEnabled) { bFXAAEnabled = bInEnabled; }
+
+    void SetCameraEffects(const FCameraEffectSettings& InEffects) { CameraEffects = InEffects; }
+    const FCameraEffectSettings& GetCameraEffects() const { return CameraEffects; }
 
     void SetViewportSize(const FVector2& InViewportSize) { ViewportSize = InViewportSize; }
     const FVector2& GetViewportSize() const { return ViewportSize; }
@@ -87,4 +102,6 @@ private:
     FShowFlags ShowFlags;
     FVector WireframeColor = FVector(1.0f, 1.0f, 1.0f);
     bool bFXAAEnabled = true;
+
+    FCameraEffectSettings CameraEffects;
 };

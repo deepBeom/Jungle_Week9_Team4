@@ -1,4 +1,4 @@
-#include "Game/GameEngine.h"
+﻿#include "Game/GameEngine.h"
 #include "Game/GameViewportClient.h"
 #include "Game/GameRenderPipeline.h"
 #include "Core/Paths.h"
@@ -9,6 +9,7 @@
 #include "Serialization/SceneSaveManager.h"
 
 #include <filesystem>
+
 
 DEFINE_CLASS(UGameEngine, UEngine)
 
