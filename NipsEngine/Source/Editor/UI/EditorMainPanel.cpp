@@ -131,6 +131,7 @@ void FEditorMainPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer, U
 
     ConsoleWidget.Initialize(InEditorEngine);
     ControlWidget.Initialize(InEditorEngine);
+    CameraSequenceWidget.Initialize(InEditorEngine);
     MaterialWidget.Initialize(InEditorEngine);
     PropertyWidget.Initialize(InEditorEngine);
     SceneWidget.Initialize(InEditorEngine);
@@ -142,7 +143,7 @@ void FEditorMainPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer, U
     ToolbarWidget.SetSceneWidget(&SceneWidget);
     ToolbarWidget.SetPlayStreamWidget(&PlayStreamWidget);
     ToolbarWidget.SetPanelVisibilityRefs(&bShowConsole, &bShowControl, &bShowProperty, &bShowSceneManager,
-                                         &bShowMaterialEditor, &bShowStatProfiler);
+                                         &bShowMaterialEditor, &bShowStatProfiler, &bShowCameraSequenceEditor);
 }
 
 void FEditorMainPanel::Release()
@@ -168,6 +169,8 @@ void FEditorMainPanel::Render(float DeltaTime)
         ConsoleWidget.Render(DeltaTime);
     if (bShowControl)
         ControlWidget.Render(DeltaTime);
+    if (bShowCameraSequenceEditor)
+        CameraSequenceWidget.Render(DeltaTime);
     if (bShowMaterialEditor)
         MaterialWidget.Render(DeltaTime);
     if (bShowProperty)

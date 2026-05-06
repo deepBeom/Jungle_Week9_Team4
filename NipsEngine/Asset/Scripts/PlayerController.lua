@@ -226,6 +226,7 @@ function OnKeyDown(key)
 end
 
 function OnKeyUp(key)
+    Log("asdf");
     if key == "W" then
         is_forward_pressed = false
     elseif key == "S" then
@@ -245,7 +246,13 @@ function OnKeyUp(key)
             FOVAmplitude = 1,
             FOVFrequency = 1.0
         })
-        Log("Camera shake triggered!")
+    elseif key == "L" then
+        Camera.Shake({
+            Type = "CameraSequence",
+            Sequence = "SampleCameraShake",
+            Scale = 1.0
+        })
+        Log("Camera sequence shake triggered")
     end
 end
 

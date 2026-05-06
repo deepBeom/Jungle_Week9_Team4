@@ -4,6 +4,7 @@
 #include "ImGui/imgui.h"
 #include "Editor/UI/EditorConsoleWidget.h"
 #include "Editor/UI/EditorControlWidget.h"
+#include "Editor/UI/EditorCameraSequenceWidget.h"
 #include "Editor/UI/EditorMaterialWidget.h"
 #include "Editor/UI/EditorPropertyWidget.h"
 #include "Editor/UI/EditorSceneWidget.h"
@@ -43,6 +44,7 @@ private:
     ImVector<ImWchar> FontGlyphRanges; // 폰트 아틀라스 빌드 전까지 수명 유지 필요
     FEditorConsoleWidget ConsoleWidget;
     FEditorControlWidget ControlWidget;
+    FEditorCameraSequenceWidget CameraSequenceWidget;
     FEditorPropertyWidget PropertyWidget;
     FEditorSceneWidget SceneWidget;
     FEditorMaterialWidget MaterialWidget;
@@ -57,5 +59,6 @@ private:
     bool bShowSceneManager = true;
     bool bShowMaterialEditor = true;
     bool bShowStatProfiler = true;
+    bool bShowCameraSequenceEditor = true;
     bool bShowPlayStream = true;
 };
