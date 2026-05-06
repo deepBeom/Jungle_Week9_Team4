@@ -49,6 +49,12 @@ void FSoundManager::ScanAndLoad()
 
 void FSoundManager::Release()
 {
+	for (auto& [Key, Channel] : LoopingSFXChannels)
+	{
+		if (Channel) Channel->stop();
+	}
+	LoopingSFXChannels.clear();
+
 	for (auto& [Key, Sound] : Sounds)
 	{
 		if (Sound) Sound->release();
@@ -71,14 +77,58 @@ void FSoundManager::PlayBGM(const FString& FileName, float Volume)
 	if (BGMChannel) BGMChannel->setVolume(Volume);
 }
 
-void FSoundManager::PlaySFX(const FString& FileName, float Volume)
+void FSoundManager::PlaySFX(const FString& FileName, float Volume, bool bLoop)
 {
-	auto It = Sounds.find(SoundSFXPath + FileName);
+	const FString SoundKey = SoundSFXPath + FileName;
+	auto It = Sounds.find(SoundKey);
 	if (It == Sounds.end()) return;
+
+	if (bLoop)
+	{
+		FMOD::Channel* ExistingChannel = nullptr;
+		auto ChannelIt = LoopingSFXChannels.find(SoundKey);
+		if (ChannelIt != LoopingSFXChannels.end())
+		{
+			ExistingChannel = ChannelIt->second;
+			bool bIsPlaying = false;
+			if (ExistingChannel && ExistingChannel->isPlaying(&bIsPlaying) == FMOD_OK && bIsPlaying)
+			{
+				ExistingChannel->setVolume(Volume);
+				return;
+			}
+		}
+
+		FMOD::Channel* LoopChannel = nullptr;
+		System->playSound(It->second, SFXGroup, true, &LoopChannel);
+		if (LoopChannel)
+		{
+			LoopChannel->setMode(FMOD_LOOP_NORMAL);
+			LoopChannel->setVolume(Volume);
+			LoopChannel->setPaused(false);
+			LoopingSFXChannels[SoundKey] = LoopChannel;
+		}
+		return;
+	}
 
 	FMOD::Channel* Ch = nullptr;
 	System->playSound(It->second, SFXGroup, false, &Ch);
 	if (Ch) Ch->setVolume(Volume);
+}
+
+void FSoundManager::StopSFX(const FString& FileName)
+{
+	const FString SoundKey = SoundSFXPath + FileName;
+	auto It = LoopingSFXChannels.find(SoundKey);
+	if (It == LoopingSFXChannels.end())
+	{
+		return;
+	}
+
+	if (It->second)
+	{
+		It->second->stop();
+	}
+	LoopingSFXChannels.erase(It);
 }
 
 void FSoundManager::StopBGM()
@@ -90,6 +140,7 @@ void FSoundManager::StopAll()
 {
 	if (BGMGroup) BGMGroup->stop();
 	if (SFXGroup) SFXGroup->stop();
+	LoopingSFXChannels.clear();
 }
 
 void FSoundManager::SetBGMVolume(float Volume)
@@ -104,5 +155,18 @@ void FSoundManager::SetSFXVolume(float Volume)
 
 void FSoundManager::Update()
 {
+	for (auto It = LoopingSFXChannels.begin(); It != LoopingSFXChannels.end();)
+	{
+		bool bIsPlaying = false;
+		FMOD::Channel* Channel = It->second;
+		if (!Channel || Channel->isPlaying(&bIsPlaying) != FMOD_OK || !bIsPlaying)
+		{
+			It = LoopingSFXChannels.erase(It);
+			continue;
+		}
+
+		++It;
+	}
+
 	if (System) System->update();
 }

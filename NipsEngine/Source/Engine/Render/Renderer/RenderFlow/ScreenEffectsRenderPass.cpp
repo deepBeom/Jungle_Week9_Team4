@@ -63,6 +63,7 @@ bool FScreenEffectsRenderPass::Begin(const FRenderPassContext* Context)
 
     ShaderBinding->SetFloat("VignetteRadius", Effects.VignetteRadius);
     ShaderBinding->SetFloat("VignetteSoftness", Effects.VignetteSoftness);
+    ShaderBinding->SetVector3("VignetteColor", Effects.VignetteColor);
 
     ID3D11RenderTargetView* RTVs[1] = { Context->RenderTargets->SceneColorRTV };
     Context->DeviceContext->OMSetRenderTargets(1, RTVs, nullptr);

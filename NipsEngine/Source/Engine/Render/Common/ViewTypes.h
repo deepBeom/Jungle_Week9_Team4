@@ -75,6 +75,7 @@ struct FScreenEffectSettings
     float VignetteIntensity = 0.0f;
     float VignetteRadius = 0.75f;
     float VignetteSoftness = 0.2f;
+    FVector VignetteColor = FVector::ZeroVector;
 };
 
 constexpr FGridRenderSettings MakeDefaultGridRenderSettings()

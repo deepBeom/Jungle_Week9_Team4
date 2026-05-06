@@ -105,7 +105,6 @@ void UWorld::BeginPlay()
     }
     RebuildSpatialIndex();
 
-    FSoundManager::Get().PlayBGM("Menu.mp3");
 }
 
 void UWorld::PrepareFrame(float UnscaledDeltaTime)
