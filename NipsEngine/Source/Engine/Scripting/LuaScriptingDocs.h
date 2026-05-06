@@ -49,8 +49,6 @@
  * - OnOverlapBegin(self, otherActor)
  * - OnOverlapEnd(self, otherActor)
  * - OnHit(self, otherActor, hitInfo)
- * - Pawn:UpdateBoatMovement(self, deltaTime, throttleInput, steerInput, mass, forwardAccel, reverseAccel, brakeAccel, linearDrag, turnAccel, turnDrag, maxForwardSpeed, maxReverseSpeed, maxYawSpeed, minSteerAuthority, speedEpsilon)
- *
  * @section lua_scripting_api Bound API
  * See:
  * - LuaBinder namespace (`@ref LuaScriptingBinding`)
