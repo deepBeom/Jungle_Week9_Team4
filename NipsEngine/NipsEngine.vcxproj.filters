@@ -470,6 +470,9 @@
     <ClCompile Include="Source\Engine\GameFramework\Camera\PlayerCameraManager.cpp">
       <Filter>Source\Engine\GameFramework\Camera</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\GameFramework\Camera\WorldCameraInterface.cpp">
+      <Filter>Source\Engine\GameFramework\Camera</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\PrimitiveActors.cpp">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClCompile>
@@ -1200,6 +1203,9 @@
       <Filter>Source\Engine\GameFramework\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\Camera\PlayerCameraManager.h">
+      <Filter>Source\Engine\GameFramework\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\GameFramework\Camera\WorldCameraInterface.h">
       <Filter>Source\Engine\GameFramework\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\World.h">

@@ -36,7 +36,10 @@ namespace
 UWorld::UWorld()
 {
     PersistentLevel = UObjectManager::Get().CreateObject<ULevel>();
+    // Camera manager needs world access for target resolution and defaults.
     PlayerCameraManager.SetOwnerWorld(this);
+    // Interface is the script/gameplay-facing façade; bind it to this world once.
+    CameraInterface.SetOwnerWorld(this);
 }
 
 // 소멸 역시 UObjectManager를 통해 처리한다.
@@ -66,6 +69,9 @@ void UWorld::PostDuplicate(UObject* Original)
     TimeManager.Reset();
     PlayerCameraManager.SetOwnerWorld(this);
     PlayerCameraManager.Reset();
+    // Rebind façade because duplicated world instance has different address/ownership.
+    CameraInterface.SetOwnerWorld(this);
+    CameraInterface.Reset();
 
     // PersistentLevel 을 깊은 복사한 뒤, 복제된 액터들의 소속을 새 월드로 재설정합니다.
     if (OrigWorld->PersistentLevel)
@@ -87,6 +93,9 @@ void UWorld::BeginPlay()
     TimeManager.Reset();
     PlayerCameraManager.SetOwnerWorld(this);
     PlayerCameraManager.Reset();
+    // Keep façade binding deterministic across play sessions.
+    CameraInterface.SetOwnerWorld(this);
+    CameraInterface.Reset();
     CollisionSystem.Reset();
     CollectionSystem.Reset();
     ExplosionSystem.Reset();
@@ -143,6 +152,8 @@ void UWorld::EndPlay(EEndPlayReason::Type EndPlayReason)
     CollectionSystem.Reset();
     ExplosionSystem.Reset();
     PlayerCameraManager.Reset();
+    // Symmetric lifecycle reset for façade entry point.
+    CameraInterface.Reset();
     TimeManager.Reset();
 }
 

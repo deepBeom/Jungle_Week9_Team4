@@ -2,6 +2,7 @@
 #include "Object/Object.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Camera/PlayerCameraManager.h"
+#include "GameFramework/Camera/WorldCameraInterface.h"
 #include "DriftSalvage/CollectionSystem.h"
 #include "DriftSalvage/ExplosionSystem.h"
 #include "Level.h"
@@ -93,10 +94,13 @@ public:
     FViewportCamera* GetActiveCamera() const { return ActiveCamera; }
     FPlayerCameraManager& GetPlayerCameraManager() { return PlayerCameraManager; }
     const FPlayerCameraManager& GetPlayerCameraManager() const { return PlayerCameraManager; }
+    // High-level façade used by Lua/gameplay for camera + hit-feel commands.
+    FWorldCameraInterface& GetCameraInterface() { return CameraInterface; }
+    const FWorldCameraInterface& GetCameraInterface() const { return CameraInterface; }
 
     float GetUnscaledDeltaTime() const { return TimeManager.GetUnscaledDeltaTime(); }
     float GetScaledDeltaTime() const { return TimeManager.GetScaledDeltaTime(); }
-    float GetGlobalTimeDilation() const { return  TimeManager.GetGlobalTimeDilation(); }
+    float GetGlobalTimeDilation() const { return TimeManager.GetGlobalTimeDilation(); }
     void SetBaseTimeDilation(float InTimeDilation);
     void StartHitStop(float Duration, float TimeScale = 0.05f);
     void StartSlomo(float TimeScale, float Duration);
@@ -138,6 +142,8 @@ private:
     FExplosionSystem ExplosionSystem;
     bool bIsIteratingLevelActors = false;
     FPlayerCameraManager PlayerCameraManager;
+    // Kept as a separate façade so scripting code avoids depending on internal managers.
+    FWorldCameraInterface CameraInterface;
 
     FTimeManager TimeManager;
 };
