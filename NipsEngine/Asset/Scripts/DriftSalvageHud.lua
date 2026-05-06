@@ -7,6 +7,7 @@ local HUD_BG_SHEET = "Asset/Texture/UI/BG.png"
 local SCORE_BG_PATH = "Asset/Texture/UI/ScoreBoardBG.png"
 local ENDING_SHEET = "Asset/Texture/UI/Ending.png"
 local SCORE_MANAGER_PATH = SCRIPT_DIR .. "ScoreManager.lua"
+local TIME_DISPLAY_PATH = SCRIPT_DIR .. "DriftSalvageTimeDisplay.lua"
 local MENU_BGM = "Menu.mp3"
 local MENU_BGM_VOLUME = 0.1
 local INGAME_BGM = "InGame.mp3"
@@ -36,9 +37,13 @@ local BoatActor = nil
 local BoatHomePosition = nil
 local BoatHomeRotation = nil
 local ScoreManager = nil
+local TimeDisplay = nil
 local GameplayHud = nil
 local Countdown = nil
 local bGameplayInputReady = false
+local GameplayElapsedTime = 0.0
+local FinalElapsedTime = nil
+local bGameplayTimerRunning = false
 local bLowHealthVignetteActive = false
 local prevHealth = nil
 local LOW_HEALTH_VIGNETTE_RADIUS = 5.0
@@ -108,13 +113,29 @@ local function LoadScoreManager()
         GetRecords = function()
             return { 0, 0, 0 }
         end,
-        RecordScore = function(score)
-            local records = { 0, math.max(0, math.floor(score or 0)), 0 }
-            table.sort(records, function(a, b) return a > b end)
+        RecordTime = function(seconds)
+            local time = math.max(0.0, tonumber(seconds) or 0.0)
+            local records = { time, 0, 0 }
+            table.sort(records, function(a, b)
+                if a <= 0.0 and b <= 0.0 then return false end
+                if a <= 0.0 then return false end
+                if b <= 0.0 then return true end
+                return a < b
+            end)
             return records
         end,
     }
+    ScoreManager.RecordScore = ScoreManager.RecordTime
     return ScoreManager
+end
+
+local function LoadTimeDisplay()
+    if TimeDisplay then
+        return TimeDisplay
+    end
+
+    TimeDisplay = LoadScript(TIME_DISPLAY_PATH)
+    return TimeDisplay
 end
 
 local function Clamp01(value)
@@ -206,14 +227,6 @@ local function GetHudHealth()
     return 5
 end
 
-local function GetHudMoney()
-    if GetDriftSalvageMoney then
-        return GetDriftSalvageMoney()
-    end
-
-    return 0
-end
-
 local function GetHudWeight()
     if GetDriftSalvageWeight then
         return GetDriftSalvageWeight()
@@ -228,6 +241,51 @@ local function GetHudWeightCapacity()
     end
 
     return DEFAULT_WEIGHT_CAPACITY
+end
+
+local function GetTimerDeltaTime(fallbackDeltaTime)
+    local dt = fallbackDeltaTime or 0.0
+    if TimeManager and TimeManager.GetUnscaledDeltaTime then
+        dt = TimeManager.GetUnscaledDeltaTime()
+    end
+
+    if dt < 0.0 then
+        return 0.0
+    end
+    return dt
+end
+
+local function ResetGameplayTimer()
+    GameplayElapsedTime = 0.0
+    FinalElapsedTime = nil
+    bGameplayTimerRunning = false
+end
+
+local function StartGameplayTimer()
+    GameplayElapsedTime = 0.0
+    FinalElapsedTime = nil
+    bGameplayTimerRunning = true
+end
+
+local function GetGameplayElapsedTime()
+    return FinalElapsedTime or GameplayElapsedTime
+end
+
+local function StopGameplayTimer()
+    if not FinalElapsedTime then
+        FinalElapsedTime = GameplayElapsedTime
+    end
+
+    bGameplayTimerRunning = false
+    return FinalElapsedTime
+end
+
+local function TickGameplayTimer(deltaTime)
+    if not bGameplayTimerRunning then
+        return
+    end
+
+    GameplayElapsedTime = GameplayElapsedTime + GetTimerDeltaTime(deltaTime)
 end
 
 local function SetLowHealthVignette(enabled)
@@ -468,10 +526,11 @@ local function GetGameplayHud()
 
     GameplayHud = GameplayHudModule.Create({
         Minimap = minimap,
+        TimeDisplay = LoadTimeDisplay(),
         Clamp01 = Clamp01,
         EaseSmoothStep = EaseSmoothStep,
         EnterUIMode = EnterUIMode,
-        GetMoney = GetHudMoney,
+        GetElapsedTime = GetGameplayElapsedTime,
         GetWeight = GetHudWeight,
         GetWeightCapacity = GetHudWeightCapacity,
         GetHealth = GetHudHealth,
@@ -489,6 +548,7 @@ local function GetCountdown()
     Countdown = CountdownModule.Create({
         OnFinished = function()
             bGameplayInputReady = true
+            StartGameplayTimer()
             UpdateLowHealthVignette()
             if Sound and Sound.PlayBGM then
                 Sound.PlayBGM(INGAME_BGM, INGAME_BGM_VOLUME)
@@ -543,17 +603,42 @@ local function ShowScoreboard(records)
     ScorePanel = UIManager.CreateImage(nil, 0.5, 0.5, 448, 558, SCORE_BG_PATH, "RelativePos")
     ScorePanel:SetColor(1.0, 1.0, 1.0, 1.0)
 
-    local title = CreateCenteredText(ScorePanel, 0, -186, "RECORD", 36.0)
-    title:SetColor(0.0, 0.0, 0.0, 1.0)
+    local timeDisplay = LoadTimeDisplay()
+    timeDisplay.CreateSpacedLabel(ScorePanel, 0, -186, "TIME RECORD", {
+        FontSize = 28,
+        CharWidth = 16,
+        LetterGap = 14,
+        WordGap = 34,
+        Mode = "Centered",
+        Centered = true,
+        Color = { 0.0, 0.0, 0.0, 1.0 },
+    })
 
     if type(records) ~= "table" then
         records = LoadScoreManager().GetRecords()
     end
 
-    local rowY = { -100, -5, 90 }
+    local rowY = { -104, -14, 76 }
     for rank = 1, 3 do
-        local scoreText = CreateCenteredText(ScorePanel, 20, rowY[rank], records[rank] or 0, 60.0)
-        scoreText:SetColor(0.0, 0.0, 0.0, 1.0)
+        local recordTime = tonumber(records[rank]) or 0.0
+        if recordTime > 0.0 then
+            timeDisplay.Create(ScorePanel, 44, rowY[rank], {
+                Mode = "Centered",
+                Centered = true,
+                DigitWidth = 34,
+                DigitHeight = 48,
+                DigitGap = 5,
+                SeparatorWidth = 16,
+                SeparatorDotSize = 7,
+                SeparatorDotGap = 18,
+                InitialValue = recordTime,
+                DigitColor = { 0.0, 0.0, 0.0, 1.0 },
+                SeparatorColor = { 0.0, 0.0, 0.0, 1.0 },
+            })
+        else
+            local emptyText = CreateCenteredText(ScorePanel, 44, rowY[rank], "--:--:--", 42.0)
+            emptyText:SetColor(0.0, 0.0, 0.0, 1.0)
+        end
     end
 
     local closeBtn = CreateCenteredText(ScorePanel, 0, 226, "CLOSE", 30.0)
@@ -567,17 +652,20 @@ local function ShowScoreboard(records)
     end)
 end
 
-local function ShowGameOver()
+local function ShowGameOver(bRecordFinishTime)
     if GameOverPanel then return end
 
+    local finalTime = StopGameplayTimer()
     bGameplayInputReady = false
     bGameOverSequencePlaying = false
     bLighthouseEndingPlaying = false
+    ResetGameplayTimer()
     StopBoatForwardLoopSfx()
     SetLowHealthVignette(false)
     EnterUIMode()
-    local finalScore = GetHudMoney()
-    LoadScoreManager().RecordScore(finalScore)
+    if bRecordFinishTime then
+        LoadScoreManager().RecordTime(finalTime)
+    end
     HideInGameHud()
     HideCountdown()
 
@@ -590,8 +678,28 @@ local function ShowGameOver()
     local endingImage = UIManager.CreateImage(GameOverPanel, 0.0, -0.34, 0.46, 0.42, ENDING_SHEET, "ParentRelative")
     endingImage:SetColor(1.0, 1.0, 1.0, 1.0)
 
-    local scoreText = UIManager.CreateText(GameOverPanel, -0.03, 0.0, 400, 72, "SCORE : " .. tostring(finalScore), 48.0, "RelativePos")
-    scoreText:SetColor(0.0, 0.0, 0.0, 1.0)
+    LoadTimeDisplay().CreateSpacedLabel(GameOverPanel, 0.0, -0.06, "TIME", {
+        FontSize = 38,
+        CharWidth = 20,
+        LetterGap = 18,
+        Mode = "RelativePos",
+        Centered = true,
+        Color = { 0.0, 0.0, 0.0, 1.0 },
+    })
+
+    LoadTimeDisplay().Create(GameOverPanel, 0.0, 0.03, {
+        Mode = "RelativePos",
+        Centered = true,
+        DigitWidth = 42,
+        DigitHeight = 58,
+        DigitGap = 6,
+        SeparatorWidth = 18,
+        SeparatorDotSize = 8,
+        SeparatorDotGap = 22,
+        InitialValue = finalTime,
+        DigitColor = { 0.0, 0.0, 0.0, 1.0 },
+        SeparatorColor = { 0.0, 0.0, 0.0, 1.0 },
+    })
 
     local restartLabel = UIManager.CreateText(GameOverPanel, -0.01, 0.15, 280, 48, "RESTART", 48.0, "RelativePos")
     restartLabel:SetColor(0.0, 0.0, 0.0, 1.0)
@@ -621,6 +729,7 @@ local function StartGameplay(playerCameraBlendTime)
     bGameplayInputReady = false
     bGameOverSequencePlaying = false
     bLighthouseEndingPlaying = false
+    ResetGameplayTimer()
     StopBoatForwardLoopSfx()
     SetLowHealthVignette(false)
     ReturnToPlayerCamera(playerCameraBlendTime or 0.0)
@@ -648,6 +757,7 @@ ShowHud = function()
     bGameplayInputReady = false
     bGameOverSequencePlaying = false
     bLighthouseEndingPlaying = false
+    ResetGameplayTimer()
     StopBoatForwardLoopSfx()
     SetLowHealthVignette(false)
     if Sound and Sound.PlayBGM then
@@ -723,6 +833,7 @@ local function StartHealthZeroGameOverSequence()
 
     bGameOverSequencePlaying = true
     bGameplayInputReady = false
+    StopGameplayTimer()
     StopBoatForwardLoopSfx()
     SetGameOverVignette()
     EnterUIMode()
@@ -767,7 +878,7 @@ local function StartHealthZeroGameOverSequence()
             Wait(0.0)
         end
 
-        ShowGameOver()
+        ShowGameOver(false)
     end)
 end
 
@@ -781,6 +892,10 @@ local function StartLighthouseEndingSequence()
 
     bLighthouseEndingPlaying = true
     bGameplayInputReady = false
+    StopGameplayTimer()
+    if GameplayHud and GameplayHud:IsVisible() then
+        GameplayHud:Sync()
+    end
 
     if Input and Input.SetPlayerControlEnabled then
         Input.SetPlayerControlEnabled(false)
@@ -838,7 +953,7 @@ local function StartLighthouseEndingSequence()
             Wait(LIGHTHOUSE_POST_STOP_HOLD)
         end
 
-        ShowGameOver()
+        ShowGameOver(true)
     end)
 end
 
@@ -849,6 +964,10 @@ function OnUpdate(self, deltaTime)
     end
 
     -- Lighthouse 엔딩은 침몰 시퀀스를 우회하므로 가장 먼저 검사한다.
+    if bGameplayInputReady and hud:IsVisible() then
+        TickGameplayTimer(deltaTime)
+    end
+
     if hud:IsVisible() and ConsumeLighthouseEndingRequest and ConsumeLighthouseEndingRequest() then
         StartLighthouseEndingSequence()
         return
@@ -865,7 +984,7 @@ function OnUpdate(self, deltaTime)
     end
 
     if bGameplayInputReady and hud:IsVisible() and Input and Input.GetKeyDown("E") then
-        ShowGameOver()
+        ShowGameOver(false)
         return
     end
 
@@ -884,6 +1003,7 @@ function OnDestroy(self)
     bGameplayInputReady = false
     bGameOverSequencePlaying = false
     bLighthouseEndingPlaying = false
+    ResetGameplayTimer()
     StopBoatForwardLoopSfx()
     SetLowHealthVignette(false)
     EnterUIMode()

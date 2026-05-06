@@ -393,6 +393,7 @@ namespace
 
 void DrawExplosionDebugRings(UWorld* World, FLineBatcher* LineBatcher)
     {
+        return;
         if (!World || !LineBatcher)
         {
             return;

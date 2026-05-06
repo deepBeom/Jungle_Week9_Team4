@@ -19,7 +19,7 @@ local boat_brake_accel = 15.0
 -- 입력이 없을 때 전후진 속도를 0으로 되돌리는 감쇠량입니다. 단위: unit/s^2
 local boat_linear_drag = 5.0
 -- 가벼운 기준 상태에서의 최대 전진 속도입니다. 단위: unit/s
-local boat_max_forward_speed = 120.0
+local boat_max_forward_speed = 40.0
 -- 가벼운 기준 상태에서의 최대 후진 속도입니다. 단위: unit/s
 local boat_max_reverse_speed = 10.0
 

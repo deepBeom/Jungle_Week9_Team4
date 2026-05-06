@@ -2,11 +2,15 @@
 
 local GameplayHud = {}
 
-local MONEY_SHEET = "Asset/Texture/UI/Money.png"
-local MONEY_ICON_SIZE = 96
-local MONEY_FONT_SIZE = 56
-local MONEY_TEXT_W = 180
-local MONEY_GAP = 10
+local TIMER_LABEL_TEXT = "TIME"
+local TIMER_LABEL_W = 114
+local TIMER_LABEL_FONT_SIZE = 42
+local TIMER_LABEL_LETTER_GAP = 14
+local TIMER_DIGIT_W = 28
+local TIMER_DIGIT_H = 44
+local TIMER_SEPARATOR_W = 14
+local TIMER_DIGIT_GAP = 2
+local TIMER_GAP = 42
 local SHIP_WHEEL_SHEET = "Asset/Texture/UI/ShipWheel.png"
 local SHIP_WHEEL_SIZE = 480
 local SHIP_WHEEL_SCREEN_X = 0.5
@@ -30,17 +34,18 @@ local HEART_ROW_W = HEART_COUNT * HEART_DRAW_W + (HEART_COUNT - 1) * HEART_SPACI
 local PROGRESS_BG_SHEET = "Asset/Texture/UI/WeightPBBG.png"
 local PROGRESS_FILL_SHEET = "Asset/Texture/UI/WeightPB.png"
 local PROGRESS_ANCHOR_SHEET = "Asset/Texture/UI/Anchor.png"
-local MONEY_ROW_W = MONEY_ICON_SIZE + MONEY_GAP + MONEY_TEXT_W
-local PROGRESS_W = MONEY_ROW_W * 2
+local TIMER_ROW_W = TIMER_LABEL_W + TIMER_GAP + TIMER_DIGIT_W * 6 + TIMER_SEPARATOR_W * 2 + TIMER_DIGIT_GAP * 7
+local PROGRESS_W = 572
 local PROGRESS_H = 96
 local PROGRESS_ANCHOR_SIZE = 84
 local PROGRESS_ANCHOR_OVERLAP = 0
 local PROGRESS_GAP_TOP = 10
 local PROGRESS_GAP_BOTTOM = 8
 local PROGRESS_ANIM_DURATION = 0.35
-local MONEY_Y = HEART_DRAW_H + PROGRESS_GAP_TOP
-local PROGRESS_Y = MONEY_Y + MONEY_ICON_SIZE + PROGRESS_GAP_BOTTOM
-local INGAME_HUD_W = math.max(HEART_ROW_W, PROGRESS_W, MONEY_ROW_W)
+local TIMER_Y = HEART_DRAW_H + PROGRESS_GAP_TOP
+local TIMER_ROW_H = math.max(TIMER_LABEL_FONT_SIZE, TIMER_DIGIT_H)
+local PROGRESS_Y = TIMER_Y + TIMER_ROW_H + PROGRESS_GAP_BOTTOM
+local INGAME_HUD_W = math.max(HEART_ROW_W, PROGRESS_W, TIMER_ROW_W)
 local INGAME_HUD_H = PROGRESS_Y + PROGRESS_H
 
 local function HeartUV(index)
@@ -54,7 +59,8 @@ function GameplayHud.Create(deps)
         ProgressBg = nil,
         ProgressFill = nil,
         ProgressAnchor = nil,
-        MoneyText = nil,
+        TimerLabel = nil,
+        TimerDisplay = nil,
         ProgressValue = 0.0,
         ProgressStartValue = 0.0,
         ProgressTargetValue = 0.0,
@@ -74,10 +80,11 @@ function GameplayHud.Create(deps)
         HeartHealth = HEART_COUNT,
         HeartTargetHealth = HEART_COUNT,
         Minimap = deps.Minimap,
+        TimeDisplay = deps.TimeDisplay,
         Clamp01 = deps.Clamp01,
         EaseSmoothStep = deps.EaseSmoothStep,
         EnterUIMode = deps.EnterUIMode,
-        GetMoney = deps.GetMoney,
+        GetElapsedTime = deps.GetElapsedTime,
         GetWeight = deps.GetWeight,
         GetWeightCapacity = deps.GetWeightCapacity,
         GetHealth = deps.GetHealth,
@@ -229,8 +236,8 @@ function GameplayHud.Create(deps)
     function state:Sync()
         if not self.Panel then return end
 
-        if self.MoneyText then
-            self.MoneyText:SetText(tostring(self.GetMoney()) .. "$")
+        if self.TimerDisplay then
+            self.TimerDisplay:SetValue(self.GetElapsedTime())
         end
 
         local targetWeightRatio = self.Clamp01(self.GetWeight() / self.GetWeightCapacity())
@@ -279,12 +286,34 @@ function GameplayHud.Create(deps)
         self.ProgressAnchor = UIManager.CreateImage(self.Panel, anchorX, anchorY, PROGRESS_ANCHOR_SIZE, PROGRESS_ANCHOR_SIZE, PROGRESS_ANCHOR_SHEET, nil)
         self.ProgressAnchor:SetColor(1.0, 1.0, 1.0, 1.0)
 
-        local moneyIcon = UIManager.CreateImage(self.Panel, 0, MONEY_Y, MONEY_ICON_SIZE, MONEY_ICON_SIZE, MONEY_SHEET, nil)
-        moneyIcon:SetColor(1.25, 1.25, 1.25, 1.0)
+        local timerLabelY = TIMER_Y + (TIMER_ROW_H - TIMER_LABEL_FONT_SIZE) * 0.5
+        self.TimerLabel = self.TimeDisplay.CreateSpacedLabel(self.Panel,
+            TIMER_LABEL_W * 0.5,
+            timerLabelY + TIMER_LABEL_FONT_SIZE * 0.5,
+            TIMER_LABEL_TEXT,
+            {
+                FontSize = TIMER_LABEL_FONT_SIZE,
+                CharWidth = 18,
+                LetterGap = TIMER_LABEL_LETTER_GAP,
+                Mode = "Centered",
+                Centered = true,
+                Color = { 1.0, 0.95, 0.25, 1.0 },
+            })
 
-        local moneyTextY = MONEY_Y + (MONEY_ICON_SIZE - MONEY_FONT_SIZE) * 0.5
-        self.MoneyText = UIManager.CreateText(self.Panel, MONEY_ICON_SIZE + MONEY_GAP, moneyTextY, MONEY_TEXT_W, MONEY_FONT_SIZE, tostring(self.GetMoney()) .. "$", MONEY_FONT_SIZE, nil)
-        self.MoneyText:SetColor(1.0, 0.95, 0.25, 1.0)
+        self.TimerDisplay = self.TimeDisplay.Create(self.Panel,
+            TIMER_LABEL_W + TIMER_GAP,
+            TIMER_Y + (TIMER_ROW_H - TIMER_DIGIT_H) * 0.5,
+            {
+                DigitWidth = TIMER_DIGIT_W,
+                DigitHeight = TIMER_DIGIT_H,
+                DigitGap = TIMER_DIGIT_GAP,
+                SeparatorWidth = TIMER_SEPARATOR_W,
+                SeparatorDotSize = 5,
+                SeparatorDotGap = 16,
+                InitialValue = self.GetElapsedTime(),
+                DigitColor = { 1.15, 1.15, 1.15, 1.0 },
+                SeparatorColor = { 1.0, 0.95, 0.25, 1.0 },
+            })
 
         self.ShipWheel = UIManager.CreateImage(nil, SHIP_WHEEL_SCREEN_X, SHIP_WHEEL_SCREEN_Y, SHIP_WHEEL_SIZE, SHIP_WHEEL_SIZE, SHIP_WHEEL_SHEET, "RelativePos")
         self.ShipWheel:SetColor(1.0, 1.0, 1.0, 1.0)
@@ -312,7 +341,8 @@ function GameplayHud.Create(deps)
             self.ProgressBg = nil
             self.ProgressFill = nil
             self.ProgressAnchor = nil
-            self.MoneyText = nil
+            self.TimerLabel = nil
+            self.TimerDisplay = nil
             self.ProgressValue = 0.0
             self.ProgressStartValue = 0.0
             self.ProgressTargetValue = 0.0

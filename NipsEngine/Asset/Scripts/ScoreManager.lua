@@ -1,23 +1,45 @@
 -- ScoreManager.lua
--- Keeps the top 3 record scores for the title Record UI.
+-- Keeps the top 3 finish times for the title Record UI.
 
 local ScoreManager = {}
 
 local MAX_RECORDS = 3
-local RECORD_FILE_PATH = "Saves/ScoreRecords.txt"
+local RECORD_FILE_PATH = "Saves/TimeRecords.txt"
 local DEFAULT_RECORDS = { 0, 0, 0 }
 
-_G.__DriftSalvageScoreRecords = _G.__DriftSalvageScoreRecords or {}
-local Records = _G.__DriftSalvageScoreRecords
+_G.__DriftSalvageTimeRecords = _G.__DriftSalvageTimeRecords or {}
+local Records = _G.__DriftSalvageTimeRecords
 local bLoadedFromFile = false
 
-local function NormalizeScore(score)
-    return math.max(0, math.floor(tonumber(score) or 0))
+local function NormalizeTime(seconds)
+    local value = tonumber(seconds) or 0.0
+    if value <= 0.0 then
+        return 0.0
+    end
+
+    return math.floor(value * 100.0 + 0.5) / 100.0
+end
+
+local function HasRecord(seconds)
+    return NormalizeTime(seconds) > 0.0
 end
 
 local function SortRecords()
     table.sort(Records, function(a, b)
-        return NormalizeScore(a) > NormalizeScore(b)
+        local timeA = NormalizeTime(a)
+        local timeB = NormalizeTime(b)
+        local hasA = HasRecord(timeA)
+        local hasB = HasRecord(timeB)
+
+        if hasA and hasB then
+            return timeA < timeB
+        end
+
+        if hasA ~= hasB then
+            return hasA
+        end
+
+        return false
     end)
 
     while #Records > MAX_RECORDS do
@@ -35,7 +57,7 @@ local function ReplaceRecords(newRecords)
     end
 
     for i = 1, #newRecords do
-        Records[i] = NormalizeScore(newRecords[i])
+        Records[i] = NormalizeTime(newRecords[i])
     end
 
     SortRecords()
@@ -46,7 +68,7 @@ local function SerializeRecords()
 
     local lines = {}
     for i = 1, MAX_RECORDS do
-        lines[i] = tostring(NormalizeScore(Records[i]))
+        lines[i] = string.format("%.2f", NormalizeTime(Records[i]))
     end
     return table.concat(lines, "\n") .. "\n"
 end
@@ -67,8 +89,8 @@ function ScoreManager.Load()
     if ReadTextFile then
         local content = ReadTextFile(RECORD_FILE_PATH)
         if content and content ~= "" then
-            for value in string.gmatch(content, "%d+") do
-                table.insert(loadedRecords, NormalizeScore(value))
+            for value in string.gmatch(content, "[^\r\n]+") do
+                table.insert(loadedRecords, NormalizeTime(value))
             end
         end
     end
@@ -92,17 +114,24 @@ function ScoreManager.GetRecords()
 
     local result = {}
     for i = 1, MAX_RECORDS do
-        result[i] = NormalizeScore(Records[i])
+        result[i] = NormalizeTime(Records[i])
     end
     return result
 end
 
-function ScoreManager.RecordScore(score)
+function ScoreManager.RecordTime(seconds)
     ScoreManager.Load()
-    table.insert(Records, NormalizeScore(score))
-    SortRecords()
-    ScoreManager.Save()
+    local normalized = NormalizeTime(seconds)
+    if normalized > 0.0 then
+        table.insert(Records, normalized)
+        SortRecords()
+        ScoreManager.Save()
+    end
     return ScoreManager.GetRecords()
+end
+
+function ScoreManager.RecordScore(score)
+    return ScoreManager.RecordTime(score)
 end
 
 return ScoreManager
