@@ -1,4 +1,4 @@
-﻿#include "GameFramework/Camera/PlayerCameraManager.h"
+#include "GameFramework/Camera/PlayerCameraManager.h"
 
 #include "Component/CameraComponent.h"
 #include "GameFramework/Actor.h"
@@ -282,10 +282,10 @@ void FPlayerCameraManager::SetViewTargetWithBlend(AActor* NewTarget, float Blend
     BeginViewTargetBlend(BlendTime, BlendFunction);
 }
 
-void FPlayerCameraManager::AddCameraShake(float Amplitude, float Frequency, float Duration)
+void FPlayerCameraManager::AddCameraShake(const FCameraShakeParams& Params)
 {
     // Modifier list owns lifetime via unique_ptr.
-    std::unique_ptr<FCameraModifier> Modifier = std::make_unique<FCameraShakeModifier>(Amplitude, Frequency, Duration);
+    std::unique_ptr<FCameraModifier> Modifier = std::make_unique<FCameraShakeModifier>(Params);
     Modifier->SetCameraOwner(this);
     Modifiers.push_back(std::move(Modifier));
 }

@@ -44,6 +44,7 @@ protected:
     bool Advance(float DeltaTime, float& OutNormalizedTime);
     // Time accumulator for periodic wave functions.
     float GetElapsedSeconds() const { return ElapsedSeconds; }
+    float GetTotalDuration() const { return DurationSeconds; }
 
 private:
     // Total life duration in seconds.

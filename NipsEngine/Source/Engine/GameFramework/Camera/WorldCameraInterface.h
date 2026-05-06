@@ -3,6 +3,7 @@
 #include "GameFramework/Camera/CameraTypes.h"
 
 class AActor;
+struct FCameraShakeParams;
 class UWorld;
 
 // Unified entry point for gameplay-facing camera/hit-feel commands.
@@ -37,7 +38,7 @@ public:
 
     // Camera modifiers.
     // These spawn transient modifiers that affect only per-frame FinalPOV.
-    void AddCameraShake(float Amplitude, float Frequency, float Duration);
+    void AddCameraShake(const FCameraShakeParams& Params);
     void AddFOVKick(float AddFovDegrees, float Duration);
 
     // Screen effects.

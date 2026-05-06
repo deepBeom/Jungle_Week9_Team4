@@ -43,12 +43,12 @@ void FWorldCameraInterface::SetViewTargetWithBlend(AActor* NewTarget, float Blen
     }
 }
 
-void FWorldCameraInterface::AddCameraShake(float Amplitude, float Frequency, float Duration)
+void FWorldCameraInterface::AddCameraShake(const FCameraShakeParams& Params)
 {
     if (OwnerWorld)
     {
         // Adds transient shake modifier; does not mutate source actor transform.
-        OwnerWorld->GetPlayerCameraManager().AddCameraShake(Amplitude, Frequency, Duration);
+        OwnerWorld->GetPlayerCameraManager().AddCameraShake(Params);
     }
 }
 

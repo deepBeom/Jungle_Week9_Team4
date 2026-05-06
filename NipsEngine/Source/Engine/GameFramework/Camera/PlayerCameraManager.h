@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Core/Containers/Array.h"
 #include "GameFramework/Camera/CameraModifier.h"
@@ -7,6 +7,7 @@
 #include <memory>
 
 class AActor;
+struct FCameraShakeParams;
 class FViewportCamera;
 class UWorld;
 
@@ -46,7 +47,7 @@ public:
     const FCameraScreenEffectSettings& GetScreenEffectSettings() const { return ScreenEffects; }
 
     // Spawns transient modifiers. They affect only final POV per frame.
-    void AddCameraShake(float Amplitude, float Frequency, float Duration);
+    void AddCameraShake(const FCameraShakeParams& Params);
     void AddFOVKick(float AddFovDegrees, float Duration);
 
     // Post-process control helpers.
