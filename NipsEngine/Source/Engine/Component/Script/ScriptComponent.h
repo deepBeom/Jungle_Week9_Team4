@@ -120,8 +120,9 @@ private:
     /**
      * @brief Calls the first existing Lua function from CallbackNames.
      *
-     * Owner actor is always passed as the first Lua argument.
-     * Additional arguments are appended in order.
+     * Owner actor is always available through globals such as `obj`.
+     * Legacy callbacks that explicitly declare a leading `self`/owner parameter still receive it.
+     * Additional arguments are appended in order after any injected owner argument.
      * `bOutHadCallback` indicates whether any candidate callback existed in Lua.
      *
      * @return true when callback is missing (allowed) or call succeeded, false on runtime failure.

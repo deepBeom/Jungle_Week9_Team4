@@ -269,7 +269,10 @@ void FGameInputController::EnsureScriptLoaded()
         return;
     }
 
-    if (LoadedScriptPath != ActiveControllerScriptPath)
+    const FString ResolvedActiveControllerScriptPath =
+        FPaths::ToUtf8(ResolveScriptPathWide(ActiveControllerScriptPath));
+
+    if (LoadedScriptPath != ResolvedActiveControllerScriptPath)
     {
         bScriptLoadAttempted = false;
         bScriptLoaded = false;
@@ -288,11 +291,6 @@ void FGameInputController::EnsureScriptLoaded()
 
 bool FGameInputController::LoadScript()
 {
-    if (!GEngine)
-    {
-        return false;
-    }
-
     sol::state& Lua = GEngine->GetLuaScriptSubsystem().GetLuaState();
     ScriptEnvironment = sol::environment(Lua, sol::create, Lua.globals());
     InstallBindings();
@@ -303,7 +301,7 @@ bool FGameInputController::LoadScript()
     FString ScriptSource;
     if (!ReadFileToStringByWidePath(ResolvedScriptPathWide, ScriptSource))
     {
-        printf("[Lua Input Load Error] Failed to open script file: %s\n", LoadedScriptPath.c_str());
+        UE_LOG("[Lua] Failed to read script file: %s", LoadedScriptPath.c_str());
         return false;
     }
 
@@ -312,8 +310,9 @@ bool FGameInputController::LoadScript()
     sol::load_result LoadedScript = Lua.load(ScriptSource, LoadedScriptPath);
     if (!LoadedScript.valid())
     {
+        UE_LOG("[Lua] Failed to load script: %s", LoadedScriptPath.c_str());
         sol::error Error = LoadedScript;
-        printf("[Lua Input Load Error] %s: %s\n", LoadedScriptPath.c_str(), Error.what());
+        UE_LOG("[Lua] Syntax Error in script: %s", Error.what());
         return false;
     }
 
@@ -323,8 +322,9 @@ bool FGameInputController::LoadScript()
     sol::protected_function_result Result = ScriptFunction();
     if (!Result.valid())
     {
+        UE_LOG("[Lua] Failed to execute script: %s", LoadedScriptPath.c_str());
         sol::error Error = Result;
-        printf("[Lua Input Runtime Error] %s: %s\n", LoadedScriptPath.c_str(), Error.what());
+        UE_LOG("[Lua] Runtime Error in script: %s", Error.what());
         return false;
     }
 

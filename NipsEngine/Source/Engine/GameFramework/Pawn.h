@@ -21,28 +21,7 @@ public:
     FVector GetForwardVector() const;
     FVector GetRightVector() const;
     FVector GetUpVector() const;
-    void ResetBoatMovement();
-    void UpdateBoatMovement(
-        float DeltaTime,
-        float ThrottleInput,
-        float SteerInput,
-        float Mass,
-        float ForwardAccel,
-        float ReverseAccel,
-        float BrakeAccel,
-        float LinearDrag,
-        float TurnAccel,
-        float TurnDrag,
-        float MaxForwardSpeed,
-        float MaxReverseSpeed,
-        float MaxYawSpeed,
-        float MinSteerAuthority,
-        float SpeedEpsilon);
-    float GetBoatForwardSpeed() const { return BoatForwardSpeed; }
-    float GetBoatYawSpeed() const { return BoatYawSpeed; }
 
 private:
     FString ControllerScriptPath = "Asset/Scripts/PlayerController.lua";
-    float BoatForwardSpeed = 0.0f;
-    float BoatYawSpeed = 0.0f;
 };

@@ -377,6 +377,17 @@ namespace
                     Component->SetRelativeRotation(FVector(X, Y, Z));
                 }
             },
+            "GetRelativeScale", [](USceneComponent* Component)
+            {
+                return Component ? Component->GetRelativeScale() : FVector(1.0f, 1.0f, 1.0f);
+            },
+            "SetRelativeScale", [](USceneComponent* Component, float X, float Y, float Z)
+            {
+                if (Component)
+                {
+                    Component->SetRelativeScale(FVector(X, Y, Z));
+                }
+            },
             "GetForwardVector", [](USceneComponent* Component)
             {
                 return Component ? Component->GetForwardVector() : FVector(1.0f, 0.0f, 0.0f);
@@ -666,6 +677,10 @@ namespace
     {
         Lua.new_usertype<AActor>(
             "Actor",
+            "UUID", sol::property([](AActor* Actor) -> uint32
+            {
+                return IsValidActorObject(Actor) ? Actor->GetUUID() : 0u;
+            }),
             "GetName", [](AActor* Actor) -> FString
             {
                 return SafeObjectName(Actor);
@@ -764,6 +779,10 @@ namespace
             {
                 return FindActorComponentByType(Actor, TypeName);
             },
+            "FindSceneComponentByClass", [](AActor* Actor, const FString& TypeName) -> USceneComponent*
+            {
+                return Cast<USceneComponent>(FindActorComponentByType(Actor, TypeName));
+            },
             "GetRootComponent", [](AActor* Actor) -> USceneComponent*
             {
                 if (!IsUsableActor(Actor))
@@ -807,51 +826,6 @@ namespace
             "GetUpVector", [](APawn* Pawn)
             {
                 return Pawn ? Pawn->GetUpVector() : FVector(0.0f, 0.0f, 1.0f);
-            },
-            "UpdateBoatMovement", [](APawn* Pawn,
-                                     float DeltaTime,
-                                     float ThrottleInput,
-                                     float SteerInput,
-                                     float Mass,
-                                     float ForwardAccel,
-                                     float ReverseAccel,
-                                     float BrakeAccel,
-                                     float LinearDrag,
-                                     float TurnAccel,
-                                     float TurnDrag,
-                                     float MaxForwardSpeed,
-                                     float MaxReverseSpeed,
-                                     float MaxYawSpeed,
-                                     float MinSteerAuthority,
-                                     float SpeedEpsilon)
-            {
-                if (Pawn)
-                {
-                    Pawn->UpdateBoatMovement(
-                        DeltaTime,
-                        ThrottleInput,
-                        SteerInput,
-                        Mass,
-                        ForwardAccel,
-                        ReverseAccel,
-                        BrakeAccel,
-                        LinearDrag,
-                        TurnAccel,
-                        TurnDrag,
-                        MaxForwardSpeed,
-                        MaxReverseSpeed,
-                        MaxYawSpeed,
-                        MinSteerAuthority,
-                        SpeedEpsilon);
-                }
-            },
-            "GetBoatForwardSpeed", [](APawn* Pawn)
-            {
-                return Pawn ? Pawn->GetBoatForwardSpeed() : 0.0f;
-            },
-            "GetBoatYawSpeed", [](APawn* Pawn)
-            {
-                return Pawn ? Pawn->GetBoatYawSpeed() : 0.0f;
             });
     }
 }
@@ -1200,6 +1174,20 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
 
         UWorld* World = Actor->GetFocusedWorld();
         return World && World->GetExplosionSystem().IsActorPushed(Actor);
+    });
+
+    Lua.set_function("ApplyActorKnockback", [](AActor* Actor, float X, float Y, float Z)
+    {
+        if (!IsUsableActor(Actor))
+        {
+            return;
+        }
+
+        UWorld* World = Actor->GetFocusedWorld();
+        if (World)
+        {
+            World->GetExplosionSystem().ApplyKnockback(Actor, FVector(X, Y, Z));
+        }
     });
 
     Lua.set_function("RequestGameRestart", []()

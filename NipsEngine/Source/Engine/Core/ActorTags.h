@@ -20,6 +20,8 @@ namespace ActorTags
     inline constexpr const char* Rock       = "Rock";       // 암초/바위 (Block + HP)
     inline constexpr const char* Lighthouse = "Lighthouse"; // 도착 지점
 
+    inline constexpr const char* Tire       = "Tire";
+
     inline const TArray<FString>& GetBuiltinTags()
     {
         static const TArray<FString> Tags =
@@ -45,6 +47,7 @@ namespace ActorTags
             Hazard,
             Rock,
             Lighthouse,
+            Tire,
         };
 
         return Tags;

@@ -401,7 +401,7 @@ void UScriptComponent::NotifyScriptDestroyed()
     NotifyScriptDisabled();
 
     bool bHadCallback = false;
-    const bool bResult = TryCallPreferred({ "OnDestroy" }, &bHadCallback);
+    const bool bResult = TryCallPreferred({ "OnDestroy", "EndPlay" }, &bHadCallback);
     if (!bResult && bHadCallback)
     {
         ApplyRuntimeFailurePolicy(true, false, "OnDestroy");
@@ -445,7 +445,7 @@ bool UScriptComponent::TryCallPreferred(
         {
             *bOutHadCallback = true;
         }
-        return LuaSubsystem.CallFunction(ScriptInstance, CallbackName, GetOwner(), std::forward<Args>(args)...);
+        return LuaSubsystem.CallFunction(ScriptInstance, CallbackName, std::forward<Args>(args)...);
     }
 
     return true;

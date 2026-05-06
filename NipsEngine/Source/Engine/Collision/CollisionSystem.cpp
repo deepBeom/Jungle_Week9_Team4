@@ -57,7 +57,7 @@ namespace
 
     bool IsFixedCollisionActor(const AActor* Actor)
     {
-        return Actor && Actor->CompareTag(ActorTags::Rock);
+        return Actor && (Actor->CompareTag(ActorTags::Rock) || Actor->CompareTag(ActorTags::Tire));
     }
 
     bool IsForcedMovableActor(const AActor* Actor)
@@ -197,10 +197,6 @@ namespace
         constexpr float BoatRockKnockbackSpeed = 6.0f;
         if (UWorld* World = BoatActor->GetFocusedWorld())
         {
-            if (APawn* BoatPawn = Cast<APawn>(BoatActor))
-            {
-                BoatPawn->ResetBoatMovement();
-            }
             World->GetExplosionSystem().ApplyKnockback(BoatActor, Knockback * BoatRockKnockbackSpeed);
         }
 
@@ -258,10 +254,6 @@ namespace
             constexpr float BoatHazardKnockbackSpeed = 14.0f;
             if (!Knockback.IsNearlyZero())
             {
-                if (APawn* BoatPawn = Cast<APawn>(BoatActor))
-                {
-                    BoatPawn->ResetBoatMovement();
-                }
                 World->GetExplosionSystem().ApplyKnockback(BoatActor, Knockback * BoatHazardKnockbackSpeed);
             }
             // 3) 폭발 트리거: 반경 안의 Trash/Resource/Recyclable/Premium에 push, 다른 Hazard는 거리 비례 딜레이로 연쇄.

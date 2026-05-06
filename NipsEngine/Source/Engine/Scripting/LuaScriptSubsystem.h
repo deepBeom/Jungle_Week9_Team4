@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include <sol/sol.hpp>
+
+#include "Core/FileWatcher.h"
 #include "Engine/Scripting/LuaScriptInstance.h"
 
 class AActor;
@@ -24,6 +26,10 @@ public:
     void Initialize();
     /** @brief Clears runtime instances and cached script metadata. */
     void Shutdown();
+    /** @brief Processes queued script file changes on the main thread when editor watching is enabled. */
+    void Tick();
+    /** @brief Enables or disables editor-only Lua file watching for shared-script hot reload. */
+    void SetScriptHotReloadEnabled(bool bEnabled);
 
     /**
      * @brief Creates one isolated script instance for an actor/component pair.
@@ -53,7 +59,7 @@ public:
     void DestroyScriptInstance(const std::shared_ptr<FLuaScriptInstance>& Instance);
     /** @brief Reloads all currently valid script instances. */
     void ReloadAllScripts();
-    /** @brief Returns cached script path list. Rebuilds cache when requested or empty. */
+    /** @brief Returns cached script path list. Rebuilds cache when requested or before first initialization. */
     const TArray<FString>& GetAvailableScriptPaths(bool bForceRefresh = false);
     /** @brief Forces script path cache rebuild. */
     void RefreshAvailableScriptPaths();
@@ -84,9 +90,12 @@ public:
         }
 
         sol::protected_function Func = FuncObject;
+        const bool bPassOwnerAsFirstArgument =
+            ShouldPassOwnerAsFirstArgument(Instance, FunctionName, FuncObject, sizeof...(Args));
 
-        sol::protected_function_result Result =
-            Func(std::forward<Args>(args)...);
+        sol::protected_function_result Result = bPassOwnerAsFirstArgument
+            ? Func(Instance->Owner, std::forward<Args>(args)...)
+            : Func(std::forward<Args>(args)...);
 
         if (!Result.valid())
         {
@@ -105,12 +114,26 @@ private:
     void BindEngineTypes();
     /** @brief Delegates global function registration to LuaBinder. */
     void BindGlobalFunctions();
+    /** @brief Starts the Asset/Scripts watcher if the directory exists. */
+    bool StartScriptFileWatcher();
     /** @brief Scans Asset/Scripts and rebuilds cached `.lua` path list. */
     void RebuildScriptPathCache();
+    /** @brief Reloads all component instances whose script file changed on disk. */
+    void ReloadChangedScripts(const TArray<FWString>& ChangedScriptPaths);
     /** @brief Validity gate before invoking Lua callbacks. */
     bool CanInvoke(const std::shared_ptr<FLuaScriptInstance>& Instance) const;
     /** @brief Resolves project-relative script path to absolute normalized wide path. */
     FWString ResolveScriptPathWide(const FString& ScriptPath) const;
+    /** @brief Returns the normalized absolute comparison key for a UTF-8 script path. */
+    FWString MakeScriptPathKey(const FString& ScriptPath) const;
+    /** @brief Returns the normalized absolute comparison key for a wide script path. */
+    FWString MakeScriptPathKey(const FWString& ScriptPath) const;
+    /** @brief Chooses between legacy self-first callbacks and obj/global-style callbacks. */
+    bool ShouldPassOwnerAsFirstArgument(
+        const std::shared_ptr<FLuaScriptInstance>& Instance,
+        const FString& FunctionName,
+        const sol::object& FuncObject,
+        size_t ExplicitArgCount);
     /** @brief Logs callback runtime errors in a consistent format. */
     void LogFunctionError(const FString& FunctionName, const FString& ScriptPath, const char* ErrorMessage) const;
 
@@ -122,4 +145,10 @@ private:
     TArray<std::shared_ptr<FLuaScriptInstance>> ScriptInstances;
     /** Cached relative script paths for editor dropdowns. */
     TArray<FString> AvailableScriptPaths;
+    /** Tracks whether the script path cache has been built at least once. */
+    bool bScriptPathCacheInitialized = false;
+    /** Watches Asset/Scripts for shared Lua hot reload. */
+    FFileWatcher ScriptFileWatcher;
+    /** True only while the editor is in editing mode and hot reload watching is active. */
+    bool bScriptHotReloadEnabled = false;
 };
