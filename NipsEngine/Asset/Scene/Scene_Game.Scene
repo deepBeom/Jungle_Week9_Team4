@@ -1,13 +1,13 @@
 {
   "ClassName" : "UWorld",
   "Name" : "Scene_Game",
-  "NextUUID" : 34311,
+  "NextUUID" : 62334,
   "PerspectiveCamera" : {
     "FOV" : 90.000000,
     "FarClip" : 2000.000000,
-    "Location" : [2.661757, 9.472287, 4.780694],
+    "Location" : [10.288647, -12.434512, 5.538843],
     "NearClip" : 0.100000,
-    "Rotation" : [13.416584, 0.955912, -85.999329]
+    "Rotation" : [-28.013336, -18.689423, 121.061310]
   },
   "Primitives" : {
     "107" : {
@@ -12894,6 +12894,30 @@
       "UseDeterministicPhase" : true,
       "Velocity" : [-1.000000, 0.000000, 1.000000]
     },
+    "36315" : {
+      "ActorClass" : "APawn",
+      "ActorTag" : "IntroCamera",
+      "EditorOnly" : false,
+      "EnableTick" : true,
+      "HiddenInEditor" : false,
+      "Location" : [3.274285, -2.291550, 1.874058],
+      "Rotation" : [29.198046, 27.588629, 116.376762],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "USceneComponent"
+    },
+    "36317" : {
+      "EditorOnly" : false,
+      "EnableTick" : true,
+      "FOV" : 1.047198,
+      "FarClip" : 1000.000000,
+      "HiddenInEditor" : false,
+      "Location" : [-6.000000, 0.000000, 4.000000],
+      "NearClip" : 0.100000,
+      "ParentUUID" : 36315,
+      "Rotation" : [-0.000000, 33.690067, -0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "UCameraComponent"
+    },
     "3719" : {
       "ActorClass" : "AStaticMeshActor",
       "ActorTag" : "Trash",
@@ -12928,6 +12952,40 @@
       "ShapeColor" : [0.000000, 1.000000, 0.000000, 1.000000],
       "Type" : "UBoxComponent",
       "Visible" : true
+    },
+    "41263" : {
+      "EditorOnly" : false,
+      "Enable Cull" : true,
+      "EnableTick" : true,
+      "HiddenInEditor" : false,
+      "Location" : [0.000000, 0.000000, 0.000000],
+      "Materials" : ["材质.024"],
+      "NormalizeOnImport" : false,
+      "ObjStaticMeshAsset" : "Asset/Mesh/Box/Box.obj",
+      "ParentUUID" : 36315,
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Scroll U" : 0.000000,
+      "Scroll V" : 0.000000,
+      "Type" : "UStaticMeshComponent",
+      "Visible" : false
+    },
+    "44307" : {
+      "EditorOnly" : false,
+      "Enable Cull" : true,
+      "EnableTick" : true,
+      "HiddenInEditor" : false,
+      "Location" : [0.000000, 0.000000, 0.000000],
+      "Materials" : ["Material"],
+      "NormalizeOnImport" : false,
+      "ObjStaticMeshAsset" : "Asset\\Mesh\\cube.obj",
+      "ParentUUID" : 36317,
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Scroll U" : 0.000000,
+      "Scroll V" : 0.000000,
+      "Type" : "UStaticMeshComponent",
+      "Visible" : false
     },
     "5287" : {
       "EditorOnly" : false,

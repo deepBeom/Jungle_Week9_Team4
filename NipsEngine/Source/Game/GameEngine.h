@@ -26,8 +26,7 @@ private:
     bool ActivateLoadedStartLevel(bool bBeginPlayNow);
     bool RestartStartLevel();
     void ResetStartLevelRuntimeState();
-    void CreateDriftSalvageHud();
-
+    
     FGameViewportClient ViewportClient;
     bool bRestartRequested = false;
 };

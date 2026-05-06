@@ -68,6 +68,9 @@ protected:
     virtual void WorldTick(float DeltaTime);
 
 protected:
+    void CreateDriftSalvageHud();
+
+protected:
     FWindowsWindow* Window = nullptr;
 
     FName ActiveWorldHandle;

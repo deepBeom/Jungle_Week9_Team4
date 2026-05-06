@@ -13,6 +13,7 @@
 #include "Engine/Core/SoundManager.h"
 #include "Engine/GameFramework/Actor.h"
 #include "Engine/GameFramework/Pawn.h"
+#include "Engine/GameFramework/PrimitiveActors.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Runtime/Engine.h"
@@ -455,6 +456,39 @@ namespace
                 {
                     Component->AddPitchInput(DeltaPitch);
                 }
+            },
+            "SetFOV", [](UCameraComponent* Component, float FOV)
+            {
+                if (Component)
+                {
+                    Component->SetFOV(FOV);
+                }
+            },
+            "GetFOV", [](UCameraComponent* Component) -> float
+            {
+                return Component ? Component->GetFOV() : 0.0f;
+            },
+            "SetOrthographic", [](UCameraComponent* Component, bool bOrthographic)
+            {
+                if (Component)
+                {
+                    Component->SetOrthographic(bOrthographic);
+                }
+            },
+            "IsOrthogonal", [](UCameraComponent* Component) -> bool
+            {
+                return Component && Component->IsOrthogonal();
+            },
+            "SetOrthoWidth", [](UCameraComponent* Component, float OrthoWidth)
+            {
+                if (Component)
+                {
+                    Component->SetOrthoWidth(OrthoWidth);
+                }
+            },
+            "GetOrthoWidth", [](UCameraComponent* Component) -> float
+            {
+                return Component ? Component->GetOrthoWidth() : 0.0f;
             });
     }
 
@@ -782,6 +816,10 @@ namespace
             "FindSceneComponentByClass", [](AActor* Actor, const FString& TypeName) -> USceneComponent*
             {
                 return Cast<USceneComponent>(FindActorComponentByType(Actor, TypeName));
+            },
+            "FindCameraComponent", [](AActor* Actor) -> UCameraComponent*
+            {
+                return Cast<UCameraComponent>(FindActorComponentByType(Actor, "CameraComponent"));
             },
             "GetRootComponent", [](AActor* Actor) -> USceneComponent*
             {
@@ -1198,6 +1236,28 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         }
 
         return nullptr;
+    });
+
+    Lua.set_function("FindActorByTagOrName", [](const FString& Identifier) -> AActor*
+    {
+        UWorld* World = GetActiveGameWorld();
+        return FindActorByTagOrName(World, Identifier);
+    });
+
+    Lua.set_function("SpawnCameraActor", [](const FString& Tag) -> AActor*
+    {
+        UWorld* World = GetActiveGameWorld();
+        if (!World)
+        {
+            return nullptr;
+        }
+
+        ACameraActor* CameraActor = World->SpawnActor<ACameraActor>();
+        if (CameraActor)
+        {
+            CameraActor->SetTag(Tag);
+        }
+        return CameraActor;
     });
     
     Lua.set_function("FindActorsByTag", [](sol::this_state ts, const FString& Tag) -> sol::table
