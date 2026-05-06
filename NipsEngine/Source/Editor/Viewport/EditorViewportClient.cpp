@@ -1,4 +1,4 @@
-#include "Editor/Viewport/EditorViewportClient.h"
+﻿#include "Editor/Viewport/EditorViewportClient.h"
 
 #include <algorithm>
 #include <unordered_set>
@@ -168,6 +168,15 @@ void FEditorViewportClient::Tick(float DeltaTime)
     InputRouter.GetEditorController().SetViewportRect(VX, VY, WindowWidth, WindowHeight);
     InputRouter.GetGameInputController().SetViewportRect(VX, VY, WindowWidth, WindowHeight);
     InputRouter.Tick(DeltaTime);
+
+    if (World && World->GetWorldType() == EWorldType::PIE && bHasCamera)
+    {
+        FPlayerCameraManager& PlayerCameraManager = World->GetPlayerCameraManager();
+        PlayerCameraManager.Update(World->GetUnscaledDeltaTime());
+        PlayerCameraManager.ApplyToViewportCamera(Camera);
+        World->SetActiveCamera(&Camera);
+    }
+
     TickInteraction(DeltaTime);
 }
 

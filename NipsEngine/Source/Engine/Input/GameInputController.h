@@ -38,7 +38,7 @@ public:
     bool IsMouseLocked() const { return bMouseLocked; }
 
 private:
-    // 프로젝트의 전역 sol에 통합되어야 함..
+    // TODO: 프로젝트의 전역 sol에 통합되어야 함..
     template <typename... Args>
     bool CallLuaFunction(const char* FunctionName, Args&&... ArgsToForward)
     {
@@ -99,6 +99,7 @@ private:
     bool bMouseLocked = false;                // 실제 마우스 고정 상태입니다.
     bool bScriptLoadAttempted = false;
     bool bScriptLoaded = false;
+    FString LastScriptError;
 
     FString DefaultControllerScriptPath = "Asset/Scripts/DefaultController.lua";
     FString ActiveControllerScriptPath;

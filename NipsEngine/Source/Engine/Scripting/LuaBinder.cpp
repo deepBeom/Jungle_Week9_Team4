@@ -807,51 +807,6 @@ namespace
             "GetUpVector", [](APawn* Pawn)
             {
                 return Pawn ? Pawn->GetUpVector() : FVector(0.0f, 0.0f, 1.0f);
-            },
-            "UpdateBoatMovement", [](APawn* Pawn,
-                                     float DeltaTime,
-                                     float ThrottleInput,
-                                     float SteerInput,
-                                     float Mass,
-                                     float ForwardAccel,
-                                     float ReverseAccel,
-                                     float BrakeAccel,
-                                     float LinearDrag,
-                                     float TurnAccel,
-                                     float TurnDrag,
-                                     float MaxForwardSpeed,
-                                     float MaxReverseSpeed,
-                                     float MaxYawSpeed,
-                                     float MinSteerAuthority,
-                                     float SpeedEpsilon)
-            {
-                if (Pawn)
-                {
-                    Pawn->UpdateBoatMovement(
-                        DeltaTime,
-                        ThrottleInput,
-                        SteerInput,
-                        Mass,
-                        ForwardAccel,
-                        ReverseAccel,
-                        BrakeAccel,
-                        LinearDrag,
-                        TurnAccel,
-                        TurnDrag,
-                        MaxForwardSpeed,
-                        MaxReverseSpeed,
-                        MaxYawSpeed,
-                        MinSteerAuthority,
-                        SpeedEpsilon);
-                }
-            },
-            "GetBoatForwardSpeed", [](APawn* Pawn)
-            {
-                return Pawn ? Pawn->GetBoatForwardSpeed() : 0.0f;
-            },
-            "GetBoatYawSpeed", [](APawn* Pawn)
-            {
-                return Pawn ? Pawn->GetBoatYawSpeed() : 0.0f;
             });
     }
 }

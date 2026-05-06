@@ -17,25 +17,30 @@ local boat_reverse_accel = 15.0
 -- 전진 중 후진 입력을 넣었을 때 감속하는 제동 가속도입니다. 단위: unit/s^2
 local boat_brake_accel = 15.0
 -- 입력이 없을 때 전후진 속도를 0으로 되돌리는 감쇠량입니다. 단위: unit/s^2
-local boat_linear_drag = 10.0
--- 조향 입력 시 yaw 속도를 누적시키는 기본 회전 가속도입니다. 단위: deg/s^2
-local boat_turn_accel = 60.0
--- 조향 입력이 없을 때 회전 속도를 줄이는 감쇠량입니다. 단위: deg/s^2
-local boat_turn_drag = 30.0
+local boat_linear_drag = 5.0
 -- 가벼운 기준 상태에서의 최대 전진 속도입니다. 단위: unit/s
 local boat_max_forward_speed = 20.0
 -- 가벼운 기준 상태에서의 최대 후진 속도입니다. 단위: unit/s
 local boat_max_reverse_speed = 10.0
--- 가벼운 기준 상태에서의 최대 회전 속도입니다. 단위: deg/s
-local boat_max_yaw_speed = 60.0
--- 저속에서도 남겨둘 최소 조향력 비율입니다. 단위: ratio(0~1)
-local boat_min_steer_authority = 0.2
--- 이 값보다 작은 속도는 0으로 정리하는 임계값입니다. 단위: speed
-local boat_speed_epsilon = 0.001
+
+-- 최대 속도에서 적용되는 조향 가속도입니다. 단위: deg/s^2
+local boat_max_turn_accel = 45.0
+-- 조향 입력이 없을 때 회전 속도를 줄이는 감쇠량입니다. 단위: deg/s^2
+local boat_turn_damping = 10.0
+-- 최대 전진 속도에서의 최대 회전 속도입니다. 단위: deg/s
+local boat_max_turn_speed = 60.0
+-- 정지 상태에서의 최소 조향 가속도입니다. 단위: deg/s^2
+local boat_min_turn_accel = 12.0
 
 local orbit_yaw = nil
 local orbit_pitch = nil
 local orbit_radius = nil
+local is_forward_pressed = false
+local is_backward_pressed = false
+local is_turn_left_pressed = false
+local is_turn_right_pressed = false
+local boat_forward_speed = 0.0
+local boat_turn_speed = 0.0
 
 local function clamp(value, min_value, max_value)
     if value < min_value then
@@ -49,28 +54,16 @@ local function clamp(value, min_value, max_value)
     return value
 end
 
-local function get_cargo_weight()
-    if GetDriftSalvageWeight then
-        return math.max(0.0, GetDriftSalvageWeight())
+local function move_toward(current, target, max_delta)
+    if current < target then
+        return math.min(current + max_delta, target)
     end
 
-    return 0.0
-end
-
-local function get_cargo_weight_capacity()
-    if GetDriftSalvageWeightCapacity then
-        return math.max(0.001, GetDriftSalvageWeightCapacity())
+    if current > target then
+        return math.max(current - max_delta, target)
     end
 
-    return 1.0
-end
-
-local function get_cargo_weight_ratio()
-    return clamp(get_cargo_weight() / get_cargo_weight_capacity(), 0.0, 1.0)
-end
-
-local function get_effective_mass()
-    return math.max(1.0, base_mass + get_cargo_weight_ratio() * cargo_mass_scale)
+    return target
 end
 
 local function get_components()
@@ -89,19 +82,11 @@ local function is_input_locked()
     return IsActorPushed(Pawn)
 end
 
-local function get_input_axis(negative_key, positive_key)
-    local value = 0.0
-    if Input.GetKey(negative_key) then
-        value = value - 1.0
-    end
-    if Input.GetKey(positive_key) then
-        value = value + 1.0
-    end
-    return value
-end
-
+-- TODO: 이 함수 내용들은 PlayerController 스크립트보다는 별도의 Pawn 스크립트에 들어가는 게 더 적절할 수 있습니다.
 function OnUpdate(delta_time)
     if is_input_locked() then
+        boat_forward_speed = 0.0
+        boat_turn_speed = 0.0
         return
     end
 
@@ -110,34 +95,124 @@ function OnUpdate(delta_time)
         return
     end
 
-    -- local dt = clamp(delta_time or 0.0, 0.0001, 0.05)
-    local throttle_input = get_input_axis("S", "W")
-    local steer_input = get_input_axis("A", "D")
-    local mass = get_effective_mass()
+    local safe_delta_time = clamp(delta_time or 0.0, 0.0001, 0.05)
+    local throttle_input = 0.0
+    if is_forward_pressed then
+        throttle_input = throttle_input + 1.0
+    end
+    if is_backward_pressed then
+        throttle_input = throttle_input - 1.0
+    end
 
-    Pawn:UpdateBoatMovement(
-        delta_time,
-        throttle_input,
-        steer_input,
-        mass,
-        boat_forward_accel,
-        boat_reverse_accel,
-        boat_brake_accel,
-        boat_linear_drag,
-        boat_turn_accel,
-        boat_turn_drag,
-        boat_max_forward_speed,
-        boat_max_reverse_speed,
-        boat_max_yaw_speed,
-        boat_min_steer_authority,
-        boat_speed_epsilon
+    local steer_input = 0.0
+    if is_turn_right_pressed then
+        steer_input = steer_input + 1.0
+    end
+    if is_turn_left_pressed then
+        steer_input = steer_input - 1.0
+    end
+
+    local cargo_weight = 0.0
+    if GetDriftSalvageWeight then
+        cargo_weight = math.max(0.0, GetDriftSalvageWeight())
+    end
+
+    local cargo_weight_capacity = 1.0
+    if GetDriftSalvageWeightCapacity then
+        cargo_weight_capacity = math.max(0.001, GetDriftSalvageWeightCapacity())
+    end
+
+    local cargo_weight_ratio = clamp(cargo_weight / cargo_weight_capacity, 0.0, 1.0)
+    local mass = math.max(1.0, base_mass + cargo_weight_ratio * cargo_mass_scale)
+    local mass_scale = 1.0 / math.max(1.0, mass or 1.0)
+    local forward_accel_delta = boat_forward_accel * mass_scale * safe_delta_time
+    local reverse_accel_delta = boat_reverse_accel * mass_scale * safe_delta_time
+    local brake_accel_delta = boat_brake_accel * mass_scale * safe_delta_time
+    local linear_drag_delta = boat_linear_drag * mass_scale * safe_delta_time
+    local turn_damping_delta = boat_turn_damping * mass_scale * safe_delta_time
+
+    if throttle_input > 0.0 then
+        boat_forward_speed = boat_forward_speed + forward_accel_delta
+    elseif throttle_input < 0.0 then
+        if boat_forward_speed > 0.0 then
+            boat_forward_speed = boat_forward_speed - brake_accel_delta
+        else
+            boat_forward_speed = boat_forward_speed - reverse_accel_delta
+        end
+    else
+        boat_forward_speed = move_toward(
+            boat_forward_speed,
+            0.0,
+            linear_drag_delta
+        )
+    end
+
+    boat_forward_speed = clamp(
+        boat_forward_speed,
+        -boat_max_reverse_speed,
+        boat_max_forward_speed
     )
+
+    local speed_ratio = clamp(
+        math.abs(boat_forward_speed) / math.max(boat_max_forward_speed, 0.001),
+        0.0,
+        1.0
+    )
+    local turn_ratio = speed_ratio * speed_ratio * (3.0 - 2.0 * speed_ratio)
+    local turn_accel = boat_min_turn_accel +
+        (boat_max_turn_accel - boat_min_turn_accel) * turn_ratio
+    local turn_accel_delta = turn_accel * mass_scale * safe_delta_time
+    if steer_input ~= 0.0 then
+        boat_turn_speed = boat_turn_speed + steer_input * turn_accel_delta
+    else
+        boat_turn_speed = move_toward(
+            boat_turn_speed,
+            0.0,
+            turn_damping_delta
+        )
+    end
+
+    local max_turn_speed = math.max(
+        boat_min_turn_accel,
+        boat_max_turn_speed * turn_ratio
+    )
+    boat_turn_speed = clamp(
+        boat_turn_speed,
+        -max_turn_speed,
+        max_turn_speed
+    )
+
+    if boat_turn_speed ~= 0.0 then
+        mesh:Rotate(boat_turn_speed * safe_delta_time, 0.0)
+    end
+
+    local forward = Pawn:GetForwardVector()
+    local move_scale = boat_forward_speed * safe_delta_time
+    Pawn:AddPosition(forward.X * move_scale, forward.Y * move_scale, 0.0)
 end
 
 function OnKeyDown(key)
+    if key == "W" then
+        is_forward_pressed = true
+    elseif key == "S" then
+        is_backward_pressed = true
+    elseif key == "A" then
+        is_turn_left_pressed = true
+    elseif key == "D" then
+        is_turn_right_pressed = true
+    end
 end
 
 function OnKeyUp(key)
+    if key == "W" then
+        is_forward_pressed = false
+    elseif key == "S" then
+        is_backward_pressed = false
+    elseif key == "A" then
+        is_turn_left_pressed = false
+    elseif key == "D" then
+        is_turn_right_pressed = false
+    end
 end
 
 function OnMouseMove(delta_x, delta_y, mouse_x, mouse_y)
