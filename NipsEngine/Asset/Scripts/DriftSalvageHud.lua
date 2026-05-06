@@ -18,7 +18,7 @@ local RESTART_FADE_OUT_DURATION = 0.55
 local PLAYER_CAMERA_TARGET = "PlayerCamera"
 local INTRO_CAMERA_TARGET = "IntroCamera"
 local START_CAMERA_BLEND_TIME = 1.5
-local INTRO_LETTERBOX_HEIGHT = 0.14
+local INTRO_LETTERBOX_HEIGHT = 0.1
 local INTRO_LETTERBOX_BLEND_IN = 0.5
 local INTRO_LETTERBOX_DURATION = 3.0
 local GAME_OVER_CAMERA_TARGET = "GameOverCamera"
@@ -40,7 +40,8 @@ local GameplayHud = nil
 local Countdown = nil
 local bGameplayInputReady = false
 local bLowHealthVignetteActive = false
-local LOW_HEALTH_VIGNETTE_RADIUS = 3.0
+local prevHealth = nil
+local LOW_HEALTH_VIGNETTE_RADIUS = 5.0
 local LOW_HEALTH_VIGNETTE_BLEND_TIME = 1.0
 local bGameOverSequencePlaying = false
 local bRestartFadeOutPending = false
@@ -154,6 +155,10 @@ local function RequestGameplayRestartWithFadeOut()
     bGameplayInputReady = false
     StopBoatForwardLoopSfx()
 
+    if Sound and Sound.StopSFX then
+        Sound.StopSFX(DROWNING_SFX)
+    end
+
     if Camera and Camera.FadeOut then
         Camera.FadeOut(RESTART_FADE_OUT_DURATION)
     end
@@ -219,12 +224,37 @@ local function SetLowHealthVignette(enabled)
     if enabled then
         Camera.SetVignette(0.55, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 1.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
     else
-        Camera.SetVignette(0.0, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 1.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
+        Camera.SetVignette(0.0, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 0.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
     end
 end
 
+local function SetGameOverVignette()
+    bLowHealthVignetteActive = true
+    if not Camera or not Camera.SetVignette then
+        return
+    end
+    Camera.SetVignette(0.85, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 0.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
+end
+
+local function FlashHitVignette()
+    if not Camera or not Camera.SetVignette then
+        return
+    end
+    Camera.SetVignette(0.55, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 1.0, 0.0, 0.0, 0.1)
+    StartCoroutine(function()
+        Wait(0.5)
+        if not bLowHealthVignetteActive then
+            Camera.SetVignette(0.0, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 1.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
+        end
+    end)
+end
+
 local function UpdateLowHealthVignette()
-    SetLowHealthVignette(GetHudHealth() <= 2)
+    local currentHealth = GetHudHealth()
+    if prevHealth ~= nil and currentHealth < prevHealth then
+        FlashHitVignette()
+    end
+    prevHealth = currentHealth
 end
 
 local function ResolveBoatActor()
@@ -533,6 +563,9 @@ local function ShowGameOver()
     titleLabel:OnHoverEnter(function() titleLabel:SetColor(1.0, 1.0, 0.0, 1.0) end)
     titleLabel:OnHoverExit(function() titleLabel:SetColor(0.0, 0.0, 0.0, 1.0) end)
     titleLabel:OnClick(function()
+        if Sound and Sound.StopSFX then
+            Sound.StopSFX(DROWNING_SFX)
+        end
         _G.DriftSalvageHudNextStartMode = "Title"
         RequestGameRestart()
     end)
@@ -641,7 +674,7 @@ local function StartHealthZeroGameOverSequence()
     bGameOverSequencePlaying = true
     bGameplayInputReady = false
     StopBoatForwardLoopSfx()
-    SetLowHealthVignette(true)
+    SetGameOverVignette()
     EnterUIMode()
 
     StartCoroutine(function()
@@ -658,7 +691,7 @@ local function StartHealthZeroGameOverSequence()
         BeginGameOverCameraTransition(boat, startPos)
 
         if Sound and Sound.PlaySFX then
-            Sound.PlaySFX(DROWNING_SFX)
+            Sound.PlaySFX(DROWNING_SFX, 3.0)
         end
 
         while true do

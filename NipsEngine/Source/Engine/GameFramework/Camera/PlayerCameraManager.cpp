@@ -1,4 +1,4 @@
-#include "GameFramework/Camera/PlayerCameraManager.h"
+﻿#include "GameFramework/Camera/PlayerCameraManager.h"
 
 #include "Component/CameraComponent.h"
 #include "GameFramework/Actor.h"
@@ -330,7 +330,7 @@ void FPlayerCameraManager::SetLetterBox(float Amount, float BlendTime)
 void FPlayerCameraManager::SetVignette(float Intensity, float Radius, float Softness, FVector Color, float BlendTime)
 {
     const float ClampedIntensity = MathUtil::Clamp(Intensity, 0.0f, 1.0f);
-    const float ClampedRadius = MathUtil::Clamp(Radius, 0.0f, 1.5f);
+    const float ClampedRadius = MathUtil::Clamp(Radius, 0.0f, 3.f);
 
     if (BlendTime <= 0.0f)
     {

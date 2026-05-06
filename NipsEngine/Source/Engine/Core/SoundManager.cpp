@@ -112,7 +112,11 @@ void FSoundManager::PlaySFX(const FString& FileName, float Volume, bool bLoop)
 
 	FMOD::Channel* Ch = nullptr;
 	System->playSound(It->second, SFXGroup, false, &Ch);
-	if (Ch) Ch->setVolume(Volume);
+	if (Ch)
+	{
+		Ch->setVolume(Volume);
+		LoopingSFXChannels[SoundKey] = Ch;
+	}
 }
 
 void FSoundManager::StopSFX(const FString& FileName)
