@@ -244,3 +244,4 @@ void UWorld::UnregisterLight(ULightComponentBase* Comp)
     WorldLightSlots[LightHandle.Index].LightData = nullptr;
     FreeLightSlotList.push_back(LightHandle.Index);
 }
+//
