@@ -3,6 +3,7 @@
 #include "Component/ActorComponent.h"
 #include "Component/Movement/MovementComponent.h"
 #include "GameFramework/World.h"
+#include "Math/Utils.h"
 
 DEFINE_CLASS(AActor, UObject)
 REGISTER_FACTORY(AActor)
@@ -65,6 +66,7 @@ void AActor::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Visible", EPropertyType::Bool, &bVisible });
     OutProps.push_back({ "Active", EPropertyType::Bool, &bIsActive });
     OutProps.push_back({ "Tick In Editor", EPropertyType::Bool, &bTickInEditor });
+    OutProps.push_back({ "Custom Time Dilation", EPropertyType::Float, &CustomTimeDilation, 0.0f, 8.0f, 0.01f });
     OutProps.push_back({ "Pending Location", EPropertyType::Vec3, &PendingActorLocation });
 }
 
@@ -74,6 +76,7 @@ void AActor::PostDuplicate(UObject* Original)
     OwningWorld = nullptr;
     bHasBegunPlay = false;
     bComponentsRegisteredToWorld = false;
+    CustomTimeDilation = OrigActor->CustomTimeDilation;
     OwnedComponents.clear();
 
     // MovementComponent 등 일반 컴포넌트들의 참조를 복원하기 위한 맵을 선언합니다.
@@ -127,9 +130,11 @@ void AActor::Serialize(FArchive& Ar)
     Ar << "Tag" << ActorTag;
     Ar << "Visible" << bVisible;
     Ar << "Editor Only" << bTickInEditor;
+    Ar << "Custom Time Dilation" << CustomTimeDilation;
     if (Ar.IsLoading())
     {
         ActorTag = ActorTags::Normalize(ActorTag);
+        CustomTimeDilation = MathUtil::Clamp(CustomTimeDilation, 0.0f, 8.0f);
     }
     Ar.EndObject();
 
@@ -255,6 +260,11 @@ void AActor::SetVisible(bool Visible)
     MarkPrimitiveComponentsDirty();
 }
 
+void AActor::SetCustomTimeDilation(float InTimeDilation)
+{
+    CustomTimeDilation = MathUtil::Clamp(InTimeDilation, 0.0f, 8.0f);
+}
+
 void AActor::SetWorld(UWorld* World)
 {
     if (OwningWorld == World)
@@ -321,11 +331,12 @@ void AActor::Tick(float DeltaTime)
         return;
     }
 
+    const float ActorDeltaTime = DeltaTime * CustomTimeDilation;
     for (UActorComponent* Component : OwnedComponents)
     {
         if (Component && Component->IsActive())
         {
-            Component->ExecuteTick(DeltaTime);
+            Component->ExecuteTick(ActorDeltaTime);
             if (bPendingDestroy || bBeingDestroyed)
             {
                 break;

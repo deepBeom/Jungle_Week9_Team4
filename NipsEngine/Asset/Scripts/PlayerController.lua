@@ -105,22 +105,18 @@ local function tick_routines(delta_time)
     end
 end
 
-local function boat_slomo_routine()
+local function boat_slomo_visual_routine()
     if is_boat_slomo_running then
         return
     end
 
     is_boat_slomo_running = true
 
-    if Camera ~= nil and Camera.FOVKick ~= nil then
-        Camera.FOVKick(6.0, 0.2)
-    end
+--     if Camera ~= nil and Camera.FOVKick ~= nil then
+--         Camera.FOVKick(6.0, 0.2)
+--     end
 
-    if Camera ~= nil and Camera.SetVignette ~= nil then
-        Camera.SetVignette(0.25, 0.75)
-    end
-
-    Wait(0.12)
+--     Wait(0.12)
 
     is_boat_slomo_running = false
 end
@@ -155,7 +151,13 @@ end
 
 -- TODO: 이 함수 내용들은 PlayerController 스크립트보다는 별도의 Pawn 스크립트에 들어가는 게 더 적절할 수 있습니다.
 function OnUpdate(delta_time)
-    local routine_delta_time = delta_time or 0.0
+    local input_delta_time = delta_time or 0.0
+    local physics_delta_time = input_delta_time
+    if TimeManager ~= nil and TimeManager.GetScaledDeltaTime ~= nil then
+        physics_delta_time = TimeManager.GetScaledDeltaTime()
+    end
+
+    local routine_delta_time = input_delta_time
     if TimeManager ~= nil and TimeManager.GetUnscaledDeltaTime ~= nil then
         routine_delta_time = TimeManager.GetUnscaledDeltaTime()
     end
@@ -178,7 +180,8 @@ function OnUpdate(delta_time)
         return
     end
 
-    local safe_delta_time = clamp(delta_time or 0.0, 0.0001, 0.05)
+    local safe_input_delta_time = clamp(input_delta_time or 0.0, 0.0001, 0.05)
+    local safe_physics_delta_time = clamp(physics_delta_time or 0.0, 0.0, 0.05)
     local throttle_input = 0.0
     if is_forward_pressed then
         throttle_input = throttle_input + 1.0
@@ -208,11 +211,11 @@ function OnUpdate(delta_time)
     local cargo_weight_ratio = clamp(cargo_weight / cargo_weight_capacity, 0.0, 1.0)
     local mass = math.max(1.0, base_mass + cargo_weight_ratio * cargo_mass_scale)
     local mass_scale = 1.0 / math.max(1.0, mass or 1.0)
-    local forward_accel_delta = boat_forward_accel * mass_scale * safe_delta_time
-    local reverse_accel_delta = boat_reverse_accel * mass_scale * safe_delta_time
-    local brake_accel_delta = boat_brake_accel * mass_scale * safe_delta_time
-    local linear_drag_delta = boat_linear_drag * mass_scale * safe_delta_time
-    local turn_damping_delta = boat_turn_damping * mass_scale * safe_delta_time
+    local forward_accel_delta = boat_forward_accel * mass_scale * safe_physics_delta_time
+    local reverse_accel_delta = boat_reverse_accel * mass_scale * safe_physics_delta_time
+    local brake_accel_delta = boat_brake_accel * mass_scale * safe_physics_delta_time
+    local linear_drag_delta = boat_linear_drag * mass_scale * safe_physics_delta_time
+    local turn_damping_delta = boat_turn_damping * mass_scale * safe_input_delta_time
 
     if throttle_input > 0.0 then
         boat_forward_speed = boat_forward_speed + forward_accel_delta
@@ -244,7 +247,7 @@ function OnUpdate(delta_time)
     local turn_ratio = speed_ratio * speed_ratio * (3.0 - 2.0 * speed_ratio)
     local turn_accel = boat_min_turn_accel +
         (boat_max_turn_accel - boat_min_turn_accel) * turn_ratio
-    local turn_accel_delta = turn_accel * mass_scale * safe_delta_time
+    local turn_accel_delta = turn_accel * mass_scale * safe_input_delta_time
     if steer_input ~= 0.0 then
         boat_turn_speed = boat_turn_speed + steer_input * turn_accel_delta
     else
@@ -266,11 +269,11 @@ function OnUpdate(delta_time)
     )
 
     if boat_turn_speed ~= 0.0 then
-        mesh:Rotate(boat_turn_speed * safe_delta_time, 0.0)
+        mesh:Rotate(boat_turn_speed * safe_input_delta_time, 0.0)
     end
 
     local forward = Pawn:GetForwardVector()
-    local move_scale = boat_forward_speed * safe_delta_time
+    local move_scale = boat_forward_speed * safe_physics_delta_time
     Pawn:AddPosition(forward.X * move_scale, forward.Y * move_scale, 0.0)
 end
 
@@ -300,10 +303,6 @@ function OnKeyUp(key)
     
         if TimeManager ~= nil and TimeManager.StopSlomo ~= nil then
             TimeManager.StopSlomo()
-        end
-    
-        if Camera ~= nil and Camera.SetVignette ~= nil then
-            Camera.SetVignette(0.0, 0.75)
         end
     
         return

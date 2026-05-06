@@ -56,6 +56,8 @@ public:
 
     bool IsActive() const { return bIsActive ; }
     void SetActive(bool bEnabled) { bIsActive = bEnabled; }
+    float GetCustomTimeDilation() const { return CustomTimeDilation; }
+    void SetCustomTimeDilation(float InTimeDilation);
 
     const FString& GetTag() const { return ActorTag; }
     void SetTag(const FString& InTag) { ActorTag = ActorTags::Normalize(InTag); }
@@ -141,6 +143,7 @@ protected:
     bool bVisible = true;
     bool bIsActive = true;
     bool bTickInEditor = false;
+    float CustomTimeDilation = 1.0f;
     FString ActorTag = ActorTags::Untagged;
     bool bPendingDestroy = false;
     bool bBeingDestroyed = false;

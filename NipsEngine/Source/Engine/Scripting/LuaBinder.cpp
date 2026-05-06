@@ -796,6 +796,17 @@ namespace
             {
                 return IsValidActorObject(Actor) && Actor->IsPendingDestroy();
             },
+            "GetCustomTimeDilation", [](AActor* Actor)
+            {
+                return IsUsableActor(Actor) ? Actor->GetCustomTimeDilation() : 1.0f;
+            },
+            "SetCustomTimeDilation", [](AActor* Actor, float TimeDilation)
+            {
+                if (IsUsableActor(Actor))
+                {
+                    Actor->SetCustomTimeDilation(TimeDilation);
+                }
+            },
             "IsValid", [](AActor* Actor)
             {
                 return IsUsableActor(Actor);
@@ -1126,7 +1137,7 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
     sol::table TimeManagerTable = Lua.create_table();
     TimeManagerTable.set_function("StartSlomo", [](float TimeScale, float Duration)
     {
-       UWorld* World = GetActiveGameWorld();
+        UWorld* World = GetActiveGameWorld();
         if (World)
         {
             World->StartSlomo(TimeScale, Duration);
@@ -1143,6 +1154,11 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
     TimeManagerTable.set_function("StartHitStop", [](float Duration, sol::object TimeScaleObject)
     {
         UWorld* World = GetActiveGameWorld();
+        if (!World)
+        {
+            return;
+        }
+
         float TimeScale = 0.05f;
         if (TimeScaleObject.valid() && TimeScaleObject.get_type() == sol::type::number)
         {
@@ -1154,6 +1170,12 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
     {
         UWorld* World = GetActiveGameWorld();
         return World ? World->GetGlobalTimeDilation() : 1.0f;
+    });
+    TimeManagerTable.set_function("GetCounterTimeScale", []() -> float
+    {
+        UWorld* World = GetActiveGameWorld();
+        const float TimeScale = World ? World->GetGlobalTimeDilation() : 1.0f;
+        return TimeScale > 0.0001f ? 1.0f / TimeScale : 1.0f;
     });
     TimeManagerTable.set_function("GetScaledDeltaTime", []() -> float
     {

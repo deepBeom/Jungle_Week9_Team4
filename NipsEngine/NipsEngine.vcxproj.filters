@@ -870,6 +870,9 @@
       <Filter>Source\Game</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\SoundManager.cpp" />
+    <ClCompile Include="Source\Engine\Core\TimeManager.cpp">
+      <Filter>Source\Engine\Core</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Collision\CollisionSystem.cpp" />
     <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
     <ClCompile Include="Source\Editor\Input\EditorController.cpp">
@@ -1674,6 +1677,9 @@
       <Filter>Source\Game</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\SoundManager.h" />
+    <ClInclude Include="Source\Engine\Core\TimeManager.h">
+      <Filter>Source\Engine\Core</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Collision\CollisionSystem.h" />
     <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
     <ClInclude Include="Source\Editor\Input\EditorController.h">

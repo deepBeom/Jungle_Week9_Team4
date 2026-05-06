@@ -137,7 +137,7 @@ void UGameEngine::Tick(float DeltaTime)
     }
 
 	InputSystem::Get().Tick();
-	ViewportClient.Tick(ScaledDeltaTime);
+	ViewportClient.Tick(World ? World->GetUnscaledDeltaTime() : UnscaledDeltaTime);
     ViewportClient.UpdateCamera(World ? World->GetUnscaledDeltaTime() : UnscaledDeltaTime);
 	WorldTick(ScaledDeltaTime);
     ViewportClient.UpdateCamera(World ? World->GetUnscaledDeltaTime() : UnscaledDeltaTime);
