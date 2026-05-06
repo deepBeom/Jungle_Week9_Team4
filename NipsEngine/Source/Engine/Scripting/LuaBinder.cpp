@@ -12,7 +12,6 @@
 #include "Engine/Core/ResourceManager.h"
 #include "Engine/GameFramework/Actor.h"
 #include "Engine/GameFramework/Pawn.h"
-#include "Engine/GameFramework/Camera/PlayerCameraManager.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Runtime/Engine.h"
@@ -1029,6 +1028,8 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
     });
 
     sol::table CameraTable = Lua.create_table();
+    // Lua Camera API -> WorldCameraInterface -> internal camera/time systems.
+    // Scripts only know this stable surface; engine internals stay decoupled.
     CameraTable.set_function("SetViewTargetWithBlend", [](const FString& ActorIdentifier, float BlendTime)
     {
         UWorld* World = GetActiveGameWorld();
@@ -1044,14 +1045,15 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
             return;
         }
 
-        World->GetPlayerCameraManager().SetViewTargetWithBlend(TargetActor, BlendTime);
+        // Forward request to unified camera façade.
+        World->GetCameraInterface().SetViewTargetWithBlend(TargetActor, BlendTime);
     });
     CameraTable.set_function("Shake", [](float Amplitude, float Frequency, float Duration)
     {
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().AddCameraShake(Amplitude, Frequency, Duration);
+            World->GetCameraInterface().AddCameraShake(Amplitude, Frequency, Duration);
         }
     });
     CameraTable.set_function("FadeIn", [](float Duration)
@@ -1059,7 +1061,7 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().FadeIn(Duration);
+            World->GetCameraInterface().FadeIn(Duration);
         }
     });
     CameraTable.set_function("FadeOut", [](float Duration)
@@ -1067,7 +1069,7 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().FadeOut(Duration);
+            World->GetCameraInterface().FadeOut(Duration);
         }
     });
     CameraTable.set_function("SetLetterBox", [](float Amount, float BlendTime)
@@ -1075,7 +1077,7 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().SetLetterBox(Amount, BlendTime);
+            World->GetCameraInterface().SetLetterBox(Amount, BlendTime);
         }
     });
     CameraTable.set_function("SetVignette", [](float Intensity, float Radius, float Softness)
@@ -1083,7 +1085,7 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().SetVignette(Intensity, Radius, Softness);
+            World->GetCameraInterface().SetVignette(Intensity, Radius, Softness);
         }
     });
     CameraTable.set_function("EnableGammaCorrection", [](bool bEnabled)
@@ -1091,7 +1093,7 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().EnableGammaCorrection(bEnabled);
+            World->GetCameraInterface().EnableGammaCorrection(bEnabled);
         }
     });
     CameraTable.set_function("FOVKick", [](float AddFovDegrees, float Duration)
@@ -1099,18 +1101,19 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->GetPlayerCameraManager().AddFOVKick(AddFovDegrees, Duration);
+            World->GetCameraInterface().AddFOVKick(AddFovDegrees, Duration);
         }
     });
     Lua["Camera"] = CameraTable;
 
     sol::table HitFeelTable = Lua.create_table();
+    // Hit-feel API also goes through the same façade so Lua call sites remain uniform.
     HitFeelTable.set_function("HitStop", [](float Duration)
     {
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->StartHitStop(Duration, 0.05f);
+            World->GetCameraInterface().HitStop(Duration, 0.05f);
         }
     });
     HitFeelTable.set_function("Slomo", [](float TimeScale, float Duration)
@@ -1118,7 +1121,7 @@ void LuaBinder::BindGlobalFunctions(sol::state& Lua)
         UWorld* World = GetActiveGameWorld();
         if (World)
         {
-            World->StartSlomo(TimeScale, Duration);
+            World->GetCameraInterface().Slomo(TimeScale, Duration);
         }
     });
     Lua["HitFeel"] = HitFeelTable;
