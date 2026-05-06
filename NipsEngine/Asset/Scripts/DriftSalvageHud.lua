@@ -15,6 +15,19 @@ local BOAT_FORWARD_LOOP_SFX = "boatMove.mp3"
 local DEFAULT_WEIGHT_CAPACITY = 150.0
 local START_FADE_IN_DURATION = 0.55
 local RESTART_FADE_OUT_DURATION = 0.55
+local PLAYER_CAMERA_TARGET = "PlayerCamera"
+local INTRO_CAMERA_TARGET = "IntroCamera"
+local START_CAMERA_BLEND_TIME = 1.5
+local INTRO_LETTERBOX_HEIGHT = 0.1
+local INTRO_LETTERBOX_BLEND_IN = 0.5
+local INTRO_LETTERBOX_DURATION = 3.0
+local GAME_OVER_CAMERA_TARGET = "GameOverCamera"
+local GAME_OVER_CAMERA_BLEND_TIME = 3.0
+local GAME_OVER_CAMERA_BACK_DISTANCE = 7.0
+local GAME_OVER_CAMERA_SIDE_OFFSET = 1.5
+local GAME_OVER_CAMERA_HEIGHT = 30.0
+local GAME_OVER_CAMERA_LOOK_HEIGHT = 0.6
+local GAME_OVER_CAMERA_FORCE_PERSPECTIVE = true
 
 local MenuPanel = nil
 local ScorePanel = nil
@@ -27,8 +40,12 @@ local GameplayHud = nil
 local Countdown = nil
 local bGameplayInputReady = false
 local bLowHealthVignetteActive = false
-local LOW_HEALTH_VIGNETTE_RADIUS = 3.0
+local prevHealth = nil
+local LOW_HEALTH_VIGNETTE_RADIUS = 5.0
 local LOW_HEALTH_VIGNETTE_BLEND_TIME = 1.0
+local DAMAGE_SHAKE_DURATION = 0.3
+local DAMAGE_SHAKE_LOCATION_AMPLITUDE = 4.0
+local DAMAGE_SHAKE_LOCATION_FREQUENCY = 3.0
 local bGameOverSequencePlaying = false
 local bRestartFadeOutPending = false
 local bLighthouseEndingPlaying = false
@@ -36,6 +53,8 @@ local BOAT_SINK_GAMEOVER_DELAY = 3.0
 local BOAT_SINK_DEPTH = 4.0
 local BOAT_SINK_ROLL_DEGREES = 12.0
 local BOAT_SINK_YAW_DEGREES = 24.0
+local DROWNING_SFX = "Drowning.wav"
+local WAVE_SFX = "Wave.mp3"
 
 -- Lighthouse 도착 엔딩 연출 파라미터.
 -- 카메라가 CineCamera_Outro로 블렌딩되는 동안 보트는 선형 감속으로 정지한다.
@@ -135,6 +154,18 @@ local function FadeInGameplay()
     end
 end
 
+local function ReturnToPlayerCamera(blendTime)
+    if Camera and Camera.SetViewTargetWithBlend then
+        Camera.SetViewTargetWithBlend(PLAYER_CAMERA_TARGET, blendTime or 0.0)
+    end
+end
+
+local function SetIntroCamera(blendTime)
+    if Camera and Camera.SetViewTargetWithBlend then
+        Camera.SetViewTargetWithBlend(INTRO_CAMERA_TARGET, blendTime or 0.0)
+    end
+end
+
 local function RequestGameplayRestartWithFadeOut()
     if bRestartFadeOutPending then
         return
@@ -143,6 +174,10 @@ local function RequestGameplayRestartWithFadeOut()
     bRestartFadeOutPending = true
     bGameplayInputReady = false
     StopBoatForwardLoopSfx()
+
+    if Sound and Sound.StopSFX then
+        Sound.StopSFX(DROWNING_SFX)
+    end
 
     if Camera and Camera.FadeOut then
         Camera.FadeOut(RESTART_FADE_OUT_DURATION)
@@ -209,12 +244,61 @@ local function SetLowHealthVignette(enabled)
     if enabled then
         Camera.SetVignette(0.55, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 1.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
     else
-        Camera.SetVignette(0.0, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 1.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
+        Camera.SetVignette(0.0, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 0.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
     end
 end
 
+local function SetGameOverVignette()
+    bLowHealthVignetteActive = true
+    if not Camera or not Camera.SetVignette then
+        return
+    end
+    Camera.SetVignette(0.85, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 0.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
+end
+
+local function FlashHitVignette()
+    if not Camera or not Camera.SetVignette then
+        return
+    end
+    Camera.SetVignette(0.55, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 1.0, 0.0, 0.0, 0.1)
+    StartCoroutine(function()
+        Wait(0.5)
+        if not bLowHealthVignetteActive then
+            Camera.SetVignette(0.0, LOW_HEALTH_VIGNETTE_RADIUS, 0.35, 1.0, 0.0, 0.0, LOW_HEALTH_VIGNETTE_BLEND_TIME)
+        end
+    end)
+end
+
+local function PlayDamageCameraShake()
+    if not Camera or not Camera.Shake then
+        return
+    end
+
+    Camera.Shake({
+        Type = "WaveOscillator",
+        Duration = DAMAGE_SHAKE_DURATION,
+        LocationAmplitude = Vec3.new(
+            DAMAGE_SHAKE_LOCATION_AMPLITUDE,
+            DAMAGE_SHAKE_LOCATION_AMPLITUDE,
+            DAMAGE_SHAKE_LOCATION_AMPLITUDE * 0.4),
+        LocationFrequency = Vec3.new(
+            DAMAGE_SHAKE_LOCATION_FREQUENCY,
+            DAMAGE_SHAKE_LOCATION_FREQUENCY * 1.15,
+            DAMAGE_SHAKE_LOCATION_FREQUENCY * 0.85),
+        RotationAmplitude = Vec3.new(0.0, 0.0, 0.0),
+        RotationFrequency = Vec3.new(0.0, 0.0, 0.0),
+        FOVAmplitude = 0.0,
+        FOVFrequency = 0.0,
+    })
+end
+
 local function UpdateLowHealthVignette()
-    SetLowHealthVignette(GetHudHealth() <= 2)
+    local currentHealth = GetHudHealth()
+    if prevHealth ~= nil and currentHealth < prevHealth then
+        FlashHitVignette()
+        PlayDamageCameraShake()
+    end
+    prevHealth = currentHealth
 end
 
 local function ResolveBoatActor()
@@ -254,6 +338,89 @@ local function GetActorYawDegrees(actor)
     return rot.Z or rot.Y or 0.0
 end
 
+local function GetPlanarForward(actor)
+    if not actor or not actor.GetForwardVector then
+        return 1.0, 0.0
+    end
+
+    local forward = actor:GetForwardVector()
+    local x = forward and (forward.X or 0.0) or 0.0
+    local y = forward and (forward.Y or 0.0) or 0.0
+    local length = math.sqrt(x * x + y * y)
+
+    if length <= 0.0001 then
+        return 1.0, 0.0
+    end
+
+    return x / length, y / length
+end
+
+local function BeginGameOverCameraTransition(boat, focusPos)
+    if not Camera or not Camera.SetViewTargetWithBlend then
+        return
+    end
+
+    local cameraActor = nil
+    if FindActorByTagOrName then
+        cameraActor = FindActorByTagOrName(GAME_OVER_CAMERA_TARGET)
+    elseif FindActorByTag then
+        cameraActor = FindActorByTag(GAME_OVER_CAMERA_TARGET)
+    end
+
+    if not cameraActor or not cameraActor:IsValid() then
+        if SpawnCameraActor then
+            cameraActor = SpawnCameraActor(GAME_OVER_CAMERA_TARGET)
+        end
+
+        if not cameraActor or not cameraActor:IsValid() then
+            if Log then
+                Log("GameOverCamera not found and SpawnCameraActor is unavailable.")
+            end
+            return
+        end
+    end
+
+    local focus = focusPos
+    if not focus and boat and boat:IsValid() then
+        focus = boat:GetPosition()
+    end
+    if not focus then
+        return
+    end
+
+    local forwardX, forwardY = GetPlanarForward(boat)
+    local rightX = -forwardY
+    local rightY = forwardX
+    local cameraX = (focus.X or 0.0) - forwardX * GAME_OVER_CAMERA_BACK_DISTANCE + rightX * GAME_OVER_CAMERA_SIDE_OFFSET
+    local cameraY = (focus.Y or 0.0) - forwardY * GAME_OVER_CAMERA_BACK_DISTANCE + rightY * GAME_OVER_CAMERA_SIDE_OFFSET
+    local cameraZ = (focus.Z or 0.0) + GAME_OVER_CAMERA_HEIGHT
+
+    cameraActor:SetPosition(cameraX, cameraY, cameraZ)
+
+    local cameraComponent = nil
+    if cameraActor.FindCameraComponent then
+        cameraComponent = cameraActor:FindCameraComponent()
+    end
+
+    if cameraComponent then
+        if GAME_OVER_CAMERA_FORCE_PERSPECTIVE and cameraComponent.SetOrthographic then
+            cameraComponent:SetOrthographic(false)
+        end
+
+        if cameraComponent.SetWorldLocation then
+            cameraComponent:SetWorldLocation(cameraX, cameraY, cameraZ)
+        end
+
+        if cameraComponent.LookAt then
+            cameraComponent:LookAt(focus.X or 0.0, focus.Y or 0.0, (focus.Z or 0.0) + GAME_OVER_CAMERA_LOOK_HEIGHT)
+        end
+    elseif Log then
+        Log("GameOverCamera has no CameraComponent.")
+    end
+
+    Camera.SetViewTargetWithBlend(GAME_OVER_CAMERA_TARGET, GAME_OVER_CAMERA_BLEND_TIME)
+end
+
 local function SetBoatAtHome()
     local boat = ResolveBoatActor()
     if not boat then return end
@@ -270,6 +437,7 @@ end
 local function PrepareMenuPresentation()
     EnterUIMode()
     SetBoatAtHome()
+    ReturnToPlayerCamera(0.0)
 end
 
 local function CreateCenteredText(parent, x, y, text, fontSize)
@@ -440,18 +608,22 @@ local function ShowGameOver()
     titleLabel:OnHoverEnter(function() titleLabel:SetColor(1.0, 1.0, 0.0, 1.0) end)
     titleLabel:OnHoverExit(function() titleLabel:SetColor(0.0, 0.0, 0.0, 1.0) end)
     titleLabel:OnClick(function()
+        if Sound and Sound.StopSFX then
+            Sound.StopSFX(DROWNING_SFX)
+        end
         _G.DriftSalvageHudNextStartMode = "Title"
         RequestGameRestart()
     end)
 end
 
-local function StartGameplay()
+local function StartGameplay(playerCameraBlendTime)
     bRestartFadeOutPending = false
     bGameplayInputReady = false
     bGameOverSequencePlaying = false
     bLighthouseEndingPlaying = false
     StopBoatForwardLoopSfx()
     SetLowHealthVignette(false)
+    ReturnToPlayerCamera(playerCameraBlendTime or 0.0)
     FadeInGameplay()
     HideHud()
     HideCountdown()
@@ -496,7 +668,26 @@ ShowHud = function()
 
     local startLabel = MakeHoverLabel(MenuPanel, 0.025, 0.03, 256, 28, "START", 48.0, "RelativePos")
     startLabel:OnClick(function()
-        StartGameplay()
+        StartCoroutine(function()
+            HideHud()
+            if Sound and Sound.StopBGM then
+                Sound.StopBGM()
+            end
+            SetIntroCamera(0.0)
+            if Camera and Camera.SetLetterBox then
+                Camera.SetLetterBox(INTRO_LETTERBOX_HEIGHT, INTRO_LETTERBOX_BLEND_IN)
+            end
+            if Sound and Sound.PlaySFX then
+                Sound.PlaySFX(WAVE_SFX, 1.0)
+            end
+            Wait(INTRO_LETTERBOX_DURATION)
+            ReturnToPlayerCamera(START_CAMERA_BLEND_TIME)
+            if Camera and Camera.SetLetterBox then
+                Camera.SetLetterBox(0.0, START_CAMERA_BLEND_TIME)
+            end
+            Wait(START_CAMERA_BLEND_TIME)
+            StartGameplay(0.0)
+        end)
     end)
 
     UIManager.CreateImage(MenuPanel, -0.25, 0.4, 0.15, 0.25, "Asset/Texture/UI/Icon_book.png", "ParentRelative")
@@ -518,7 +709,7 @@ function OnStart(self)
     _G.DriftSalvageHudNextStartMode = nil
 
     if nextStartMode == "Gameplay" then
-        StartGameplay()
+        StartGameplay(0.0)
         return
     end
 
@@ -533,7 +724,7 @@ local function StartHealthZeroGameOverSequence()
     bGameOverSequencePlaying = true
     bGameplayInputReady = false
     StopBoatForwardLoopSfx()
-    SetLowHealthVignette(true)
+    SetGameOverVignette()
     EnterUIMode()
 
     StartCoroutine(function()
@@ -545,6 +736,12 @@ local function StartHealthZeroGameOverSequence()
         if boat and boat:IsValid() then
             startPos = boat:GetPosition()
             startRot = boat:GetRotation()
+        end
+
+        BeginGameOverCameraTransition(boat, startPos)
+
+        if Sound and Sound.PlaySFX then
+            Sound.PlaySFX(DROWNING_SFX, 3.0)
         end
 
         while true do

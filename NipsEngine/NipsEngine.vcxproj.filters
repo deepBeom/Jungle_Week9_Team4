@@ -263,6 +263,9 @@
     <ClCompile Include="Source\Editor\UI\EditorControlWidget.cpp">
       <Filter>Source\Editor\UI</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Editor\UI\EditorCameraSequenceWidget.cpp">
+      <Filter>Source\Editor\UI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Editor\UI\EditorMainPanel.cpp">
       <Filter>Source\Editor\UI</Filter>
     </ClCompile>
@@ -365,6 +368,9 @@
     <ClCompile Include="Source\Engine\Component\SceneComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Component\SpringArmComponent.cpp">
+      <Filter>Source\Engine\Component</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Component\SkyAtmosphereComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
     </ClCompile>
@@ -465,6 +471,9 @@
       <Filter>Source\Engine\GameFramework\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\Camera\CameraModifier_CameraShake.cpp">
+      <Filter>Source\Engine\GameFramework\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\GameFramework\Camera\CameraSequenceManager.cpp">
       <Filter>Source\Engine\GameFramework\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\Camera\CameraModifier_FOVKick.cpp">
@@ -926,6 +935,9 @@
     <ClInclude Include="Source\Editor\UI\EditorControlWidget.h">
       <Filter>Source\Editor\UI</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Editor\UI\EditorCameraSequenceWidget.h">
+      <Filter>Source\Editor\UI</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Editor\UI\EditorMainPanel.h">
       <Filter>Source\Editor\UI</Filter>
     </ClInclude>
@@ -1041,6 +1053,9 @@
       <Filter>Source\Engine\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\SceneComponent.h">
+      <Filter>Source\Engine\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\SpringArmComponent.h">
       <Filter>Source\Engine\Component</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\SkyAtmosphereComponent.h">
@@ -1203,6 +1218,9 @@
       <Filter>Source\Engine\GameFramework\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\Camera\CameraModifier_CameraShake.h">
+      <Filter>Source\Engine\GameFramework\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\GameFramework\Camera\CameraSequenceManager.h">
       <Filter>Source\Engine\GameFramework\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\Camera\CameraModifier_FOVKick.h">

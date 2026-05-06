@@ -2,6 +2,14 @@
 -- "PlayerCamera" resolves back to the first pawn camera.
 
 local ActiveText = nil
+local WAVE_SFX = "Wave.mp3"
+local WAVE_SFX_VOLUME = 0.5
+
+local function PlayWaveSfx()
+    if Sound and Sound.PlaySFX then
+        Sound.PlaySFX(WAVE_SFX, WAVE_SFX_VOLUME)
+    end
+end
 
 local function ClearText()
     if ActiveText ~= nil then
@@ -28,6 +36,7 @@ local function IntroSequence()
     end
 
     Camera.EnableGammaCorrection(true)
+    PlayWaveSfx()
     Camera.SetLetterBox(0.14, 0.5)
     Camera.FadeIn(2.0)
     Camera.SetViewTargetWithBlend("CineCamera_Intro", 0.0)

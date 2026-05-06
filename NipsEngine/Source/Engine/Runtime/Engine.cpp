@@ -9,6 +9,7 @@
 #include "Render/Renderer/DefaultRenderPipeline.h"
 #include "GameFramework/World.h"
 #include "Engine/UI/UIManager.h"
+#include "Engine/Component/Script/ScriptComponent.h"
 
 DEFINE_CLASS(UEngine, UObject)
 
@@ -101,6 +102,16 @@ void UEngine::WorldTick(float DeltaTime)
     {
         World->Tick(DeltaTime);
     }
+}
+
+void UEngine::CreateDriftSalvageHud()
+{
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    AActor* HudActor = World->SpawnActor<AActor>();
+    UScriptComponent* Script = HudActor->AddComponent<UScriptComponent>();
+    Script->SetScriptPath("Asset/Scripts/DriftSalvageHud.lua");
 }
 
 UWorld* UEngine::GetWorld() const

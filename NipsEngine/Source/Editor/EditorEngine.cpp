@@ -1,4 +1,4 @@
-#include "Editor/EditorEngine.h"
+﻿#include "Editor/EditorEngine.h"
 
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Slate/SlateApplication.h"
@@ -161,6 +161,7 @@ void UEditorEngine::StartPlaySession()
     SelectionManager.ClearSelection();
 
     PIEWorld->SetActiveCamera(FocusedClient->GetCamera());
+    CreateDriftSalvageHud();
     PIEWorld->BeginPlay();
 }
 

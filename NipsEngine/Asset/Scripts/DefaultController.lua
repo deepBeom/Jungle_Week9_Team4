@@ -19,13 +19,17 @@ end
 function OnKeyUp(key)
 end
 
+
 function OnMouseMove(delta_x, delta_y, mouse_x, mouse_y)
     if Camera == nil then return end
     if IsMouseLocked ~= nil and not IsMouseLocked() then return end
-
+    
     local rotation = Camera:GetRotation()
     Camera:SetRotation(rotation.X - delta_y * look_speed, rotation.Y + delta_x * look_speed, rotation.Z)
 end
 
 function OnMouseClick(button, is_pressed, mouse_x, mouse_y)
+end
+
+function OnUpdate()
 end

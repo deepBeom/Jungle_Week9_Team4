@@ -1,6 +1,8 @@
 ﻿#pragma once
 
+#include "Engine/Core/Containers/String.h"
 #include "GameFramework/Camera/CameraModifier.h"
+#include "GameFramework/Camera/CameraSequenceManager.h"
 
 enum class ECameraShakePatternType
 {
@@ -23,6 +25,8 @@ struct FCameraShakeParams
     ECameraShakePatternType PatternType = ECameraShakePatternType::WaveOscillator;
     float Duration = 0.0f;
     FCameraShakeWaveOscillatorParams WaveOscillator;
+    FString Sequence;
+    float Scale = 1.0f;
 };
 
 struct FCameraShakePatternUpdateResult
@@ -73,18 +77,14 @@ private:
 class FSequenceCameraShakePattern : public ICameraShakePattern
 {
 public:
-    // Sequence에서는 TotalDuration 무시하고 Sequence 총 길이 쓸게요..
-    // 혹은 호출자에서 TotalDuration에 Sequence길이 넣어주면 될듯
+    explicit FSequenceCameraShakePattern(const FCameraShakeParams& InParams);
+
     FCameraShakePatternUpdateResult UpdatePattern(
         float DeltaTime,
         float ElapsedTime,
         float TotalDuration = -1.0f) override;
 
-public:
-    class UCameraAnimationSequence
-    {
-
-    };
-    // TODO: 어흑마이깟
-    UCameraAnimationSequence* Sequence = nullptr;
+private:
+    std::shared_ptr<const FCameraSequenceAsset> SequenceAsset;
+    float Scale = 1.0f;
 };

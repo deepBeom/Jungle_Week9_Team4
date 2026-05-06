@@ -90,16 +90,6 @@ bool UGameEngine::ActivateLoadedStartLevel(bool bBeginPlayNow)
     return true;
 }
 
-void UGameEngine::CreateDriftSalvageHud()
-{
-    UWorld* World = GetWorld();
-    if (!World) return;
-
-    AActor* HudActor = World->SpawnActor<AActor>();
-    UScriptComponent* Script = HudActor->AddComponent<UScriptComponent>();
-    Script->SetScriptPath("Asset/Scripts/DriftSalvageHud.lua");
-}
-
 void UGameEngine::RequestGameRestart()
 {
     bRestartRequested = true;
