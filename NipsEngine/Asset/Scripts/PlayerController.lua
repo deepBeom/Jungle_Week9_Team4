@@ -45,7 +45,7 @@ local is_turn_right_pressed = false
 local boat_forward_speed = 0.0
 local boat_turn_speed = 0.0
 local active_routines = {} -- 진행 중인 Coroutine 목록
-local is_slomo_key_pressed = false
+local is_slomo_input_pressed = false
 local is_boat_slomo_running = false -- Slomo Coroutine이 중복 실행되지 않게 막기용
 local is_forward_loop_sfx_playing = false
 local boat_slomo_time_scale = 0.35
@@ -180,7 +180,7 @@ function OnUpdate(delta_time)
     local input_delta_time = routine_delta_time
 
     tick_routines(routine_delta_time)
-    if is_slomo_key_pressed then
+    if is_slomo_input_pressed then
         boat_slomo_remaining_time = boat_slomo_refresh_duration
     end    
     boat_slomo_remaining_time = math.max(
@@ -305,14 +305,6 @@ function OnUpdate(delta_time)
 end
 
 function OnKeyDown(key)
-    if key == "O" then
-        if not is_slomo_key_pressed then
-            is_slomo_key_pressed = true
-            start_routine(boat_slomo_visual_routine)
-        end
-        return
-    end
-    
     if key == "W" then
         is_forward_pressed = true
     elseif key == "S" then
@@ -325,13 +317,6 @@ function OnKeyDown(key)
 end
 
 function OnKeyUp(key)
-    if key == "O" then
-        is_slomo_key_pressed = false
-        boat_slomo_remaining_time = 0.0
-    
-        return
-    end
-    
     if key == "W" then
         is_forward_pressed = false
     elseif key == "S" then
@@ -401,6 +386,19 @@ function OnMouseMove(delta_x, delta_y, mouse_x, mouse_y)
 end
 
 function OnMouseClick(button, is_pressed, mouse_x, mouse_y)
+    if button == "RightMouseButton" then
+        if is_pressed then
+            if not is_slomo_input_pressed then
+                is_slomo_input_pressed = true
+                start_routine(boat_slomo_visual_routine)
+            end
+        else
+            is_slomo_input_pressed = false
+            boat_slomo_remaining_time = 0.0
+        end
+
+        return
+    end
 end
 
 function OnDestroy()
