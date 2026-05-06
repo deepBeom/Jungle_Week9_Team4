@@ -52,9 +52,10 @@ namespace EditorUIUtils
 
     bool RenderStringComboOrInput(const char* Label, FString& Value, const TArray<FString>& Options)
     {
+        bool bChanged = false;
+
         if (!Options.empty())
         {
-            bool bChanged = false;
             if (ImGui::BeginCombo(Label, Value.empty() ? "<None>" : Value.c_str()))
             {
                 for (const FString& Path : Options)
@@ -70,19 +71,24 @@ namespace EditorUIUtils
                 }
                 ImGui::EndCombo();
             }
-            return bChanged;
         }
-        else
+
+        // Always expose direct input so users can add tags/paths not in presets.
+        char Buf[256];
+        strncpy_s(Buf, sizeof(Buf), Value.c_str(), _TRUNCATE);
+
+        FString InputLabel = Options.empty()
+            ? FString(Label)
+            : (FString(Label) + " (Custom)");
+        InputLabel += "##Input";
+
+        if (ImGui::InputText(InputLabel.c_str(), Buf, sizeof(Buf)))
         {
-            char Buf[256];
-            strncpy_s(Buf, sizeof(Buf), Value.c_str(), _TRUNCATE);
-            if (ImGui::InputText(Label, Buf, sizeof(Buf)))
-            {
-                Value = Buf;
-                return true;
-            }
-            return false;
+            Value = Buf;
+            bChanged = true;
         }
+
+        return bChanged;
     }
 
     FString GetMovementComponentDisplayName(UMovementComponent* MoveComp)

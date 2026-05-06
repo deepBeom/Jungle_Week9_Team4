@@ -3,6 +3,7 @@
 #include "Object/ObjectFactory.h"
 #include "Component/SceneComponent.h"
 #include "Core/ActorTags.h"
+#include "Core/ActorTagRegistry.h"
 #include "Engine/GameFramework/WorldContext.h"
 
 #include <type_traits>
@@ -58,7 +59,11 @@ public:
     void SetActive(bool bEnabled) { bIsActive = bEnabled; }
 
     const FString& GetTag() const { return ActorTag; }
-    void SetTag(const FString& InTag) { ActorTag = ActorTags::Normalize(InTag); }
+    void SetTag(const FString& InTag)
+    {
+        ActorTag = ActorTags::Normalize(InTag);
+        ActorTagRegistry::RegisterUsedTag(ActorTag);
+    }
     bool CompareTag(const FString& InTag) const { return ActorTag == InTag; }
 
     bool ShouldTickInEditor() const { return bTickInEditor; }

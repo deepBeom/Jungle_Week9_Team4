@@ -3,6 +3,7 @@
 #include "Editor/EditorEngine.h"
 #include "ImGui/imgui.h"
 #include "Core/ActorTags.h"
+#include "Core/ActorTagRegistry.h"
 #include "Core/PropertyTypes.h"
 #include "Math/Color.h"
 #include "Core/ResourceManager.h"
@@ -283,16 +284,102 @@ void FEditorPropertyWidget::RenderActorTagWidget(AActor* PrimaryActor, const TAr
         return;
     }
 
-    FString CurrentTag = PrimaryActor->GetTag();
-    if (EditorUIUtils::RenderStringComboOrInput("Tag", CurrentTag, ActorTags::GetBuiltinTags()))
+    auto ApplyTagToSelection = [&](const FString& NewTag)
     {
         for (AActor* Actor : SelectedActors)
         {
             if (Actor)
             {
-                Actor->SetTag(CurrentTag);
+                Actor->SetTag(NewTag);
             }
         }
+    };
+
+    FString CurrentTag = PrimaryActor->GetTag();
+
+    // Preset tag selection (combo).
+    if (ImGui::BeginCombo("Tag", CurrentTag.empty() ? "<None>" : CurrentTag.c_str()))
+    {
+        const TArray<FString>& ProjectTags = ActorTagRegistry::GetProjectTags();
+        for (const FString& Tag : ProjectTags)
+        {
+            const bool bSelected = (CurrentTag == Tag);
+            if (ImGui::Selectable(Tag.c_str(), bSelected))
+            {
+                ApplyTagToSelection(Tag);
+                CurrentTag = Tag;
+            }
+
+            if (bSelected)
+            {
+                ImGui::SetItemDefaultFocus();
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    // Custom tag input is staged and only applied via explicit button.
+    static uint32 LastActorUUID = 0;
+    static FString PendingCustomTag;
+    static char CustomTagBuf[256] = {};
+    if (LastActorUUID != PrimaryActor->GetUUID())
+    {
+        LastActorUUID = PrimaryActor->GetUUID();
+        PendingCustomTag = CurrentTag;
+        strncpy_s(CustomTagBuf, sizeof(CustomTagBuf), PendingCustomTag.c_str(), _TRUNCATE);
+    }
+
+    if (ImGui::InputText("Tag (Custom)", CustomTagBuf, sizeof(CustomTagBuf)))
+    {
+        PendingCustomTag = CustomTagBuf;
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Add/Apply Tag"))
+    {
+        PendingCustomTag = CustomTagBuf;
+        if (!PendingCustomTag.empty())
+        {
+            ApplyTagToSelection(PendingCustomTag);
+            ActorTagRegistry::RegisterUsedTag(PendingCustomTag);
+            CurrentTag = PendingCustomTag;
+        }
+    }
+
+    if (ImGui::Button("Promote to Config"))
+    {
+        if (!ActorTagRegistry::PromoteTagToConfig(CurrentTag))
+        {
+            UE_LOG("[ActorTag] Failed to promote tag '%s' to Config/ActorTags.txt\n", CurrentTag.c_str());
+        }
+    }
+
+    if (ImGui::TreeNode("Used Tags"))
+    {
+        const TArray<FString>& UsedTags = ActorTagRegistry::GetUsedTagsView();
+        if (UsedTags.empty())
+        {
+            ImGui::TextDisabled("No used tags yet.");
+        }
+        else
+        {
+            for (const FString& Tag : UsedTags)
+            {
+                const bool bSelected = (Tag == CurrentTag);
+                if (ImGui::Selectable(Tag.c_str(), bSelected))
+                {
+                    CurrentTag = Tag;
+                    for (AActor* Actor : SelectedActors)
+                    {
+                        if (Actor)
+                        {
+                            Actor->SetTag(CurrentTag);
+                        }
+                    }
+                }
+            }
+        }
+        ImGui::TreePop();
     }
 }
 

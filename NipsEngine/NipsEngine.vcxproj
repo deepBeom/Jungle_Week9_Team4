@@ -515,6 +515,7 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\EngineTypes.cpp" />
     <ClCompile Include="Source\Engine\Core\FileWatcher.cpp" />
+    <ClCompile Include="Source\Engine\Core\ActorTagRegistry.cpp" />
     <ClCompile Include="Source\Engine\Core\Paths.cpp" />
     <ClCompile Include="Source\Engine\Core\PlatformTime.cpp" />
     <ClCompile Include="Source\Engine\Core\ResourceManager.cpp" />
@@ -864,6 +865,7 @@
     <ClInclude Include="Source\Engine\Core\CrashDump.h" />
     <ClInclude Include="Source\Engine\Core\Debug.h" />
     <ClInclude Include="Source\Engine\Core\ActorTags.h" />
+    <ClInclude Include="Source\Engine\Core\ActorTagRegistry.h" />
     <ClInclude Include="Source\Engine\Core\Delegate\Delegate.h" />
     <ClInclude Include="Source\Engine\Core\Delegate\DelegateHandle.h" />
     <ClInclude Include="Source\Engine\Core\Delegate\DelegateMacros.h" />
