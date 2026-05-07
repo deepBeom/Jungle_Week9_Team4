@@ -32,6 +32,11 @@ void UTextRenderComponent::Serialize(FArchive& Ar)
     Ar << "Text" << Text;
     Ar << "Font" << FontName;
     Ar << "Font Size" << FontSize;
+
+    if (Ar.IsLoading())
+    {
+        SetFont(FontName);
+    }
 }
 
 void UTextRenderComponent::SetFont(const FName& InFontName)

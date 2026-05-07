@@ -78,6 +78,7 @@ bool FGameRenderPipeline::PrepareViewport(FRenderer& Renderer, FSceneView& OutSc
     ShowFlags.bBVHBoundingVolume = false;
     ShowFlags.bBoundingVolume = false;
     ShowFlags.bEnableLOD = false;
+    ShowFlags.bBillboardText = true;
 
     Bus.Clear();
     Bus.SetViewProjection(OutSceneView.ViewMatrix, OutSceneView.ProjectionMatrix);
